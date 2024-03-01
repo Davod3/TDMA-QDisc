@@ -4,10 +4,15 @@ obj-m += tdma.o
 obj-m += qdisc.o
 # tdma-objs += create_packet.o #netlink_sock.o
 
-all:
+.PHONY: all netcntl
+
+all: netcntl
 	$(MAKE) -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
 
+netcntl:
+	@$(MAKE) -C netcntl
 
 clean:
+	# rm -f tap trace.bt
 	$(MAKE) -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
 
