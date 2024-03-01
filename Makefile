@@ -1,4 +1,4 @@
-# obj-m += tdma.o
+obj-m += tdma.o
 # tdma-objs += create_packet.o #netlink_sock.o
 
 obj-m += qdisc.o
