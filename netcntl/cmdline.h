@@ -48,7 +48,7 @@ struct gengetopt_args_info
   long time_on_ns_arg;	/**< @brief time on in nanoseconds (default='200000000').  */
   char * time_on_ns_orig;	/**< @brief time on in nanoseconds original value given at command line.  */
   const char *time_on_ns_help; /**< @brief time on in nanoseconds help description.  */
-  long time_off_ns_arg;	/**< @brief time off in nanoseconds (default='200000000').  */
+  long time_off_ns_arg;	/**< @brief time off in nanoseconds (default='800000000').  */
   char * time_off_ns_orig;	/**< @brief time off in nanoseconds original value given at command line.  */
   const char *time_off_ns_help; /**< @brief time off in nanoseconds help description.  */
   int tx_window_width_arg;	/**< @brief width of transmission window.  */

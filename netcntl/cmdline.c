@@ -39,7 +39,7 @@ const char *gengetopt_args_info_help[] = {
   "  -f, --config-file=STRING   path to configuration file to use",
   "  -d, --devname=STRING       name of network device to use",
   "  -t, --time-on-ns=LONG      time on in nanoseconds  (default=`200000000')",
-  "  -p, --time-off-ns=LONG     time off in nanoseconds  (default=`200000000')",
+  "  -p, --time-off-ns=LONG     time off in nanoseconds  (default=`800000000')",
   "  -x, --tx-window-width=INT  width of transmission window",
   "  -w, --tunnel-width=INT     width of tunnel time",
   "  -o, --offset-delay=INT     offset delay (can be negative)",
@@ -89,7 +89,7 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->devname_orig = NULL;
   args_info->time_on_ns_arg = 200000000;
   args_info->time_on_ns_orig = NULL;
-  args_info->time_off_ns_arg = 200000000;
+  args_info->time_off_ns_arg = 800000000;
   args_info->time_off_ns_orig = NULL;
   args_info->tx_window_width_orig = NULL;
   args_info->tunnel_width_orig = NULL;
@@ -586,7 +586,7 @@ cmdline_parser_internal (
         
           if (update_arg( (void *)&(args_info->time_off_ns_arg), 
                &(args_info->time_off_ns_orig), &(args_info->time_off_ns_given),
-              &(local_args_info.time_off_ns_given), optarg, 0, "200000000", ARG_LONG,
+              &(local_args_info.time_off_ns_given), optarg, 0, "800000000", ARG_LONG,
               check_ambiguity, override, 0, 0,
               "time-off-ns", 'p',
               additional_error))

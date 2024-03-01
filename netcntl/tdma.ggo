@@ -6,7 +6,7 @@ purpose "Network Traffic Controller, interacts with TDMA Scheduler Kernel Module
 option "config-file" f "path to configuration file to use" string optional
 option "devname" d "name of network device to use" string optional
 option "time-on-ns" t "time on in nanoseconds" long default="200000000" optional
-option "time-off-ns" p "time off in nanoseconds" long default="200000000" optional
+option "time-off-ns" p "time off in nanoseconds" long default="800000000" optional
 option "tx-window-width" x "width of transmission window" int optional
 option "tunnel-width" w "width of tunnel time" int optional
 option "offset-delay" o "offset delay (can be negative)" int optional
