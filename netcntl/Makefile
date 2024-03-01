@@ -11,7 +11,7 @@ all: $(EXE)
 $(EXE): $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $(OBJ)
 
-%.o: %.c net-controller.h
+%.o: %.c netcntl.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:

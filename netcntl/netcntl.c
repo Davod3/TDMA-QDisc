@@ -75,8 +75,12 @@ int parse_config_file(const char *filename)
 int main(int argc, char *argv[])
 {
 	struct gengetopt_args_info args_info;
-
-	if (cmdline_parser(argc, argv, &args_info) != 0) exit(1);
+	
+	if (cmdline_parser(argc, argv, &args_info) != 0) 
+	{
+		perror("Could not open cmdline_parser");
+		exit(1);
+	}
 
 	// use values from config file
 	if (args_info.config_file_given)
@@ -90,6 +94,14 @@ int main(int argc, char *argv[])
 	// use provided flag values
 	else
 	{
+		// workaround for making device name required flag
+		if (!args_info.devname_given)
+		{
+			printf("Network device must be specified\n");
+			cmdline_parser_print_help();
+			exit(EXIT_FAILURE);
+		}
+
 		if (args_info.devname_given)  		 devname = args_info.devname_arg;
 		if (args_info.time_on_ns_given) 	 t_on_ns = args_info.time_on_ns_arg;
 		if (args_info.time_off_ns_given) 	 t_off_ns = args_info.time_off_ns_arg;
