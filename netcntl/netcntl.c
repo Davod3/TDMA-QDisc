@@ -13,7 +13,7 @@ int32_t offset_delay = 0;
 
 int load_kernel_mod(const char *mod_name, const char *params)
 {
-	char command[256];
+	char command[MAX_LINE_LEN];
 	snprintf(command, sizeof(command), "sudo insmod %s %s", mod_name, params);
 	if (system(command) != 0) 
 	{
@@ -25,8 +25,8 @@ int load_kernel_mod(const char *mod_name, const char *params)
 
 int unload_kernel_mod(const char *mod_name)
 {
-	char command[256];
-	snprintf(command, sizeof(command), "sudo rmmod %s %s", mod_name);
+	char command[MAX_LINE_LEN];
+	snprintf(command, sizeof(command), "sudo rmmod %s", mod_name);
 	if (system(command) != 0) 
 	{
 		perror("Failed to unload kernel module");
@@ -55,7 +55,7 @@ int parse_config_file(const char *filename)
 		{
             if (strcmp(key, "devname") == 0) 
 			{
-                devname = strdup(value);
+                devname = (char*)strdup(value);
 				printf("set devname: %s\n", value);
             } 
 			else if (strcmp(key, "t_on_ns") == 0) 

@@ -20,7 +20,7 @@ static struct net_device *device = NULL;
 
 // The name of the device we want to control, should eventually be configurable!
 //static char devname[] = "enp0s5";
-static char devname[] = "enp0s3";
+static char devname[] = "enp0s2";
 
 
 static long t_on_s = 0; //s
