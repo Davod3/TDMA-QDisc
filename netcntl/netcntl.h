@@ -26,6 +26,8 @@ extern int32_t offset_delay;
 extern char *devname;
 
 // function declarations
+int load_kernel_mod(const char *mod_name, const char *params);
+int unload_kernel_mod(const char *mod_name);
 int parse_config_file(const char *filename);
 
 #endif

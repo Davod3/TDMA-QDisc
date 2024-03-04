@@ -11,6 +11,30 @@ uint32_t tx_window_width = 0;
 uint32_t tun_width = 0;
 int32_t offset_delay = 0;
 
+int load_kernel_mod(const char *mod_name, const char *params)
+{
+	char command[256];
+	snprintf(command, sizeof(command), "sudo insmod %s %s", mod_name, params);
+	if (system(command) != 0) 
+	{
+		perror("Failed to load kernel module");
+		return errno;
+	}
+	return 0;
+}
+
+int unload_kernel_mod(const char *mod_name)
+{
+	char command[256];
+	snprintf(command, sizeof(command), "sudo rmmod %s %s", mod_name);
+	if (system(command) != 0) 
+	{
+		perror("Failed to unload kernel module");
+		return errno;
+	}
+	return 0;
+}
+
 int parse_config_file(const char *filename)
 {
 	FILE *f;
@@ -37,12 +61,12 @@ int parse_config_file(const char *filename)
 			else if (strcmp(key, "t_on_ns") == 0) 
 			{
                 t_on_ns = atoi(value);
-				printf("set t_on_ns: %d\n", t_on_ns);
+				printf("set t_on_ns: %ld\n", t_on_ns);
             } 
 			else if (strcmp(key, "t_off_ns") == 0) 
 			{
                 t_off_ns = atoi(value);
-				printf("set t_off_ns: %d\n", t_off_ns);
+				printf("set t_off_ns: %ld\n", t_off_ns);
             } 
 			else if (strcmp(key, "tx_window_width") == 0) 
 			{
@@ -110,7 +134,14 @@ int main(int argc, char *argv[])
 		if (args_info.offset_delay_given) 	 offset_delay = args_info.offset_delay_arg;
 	}
 
-	// TODO: launch module/implementation
+	// load kernel module
+	if (load_kernel_mod("tdma.ko", "") != 0)
+	{
+		perror("Error in load_kernel_mod()");
+		exit(EXIT_FAILURE);
+	}
+
+	// unload module -> but when?
 
 	exit(EXIT_SUCCESS);
 }
