@@ -472,7 +472,7 @@ static int tbf_change(struct Qdisc *sch, struct nlattr *opt,
 
 	// HERE
 	q->param = qopt->param;
-	printk(KERN_ALERT "(change %0x) %d, %d\n", sch->handle, q->param, qopt->param);
+	// printk(KERN_ALERT "(change %08x) param: (kernel, user) = (%d, %d)\n", sch->handle, q->param, qopt->param);
 
 	sch_tree_unlock(sch);
 	qdisc_put(old);
@@ -531,6 +531,11 @@ static int tbf_dump(struct Qdisc *sch, struct sk_buff *skb)
 		memset(&opt.peakrate, 0, sizeof(opt.peakrate));
 	opt.mtu = PSCHED_NS2TICKS(q->mtu);
 	opt.buffer = PSCHED_NS2TICKS(q->buffer);
+
+	// HERE
+	opt.param = q->param;
+	// printk(KERN_ALERT "(dump %08x) param: (kernel, user) = (%d, %d)\n", sch->handle, q->param, opt.param);
+
 	if (nla_put(skb, TCA_TBF_PARMS, sizeof(opt), &opt))
 		goto nla_put_failure;
 	if (q->rate.rate_bytes_ps >= (1ULL << 32) &&
@@ -542,11 +547,6 @@ static int tbf_dump(struct Qdisc *sch, struct sk_buff *skb)
 	    nla_put_u64_64bit(skb, TCA_TBF_PRATE64, q->peak.rate_bytes_ps,
 			      TCA_TBF_PAD))
 		goto nla_put_failure;
-	
-	// HERE
-	opt.limit = 0;
-	opt.param = q->param;
-	printk(KERN_ALERT "(dump %0x) limit: %d, %d; param: %d, %d\n", sch->handle, q->limit, opt.limit, q->param, opt.param);
 
 	return nla_nest_end(skb, nest);
 
