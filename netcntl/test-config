@@ -1,0 +1,3 @@
+devname=enp0s3
+tx_window_width=20
+offset_delay=-30

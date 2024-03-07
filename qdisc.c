@@ -17,7 +17,7 @@
 #include <net/sch_generic.h>
 #include <net/pkt_cls.h>
 #include <net/pkt_sched.h>
-
+#include <net/gso.h>
 
 /*	Simple Token Bucket Filter.
 	=======================================
@@ -285,7 +285,7 @@ static struct sk_buff *tbf_dequeue(struct Qdisc *sch)
 				while ( ktime_after(now, q->toff) ) {
 					q->toff = ktime_add(q->toff, q->Tup);
 				}
-				printk("Turning on @ %lu\nNext off time in %lu @ %lu\n",q->ton/1000000, (q->toff-now)/1000000, q->toff/1000000);
+				printk("Turning on @ %llu\nNext off time in %llu @ %llu\n",q->ton/1000000, (q->toff-now)/1000000, q->toff/1000000);
 			}
 			break;
 		case 1:
@@ -295,7 +295,7 @@ static struct sk_buff *tbf_dequeue(struct Qdisc *sch)
 					q->ton = ktime_add(q->ton, q->Tup);
 				}
 				qdisc_watchdog_schedule_ns(&q->watchdog, q->ton-now);
-				printk("Turning off @ %lu\nNext on time in %lu @ %lu\n",q->toff/1000000, (q->ton-now)/1000000, q->ton/1000000);
+				printk("Turning off @ %llu\nNext on time in %llu @ %llu\n",q->toff/1000000, (q->ton-now)/1000000, q->ton/1000000);
 			}
 			break;
 	}
