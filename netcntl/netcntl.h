@@ -8,22 +8,14 @@
 #include <errno.h>
 #include <stdint.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <linux/netlink.h>
 
 #include "cmdline.h"
 
+// macros
 #define MAX_LINE_LEN 64
-
-// timing configurations
-extern unsigned long t_on_s;
-extern unsigned long t_off_s;
-extern unsigned long t_on_ns;
-extern unsigned long t_off_ns;
-extern uint32_t tx_window_width;
-extern uint32_t tun_width;
-extern int32_t offset_delay;
-
-// name of network device we are controlling
-extern char *devname;
+//#define NETLINK_FAMILY 4200
 
 // function declarations
 int load_kernel_mod(const char *mod_name, const char *params);

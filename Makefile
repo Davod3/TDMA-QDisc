@@ -12,6 +12,10 @@ all: netcntl
 netcntl:
 	@$(MAKE) -C netcntl
 
+install:
+	sudo insmod qdisc.ko
+	sudo insmod tdma.ko
+
 clean:
 	# rm -f tap trace.bt
 	$(MAKE) -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
