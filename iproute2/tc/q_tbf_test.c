@@ -354,9 +354,8 @@ static int tbf_test_print_opt(struct qdisc_util *qu, FILE *f, struct rtattr *opt
 		print_string(PRINT_ANY, "linklayer", "linklayer %s ",
 			     sprint_linklayer(linklayer, b3));
 
+	// print_int(PRINT_ANY, "limit", "limit %d ", qopt->limit);
 	print_int(PRINT_ANY, "param", "param %d ", qopt->param);
-	print_int(PRINT_ANY, "limit", "limit %d ", qopt->limit);
-	// printf("\nparam: %d\n", qopt->param);
 
 	return 0;
 }
