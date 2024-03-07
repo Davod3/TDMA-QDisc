@@ -16,6 +16,9 @@ install:
 	sudo insmod qdisc.ko
 	sudo insmod tdma.ko
 
+remove:
+	sudo rmmod qdisk.ko
+	sudo rmmod tdma.ko
 clean:
 	# rm -f tap trace.bt
 	$(MAKE) -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean

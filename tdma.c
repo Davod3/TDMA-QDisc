@@ -120,10 +120,10 @@ static int start(void)
 
     // start netlink socket
     nl_socket = netlink_kernel_create(&init_net, NETLINK_FAMILY, &nl_cfg);
-    if (!nl_socket)
+    if (IS_ERR(nl_socket))
     {
         printk(KERN_ALERT "[TDMA]: failed to create Netlink socket\n");
-        return -ENOMEM;
+        return PTR_ERR(nl_socket);
     }
     printk(KERN_ALERT "[TDMA]: listening on Netlink socket...\n");
 

@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
 	nlh->nlmsg_len = NLMSG_SPACE(sizeof(struct tdma_vars_t));
 	nlh->nlmsg_pid = getpid();
 	nlh->nlmsg_flags = 0;
-	nlh->nlmsg_type = 1;
+	nlh->nlmsg_type = NLMSG_DONE;
 
 	// set IO vector
 	iov.iov_base = (void *)nlh;
