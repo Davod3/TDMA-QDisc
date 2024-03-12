@@ -47,6 +47,7 @@ static int nl_recv_msg(struct sk_buff *skb)
     nlh = nlmsg_hdr(skb);
     pid = nlh->nlmsg_pid;
 
+    printk(KERN_INFO "Entering: %s\n", __FUNCTION__);
     if (nlh == NULL)
     {
         printk(KERN_ALERT "[TDMA]: skb is NULL!\n");
@@ -55,8 +56,10 @@ static int nl_recv_msg(struct sk_buff *skb)
     }
 
     // TODO: hardcoded 1 - maybe set macros/enum for different message types
-    if (nlh->nlmsg_type == 1)
+    if (nlh->nlmsg_type == NLMSG_DONE)
     {
+        printk(KERN_INFO "Found netlink message\n");
+
         // get data struct from message
         data = (struct tdma_vars_t *)NLMSG_DATA(nlh);
 
@@ -72,11 +75,11 @@ static int nl_recv_msg(struct sk_buff *skb)
         // tun_width = data->tun_width;
         // offset_delay = data->offset_delay;
 
-        printk(KERN_ALERT "[TDMA]: devname set to %s\n", devname);
-        printk(KERN_ALERT "[TDMA]: t_on_s set to %lu\n", t_on_s);
-        printk(KERN_ALERT "[TDMA]: t_off_s set to %lu\n", t_off_s);
-        printk(KERN_ALERT "[TDMA]: t_on_ns set to %lu\n", t_on_ns);
-        printk(KERN_ALERT "[TDMA]: t_off_ns set to %lu\n", t_off_ns);
+        printk(KERN_INFO "[TDMA]: devname set to %s\n", devname);
+        printk(KERN_INFO "[TDMA]: t_on_s set to %lu\n", t_on_s);
+        printk(KERN_INFO "[TDMA]: t_off_s set to %lu\n", t_off_s);
+        printk(KERN_INFO "[TDMA]: t_on_ns set to %lu\n", t_on_ns);
+        printk(KERN_INFO "[TDMA]: t_off_ns set to %lu\n", t_off_ns);
     }
 
     retval = 0;
@@ -119,7 +122,7 @@ static int start(void)
     ktime_t time;
 
     // start netlink socket
-    nl_socket = netlink_kernel_create(&init_net, NETLINK_FAMILY, &nl_cfg);
+    nl_socket = netlink_kernel_create(&init_net, NETLINK_TEST_FAMILY, &nl_cfg);
     if (IS_ERR(nl_socket))
     {
         printk(KERN_ALERT "[TDMA]: failed to create Netlink socket\n");
@@ -153,7 +156,7 @@ static void stop(void)
 {
     printk(KERN_ALERT "Goodbye Module\n");
 
-    if (nl_socket)
+    if (!IS_ERR(nl_socket))
     {
         netlink_kernel_release(nl_socket);
         printk(KERN_ALERT "[TDMA]: released Netlink socket\n");
