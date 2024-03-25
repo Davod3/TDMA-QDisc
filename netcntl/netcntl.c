@@ -12,7 +12,7 @@ static uint32_t def_tun_width = 5;
 static int32_t def_offset_delay = -1;
 
 // changed values
-static char *devname = "";
+static char devname[MAX_LINE_LEN];
 static uint64_t t_on_s = 0;
 static uint64_t t_off_s = 0;
 static uint64_t t_on_ns = 0;
@@ -40,6 +40,11 @@ struct tdma_vars_t *update_vars(uint32_t *bitmap)
 {
 	struct tdma_vars_t *data;
 	data = malloc(sizeof(struct tdma_vars_t));
+	if (data == NULL)
+	{
+		perror("failed to allocate memory for data");
+		exit(EXIT_FAILURE);
+	}
 	
 	if (get_tdma_var_bit(bitmap, DEVNAME))
 	{
@@ -89,10 +94,10 @@ struct tdma_vars_t *update_vars(uint32_t *bitmap)
 void print_vars(void)
 {
 	printf("devname: %s\n", devname);
-	printf("t_on_s: %ul\n", t_on_s);
-	printf("t_off_s: %ul\n", t_off_s);
-	printf("t_on_ns: %ul\n", t_on_ns);
-	printf("t_off_ns: %ul\n", t_off_ns);
+	printf("t_on_s: %lu\n", t_on_s);
+	printf("t_off_s: %lu\n", t_off_s);
+	printf("t_on_ns: %lu\n", t_on_ns);
+	printf("t_off_ns: %lu\n", t_off_ns);
 	printf("tx_window_width: %u\n", tx_window_width);
 	printf("tun_width: %u\n", tun_width);
 	printf("offset_delay: %d\n", offset_delay);
@@ -118,7 +123,8 @@ int parse_config_file(uint32_t *bitmap, const char *filename)
 		{
             if (strcmp(key, "devname") == 0) 
 			{
-                devname = (char*)strdup(value);
+                // devname = (char*)strdup(value);
+				strcpy(&devname, value);
 				set_tdma_var_bit(bitmap, DEVNAME);
 				printf("set devname: %s\n", value);
             } 
@@ -257,7 +263,7 @@ int main(int argc, char *argv[])
 
 		if (args_info.devname_given)
 		{
-			devname = args_info.devname_arg;
+			strcpy(&devname, args_info.devname_arg);
 			set_tdma_var_bit(bitmap, DEVNAME);
 		}
 		if (args_info.time_on_ns_given) 	 
@@ -315,6 +321,8 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 	genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, genl_family, 0, 0, GNL_RATDMA_RECV_MSG, 1);
+
+	printf("Created NLMESSAGE\n");
 
 	// ensure data stored in portable way
 	printf("nla_put devname: %s\n", data->devname);
