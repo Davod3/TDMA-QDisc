@@ -121,6 +121,7 @@ struct tbf_sched_data {
 static u64 psched_ns_t2l(const struct psched_ratecfg *r,
 			 u64 time_in_ns)
 {
+	printk(KERN_ALERT "[QDISC]: entering %s\n", __FUNCTION__);
 	/* The formula is :
 	 * len = (time_in_ns * r->rate_bytes_ps) / NSEC_PER_SEC
 	 */
@@ -143,6 +144,8 @@ static u64 psched_ns_t2l(const struct psched_ratecfg *r,
 
 static void tbf_offload_change(struct Qdisc *sch)
 {
+	printk(KERN_ALERT "[QDISC]: entering %s\n", __FUNCTION__);
+
 	struct tbf_sched_data *q = qdisc_priv(sch);
 	struct net_device *dev = qdisc_dev(sch);
 	struct tc_tbf_qopt_offload qopt;
@@ -162,6 +165,8 @@ static void tbf_offload_change(struct Qdisc *sch)
 
 static void tbf_offload_destroy(struct Qdisc *sch)
 {
+	printk(KERN_ALERT "[QDISC]: entering %s\n", __FUNCTION__);
+
 	struct net_device *dev = qdisc_dev(sch);
 	struct tc_tbf_qopt_offload qopt;
 
@@ -176,6 +181,8 @@ static void tbf_offload_destroy(struct Qdisc *sch)
 
 static int tbf_offload_dump(struct Qdisc *sch)
 {
+	printk(KERN_ALERT "[QDISC]: entering %s\n", __FUNCTION__);
+
 	struct tc_tbf_qopt_offload qopt;
 
 	qopt.command = TC_TBF_STATS;
@@ -197,6 +204,8 @@ static void tbf_offload_graft(struct Qdisc *sch, struct Qdisc *new,
 		.command	= TC_TBF_GRAFT,
 	};
 
+	printk(KERN_ALERT "[QDISC]: entering %s\n", __FUNCTION__);
+
 	qdisc_offload_graft_helper(qdisc_dev(sch), sch, new, old,
 				   TC_SETUP_QDISC_TBF, &graft_offload, extack);
 }
@@ -212,6 +221,8 @@ static int tbf_segment(struct sk_buff *skb, struct Qdisc *sch,
 	netdev_features_t features = netif_skb_features(skb);
 	unsigned int len = 0, prev_len = qdisc_pkt_len(skb);
 	int ret, nb;
+
+	printk(KERN_ALERT "[QDISC]: entering %s\n", __FUNCTION__);
 
 	segs = skb_gso_segment(skb, features & ~NETIF_F_GSO_MASK);
 
@@ -241,6 +252,8 @@ static int tbf_segment(struct sk_buff *skb, struct Qdisc *sch,
 static int tbf_enqueue(struct sk_buff *skb, struct Qdisc *sch,
 		       struct sk_buff **to_free)
 {
+	printk(KERN_ALERT "[QDISC]: entering %s\n", __FUNCTION__);
+
 	struct tbf_sched_data *q = qdisc_priv(sch);
 	unsigned int len = qdisc_pkt_len(skb);
 	int ret;
@@ -267,11 +280,14 @@ printk(KERN_ALERT "ENQUEUE: success\n");
 
 static bool tbf_peak_present(const struct tbf_sched_data *q)
 {
+	printk(KERN_ALERT "[QDISC]: entering %s\n", __FUNCTION__);
 	return q->peak.rate_bytes_ps;
 }
 
 static struct sk_buff *tbf_dequeue(struct Qdisc *sch)
 {
+	printk(KERN_ALERT "[QDISC]: entering %s\n", __FUNCTION__);
+
 	struct tbf_sched_data *q = qdisc_priv(sch);
 	struct sk_buff *skb;
 	ktime_t now;
@@ -325,6 +341,8 @@ static struct sk_buff *tbf_dequeue(struct Qdisc *sch)
 
 static void tbf_reset(struct Qdisc *sch)
 {
+	printk(KERN_ALERT "[QDISC]: entering %s\n", __FUNCTION__);
+
 	struct tbf_sched_data *q = qdisc_priv(sch);
 
 	qdisc_reset(q->qdisc);
@@ -343,6 +361,8 @@ static const struct nla_policy tbf_policy[TCA_TBF_MAX + 1] = {
 static int tbf_change(struct Qdisc *sch, struct nlattr *opt,
 		      struct netlink_ext_ack *extack)
 {
+	printk(KERN_ALERT "[QDISC]: entering %s\n", __FUNCTION__);
+
 	// This function loads new configurations from opt to apply to sch.
 	int err;
 	struct tbf_sched_data *q = qdisc_priv(sch);
@@ -473,8 +493,9 @@ done:
 static int tbf_init(struct Qdisc *sch, struct nlattr *opt,
 		    struct netlink_ext_ack *extack)
 {
-	struct tbf_sched_data *q = qdisc_priv(sch);
+	printk(KERN_ALERT "[QDISC]: entering %s\n", __FUNCTION__);
 
+	struct tbf_sched_data *q = qdisc_priv(sch);
 
 	// qdisc_watchdog_init(&q->watchdog, sch);
 	qdisc_watchdog_init_clockid(&q->watchdog, sch, CLOCK_REALTIME);
@@ -500,6 +521,8 @@ static int tbf_init(struct Qdisc *sch, struct nlattr *opt,
 
 static void tbf_destroy(struct Qdisc *sch)
 {
+	printk(KERN_ALERT "[QDISC]: entering %s\n", __FUNCTION__);
+
 	struct tbf_sched_data *q = qdisc_priv(sch);
 
 	qdisc_watchdog_cancel(&q->watchdog);
@@ -509,6 +532,8 @@ static void tbf_destroy(struct Qdisc *sch)
 
 static int tbf_dump(struct Qdisc *sch, struct sk_buff *skb)
 {
+	printk(KERN_ALERT "[QDISC]: entering %s\n", __FUNCTION__);
+
 	struct tbf_sched_data *q = qdisc_priv(sch);
 	struct nlattr *nest;
 	struct tc_tbf_qopt opt;
@@ -552,6 +577,8 @@ nla_put_failure:
 static int tbf_dump_class(struct Qdisc *sch, unsigned long cl,
 			  struct sk_buff *skb, struct tcmsg *tcm)
 {
+	printk(KERN_ALERT "[QDISC]: entering %s\n", __FUNCTION__);
+
 	struct tbf_sched_data *q = qdisc_priv(sch);
 
 	tcm->tcm_handle |= TC_H_MIN(1);
@@ -563,6 +590,7 @@ static int tbf_dump_class(struct Qdisc *sch, unsigned long cl,
 static int tbf_graft(struct Qdisc *sch, unsigned long arg, struct Qdisc *new,
 		     struct Qdisc **old, struct netlink_ext_ack *extack)
 {
+	printk(KERN_ALERT "[QDISC]: entering %s\n", __FUNCTION__);
 	// Replace the qdisc from old to new?
 	// What is arg??
 	// Is this a class?
@@ -579,17 +607,22 @@ static int tbf_graft(struct Qdisc *sch, unsigned long arg, struct Qdisc *new,
 
 static struct Qdisc *tbf_leaf(struct Qdisc *sch, unsigned long arg)
 {
+	printk(KERN_ALERT "[QDISC]: entering %s\n", __FUNCTION__);
+
 	struct tbf_sched_data *q = qdisc_priv(sch);
 	return q->qdisc;
 }
 
 static unsigned long tbf_find(struct Qdisc *sch, u32 classid)
 {
+	printk(KERN_ALERT "[QDISC]: entering %s\n", __FUNCTION__);
 	return 1;
 }
 
 static void tbf_walk(struct Qdisc *sch, struct qdisc_walker *walker)
 {
+	printk(KERN_ALERT "[QDISC]: entering %s\n", __FUNCTION__);
+
 	if (!walker->stop) {
 		tc_qdisc_stats_dump(sch, 1, walker);
 	}

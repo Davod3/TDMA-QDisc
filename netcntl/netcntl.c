@@ -38,6 +38,7 @@ void clear_tdma_var_bit(uint32_t *bitmap, enum tdma_vars_e var)
 
 struct tdma_vars_t *update_vars(uint32_t *bitmap)
 {
+	// allocate memory for data struct
 	struct tdma_vars_t *data;
 	data = malloc(sizeof(struct tdma_vars_t));
 	if (data == NULL)
@@ -46,6 +47,7 @@ struct tdma_vars_t *update_vars(uint32_t *bitmap)
 		exit(EXIT_FAILURE);
 	}
 	
+	// update variables
 	if (get_tdma_var_bit(bitmap, DEVNAME))
 	{
 		data->devname = devname;
@@ -88,6 +90,7 @@ struct tdma_vars_t *update_vars(uint32_t *bitmap)
 	}
 	else data->offset_delay = def_offset_delay; // set default
 
+	// return pointer to data struct
 	return data;
 }
 
@@ -123,7 +126,6 @@ int parse_config_file(uint32_t *bitmap, const char *filename)
 		{
             if (strcmp(key, "devname") == 0) 
 			{
-                // devname = (char*)strdup(value);
 				strcpy(&devname, value);
 				set_tdma_var_bit(bitmap, DEVNAME);
 				printf("set devname: %s\n", value);
@@ -171,54 +173,6 @@ int parse_config_file(uint32_t *bitmap, const char *filename)
 	return 0;
 }
 
-// void create_netlink_socket(struct nl_sock *sk, int *genl_family)
-// {
-// 	sk = nl_socket_alloc();
-// 	if (sk < 0)
-// 	{
-// 		perror("failed to allocate memory for netlink socket");
-// 		exit(EXIT_FAILURE);
-// 	}
-// 	genl_connect(sk);
-// 	*genl_family = genl_ctrl_resolve(sk, NETLINK_FAMILY_NAME);
-// }
-
-// void create_nlmsg(struct nl_msg *msg, int *genl_family, struct tdma_vars_t *data)
-// {
-// 	msg = nlmsg_alloc();
-// 	if (msg < 0)
-// 	{
-// 		perror("failed to allocate memory for nlmsg");
-// 		exit(EXIT_FAILURE);
-// 	}
-// 	genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, *genl_family, 0, 0, GNL_RATDMA_RECV_MSG, 1);
-
-// 	// ensure data stored in portable way
-// 	printf("nla_put devname: %s\n", data->devname);
-// 	nla_put_string(msg, GNL_RATDMA_DEVNAME, data->devname);
-	
-// 	printf("nla_put t_on_s: %d\n", data->t_on_s);
-// 	nla_put_u64(msg, GNL_RATDMA_T_ON_S, data->t_on_s);
-
-// 	printf("nla_put t_off_s: %d\n", data->t_off_s);	
-// 	nla_put_u64(msg, GNL_RATDMA_T_OFF_S, data->t_off_s);
-
-// 	printf("nla_put t_on_ns: %d\n", data->t_on_ns);	
-// 	nla_put_u64(msg, GNL_RATDMA_T_ON_NS, data->t_on_ns);
-
-// 	printf("nla_put t_off_ns: %d\n", data->t_off_ns);	
-// 	nla_put_u64(msg, GNL_RATDMA_T_OFF_NS, data->t_off_ns);
-
-// 	printf("nla_put tx_window_width: %d\n", data->tx_window_width);	
-// 	nla_put_u32(msg, GNL_RATDMA_TX_WINDOW_WIDTH, data->tx_window_width);
-
-// 	printf("nla_put tun_width: %d\n", data->tun_width);	
-// 	nla_put_u32(msg, GNL_RATDMA_TUN_WIDTH, data->tun_width);
-
-// 	printf("nla_put offset_delay: %d\n", data->offset_delay);	
-// 	nla_put_s32(msg, GNL_RATDMA_OFFSET_DELAY, data->offset_delay);
-// }
-
 int main(int argc, char *argv[])
 {
 	struct gengetopt_args_info args_info;
@@ -229,10 +183,9 @@ int main(int argc, char *argv[])
 	struct tdma_vars_t *data;	// tdma var struct
 	uint32_t *bitmap; 			// tdma var bitmap
 
-	// initialize bitmap and genl_family
-	int tmp_a, tmp_b = 0;
+	// initialize bitmap pointer
+	int tmp_a = 0;
 	bitmap = &tmp_a;
-	//genl_family = &tmp_b;
 
 	// check cmdline parser included from gengetopt
 	if (cmdline_parser(argc, argv, &args_info) != 0) 
@@ -297,12 +250,10 @@ int main(int argc, char *argv[])
 
 	// save variable changes to struct
 	data = update_vars(bitmap);
-	//print_vars();
 
 	printf("creating netlink socket\n");
 
-	// create netlink socket and message
-	// create_netlink_socket(sk, genl_family);
+	// create netlink socket
 	sk = nl_socket_alloc();
 	if (sk < 0)
 	{
@@ -312,8 +263,7 @@ int main(int argc, char *argv[])
 	genl_connect(sk);
 	genl_family = genl_ctrl_resolve(sk, NETLINK_FAMILY_NAME);
 
-	printf("creating nlmsg\n");
-	//create_nlmsg(msg, genl_family, data);
+	// create netlink message
 	msg = nlmsg_alloc();
 	if (msg < 0)
 	{
@@ -322,30 +272,22 @@ int main(int argc, char *argv[])
 	}
 	genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, genl_family, 0, 0, GNL_RATDMA_RECV_MSG, 1);
 
-	printf("Created NLMESSAGE\n");
-
+	// save changed variables to nlmsg
 	// ensure data stored in portable way
 	printf("nla_put devname: %s\n", data->devname);
 	nla_put_string(msg, GNL_RATDMA_DEVNAME, data->devname);
-	
 	printf("nla_put t_on_s: %d\n", data->t_on_s);
 	nla_put_u64(msg, GNL_RATDMA_T_ON_S, data->t_on_s);
-
 	printf("nla_put t_off_s: %d\n", data->t_off_s);	
 	nla_put_u64(msg, GNL_RATDMA_T_OFF_S, data->t_off_s);
-
 	printf("nla_put t_on_ns: %d\n", data->t_on_ns);	
 	nla_put_u64(msg, GNL_RATDMA_T_ON_NS, data->t_on_ns);
-
 	printf("nla_put t_off_ns: %d\n", data->t_off_ns);	
 	nla_put_u64(msg, GNL_RATDMA_T_OFF_NS, data->t_off_ns);
-
 	printf("nla_put tx_window_width: %d\n", data->tx_window_width);	
 	nla_put_u32(msg, GNL_RATDMA_TX_WINDOW_WIDTH, data->tx_window_width);
-
 	printf("nla_put tun_width: %d\n", data->tun_width);	
 	nla_put_u32(msg, GNL_RATDMA_TUN_WIDTH, data->tun_width);
-
 	printf("nla_put offset_delay: %d\n", data->offset_delay);	
 	nla_put_s32(msg, GNL_RATDMA_OFFSET_DELAY, data->offset_delay);
 
