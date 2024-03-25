@@ -18,7 +18,8 @@ typedef struct _Cycle
 static struct net_device *device = NULL;
 
 // The name of the device we want to control
-static char *devname = "enp0s2";
+//static char *devname = "enp0s2";
+static char *devname = "enp0s1";
 
 static long t_on_s = 0;             //s
 static long t_on_ns = 200000000UL;  //ns
