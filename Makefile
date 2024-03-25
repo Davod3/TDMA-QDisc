@@ -1,4 +1,6 @@
 obj-m += tdma.o
+# tdma-objs += netlink_sock.o
+
 # tdma-objs += create_packet.o #netlink_sock.o
 
 obj-m += qdisc.o
@@ -19,8 +21,8 @@ install:
 remove:
 	sudo rmmod qdisc.ko
 	sudo rmmod tdma.ko
+
 clean:
-	# rm -f tap trace.bt
 	$(MAKE) -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
 	@$(MAKE) -C netcntl clean
 

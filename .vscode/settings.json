@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "netdevice.h": "c"
+        "netdevice.h": "c",
+        "netlink.h": "c",
+        "ctrl.h": "c",
+        "genl.h": "c"
     }
 }

@@ -1,46 +1,33 @@
-#pragma once
+// #pragma once
 
-#include <linux/netlink.h>
+// #include <linux/netlink.h>
 
-#define NETLINK_FAMILY 4200
-#define NETLINK_TEST_FAMILY 25
+// #define NETLINK_FAMILY 4200
+// #define NETLINK_TEST_FAMILY 25
 
-/*
- * TDMA VARIABLE BITMAP
- * ----------------------------------------------------------------------------
- * A 32-bit unsigned integer that holds information related to
- * whether a specific variable (from tdma_vars_t) has been set
- * by netcntl, which is updated by bit operations from tdma_vars_e
- *
- * 31                                0
- * 00000000 00000000 00000000 00000000
- *                            ^^^^^^^^      
- *     (currently used by tdma_vars_e)
-*/
-typedef uint32_t tdma_vars_bitmap_t;
+#define NETLINK_FAMILY_NAME "raTDMA"
 
-struct tdma_vars_t
+enum genl_ratdma_ops
 {
-    char *devname;
-    uint64_t t_on_s;
-    uint64_t t_off_s;
-    uint64_t t_on_ns;
-    uint64_t t_off_ns;
-    uint32_t tx_window_width;
-    uint32_t tun_width;
-    int32_t offset_delay;
+    GNL_RATDMA_RECV_MSG,
+    /* add more operations for different request types */
 };
 
-enum tdma_vars_e
+enum genl_ratdma_attr_ids
 {
-    DEVNAME = 0,
-    T_ON_S = 1,
-    T_OFF_S = 2,
-    T_ON_NS = 3,
-    T_OFF_NS = 4,
-    TX_WINDOW_WIDTH = 5,
-    TUN_WIDTH = 6,
-    OFFSET_DELAY = 7,
+    GNL_RATDMA_DEVNAME = 1,
+    GNL_RATDMA_T_ON_S,
+    GNL_RATDMA_T_OFF_S,
+    GNL_RATDMA_T_ON_NS,
+    GNL_RATDMA_T_OFF_NS,
+    GNL_RATDMA_TX_WINDOW_WIDTH,
+    GNL_RATDMA_TUN_WIDTH,
+    GNL_RATDMA_OFFSET_DELAY,
+    /* include additional variables here */
+    __GNL_RATDMA_COUNT,
 };
+
+#define GNL_RATDMA_MAX (__GNL_RATDMA_COUNT - 1)
 
 int init_netlink(void);
+int remove_netlink(void);
