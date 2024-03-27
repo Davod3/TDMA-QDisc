@@ -18,7 +18,7 @@
 #include <net/pkt_cls.h>
 #include <net/pkt_sched.h>
 
-#include "tc_tdma.h" // TODO: change tc_tbf_test_qopt to tc_tdma; must do the same in the tc cli implementation
+#include "tc_tdma.h" // TODO: change tc_tbf_test_qopt to tc_tdma; must do the same in the tc cli implementation as tc_tdma.h is shared
 
 
 /*	Simple Token Bucket Filter.

@@ -1,7 +1,7 @@
 #include <linux/types.h>
 #include <linux/pkt_sched.h>
 
-struct tc_tbf_test_qopt {
+struct tc_tbf_test_qopt { // TODO: change tc_tbf_test_qopt to tc_tdma; must do the same in the tc cli implementation as tc_tdma.h is shared
 	struct tc_ratespec rate;
 	struct tc_ratespec peakrate;
 	__u32		limit;
