@@ -4,6 +4,7 @@
 #include <linux/module.h>
 #include <linux/printk.h>
 #include <linux/skbuff.h>
+#include <linux/types.h>
 #include <linux/init.h>
 #include <linux/netdevice.h>
 #include <linux/moduleparam.h>
@@ -24,10 +25,10 @@ static struct net_device *device = NULL;
 // The name of the device we want to control
 char devname[] = "enp0s2";
 
-long unsigned int t_on_s = 0;             //s
-long unsigned int t_on_ns = 200000000UL;  //ns
-long unsigned int t_off_s = 0;            //s
-long unsigned int t_off_ns = 800000000UL; //ns
+u64 t_on_s = 0;             //s
+u64 t_on_ns = 200000000UL;  //ns
+u64 t_off_s = 0;            //s
+u64 t_off_ns = 800000000UL; //ns
 
 // export variables
 EXPORT_SYMBOL(devname);
@@ -36,10 +37,10 @@ EXPORT_SYMBOL(t_on_ns);
 EXPORT_SYMBOL(t_off_s);
 EXPORT_SYMBOL(t_off_ns);
 
-module_param(t_on_ns, long, 0);
-MODULE_PARM_DESC(t_on_ns, "Time spent tx in nanoseconds");
-module_param(t_off_ns, long, 0);
-MODULE_PARM_DESC(t_off_ns, "Time spent not tx in nanoseconds");
+// module_param(t_on_ns, long long unsigned int, 0);
+// MODULE_PARM_DESC(t_on_ns, "Time spent tx in nanoseconds");
+// module_param(t_off_ns, long long unsigned int, 0);
+// MODULE_PARM_DESC(t_off_ns, "Time spent not tx in nanoseconds");
 
 static struct hrtimer on_timer;
 static struct hrtimer off_timer;

@@ -1,5 +1,6 @@
 //#pragma once
 
+// custom NETLINK 'family name' to bind socket to
 #define NETLINK_FAMILY_NAME "raTDMA"
 
 enum genl_ratdma_ops
@@ -26,10 +27,10 @@ enum genl_ratdma_attr_ids
 
 #ifdef NETLINK_SOCK
 extern char devname[64];
-extern long unsigned int t_on_s;
-extern long unsigned int t_on_ns;
-extern long unsigned int t_off_s;
-extern long unsigned int t_off_ns;
+extern u64 t_on_s;
+extern u64 t_on_ns;
+extern u64 t_off_s;
+extern u64 t_off_ns;
 #endif
 
 int handle_nl_recv_msg(struct sk_buff *skb, struct genl_info *info);
