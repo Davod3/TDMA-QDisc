@@ -1,9 +1,4 @@
-// #pragma once
-
-// #include <linux/netlink.h>
-
-// #define NETLINK_FAMILY 4200
-// #define NETLINK_TEST_FAMILY 25
+//#pragma once
 
 #define NETLINK_FAMILY_NAME "raTDMA"
 
@@ -24,10 +19,17 @@ enum genl_ratdma_attr_ids
     GNL_RATDMA_TUN_WIDTH,
     GNL_RATDMA_OFFSET_DELAY,
     /* include additional variables here */
-    __GNL_RATDMA_COUNT,
+    __GNL_RATDMA_COUNT
 };
 
 #define GNL_RATDMA_MAX (__GNL_RATDMA_COUNT - 1)
 
-int init_netlink(void);
-int remove_netlink(void);
+#ifdef NETLINK_SOCK
+extern char devname[64];
+extern long unsigned int t_on_s;
+extern long unsigned int t_on_ns;
+extern long unsigned int t_off_s;
+extern long unsigned int t_off_ns;
+#endif
+
+int handle_nl_recv_msg(struct sk_buff *skb, struct genl_info *info);

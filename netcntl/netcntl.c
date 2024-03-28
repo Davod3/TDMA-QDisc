@@ -1,26 +1,6 @@
 
 #include "netcntl.h"
 
-// default values
-static char *def_devname = "enp0s2";
-static uint64_t def_t_on_s = 0;
-static uint64_t def_t_off_s = 0;
-static uint64_t def_t_on_ns = 200000000;
-static uint64_t def_t_off_ns = 800000000;
-static uint32_t def_tx_window_width = 5;
-static uint32_t def_tun_width = 5;
-static int32_t def_offset_delay = -1;
-
-// changed values
-static char devname[MAX_LINE_LEN];
-static uint64_t t_on_s = 0;
-static uint64_t t_off_s = 0;
-static uint64_t t_on_ns = 0;
-static uint64_t t_off_ns = 0;
-static uint32_t tx_window_width = 0;
-static uint32_t tun_width = 0;
-static int32_t offset_delay = 0;
-
 void set_tdma_var_bit(uint32_t *bitmap, enum tdma_vars_e var) 
 {
 	*bitmap |= (1 << var);
@@ -298,7 +278,7 @@ int main(int argc, char *argv[])
 		perror("failed to send netlink message");
 		return -errno;
 	}
-	// Collect Timestamp on Receiving End
+	// TODO Collect Timestamp on Receiving End
 
 	printf("Sent netlink message with updates:\n");
 	print_vars();

@@ -45,6 +45,26 @@ enum tdma_vars_e
     OFFSET_DELAY = 7,
 };
 
+// config variables
+char devname[MAX_LINE_LEN];
+uint64_t t_on_s = 0;
+uint64_t t_off_s = 0;
+uint64_t t_on_ns = 0;
+uint64_t t_off_ns = 0;
+uint32_t tx_window_width = 0;
+uint32_t tun_width = 0;
+int32_t offset_delay = 0;
+
+// default values
+char def_devname[] = "enp0s2";
+uint64_t def_t_on_s = 0;
+uint64_t def_t_off_s = 0;
+uint64_t def_t_on_ns = 200000000;
+uint64_t def_t_off_ns = 800000000;
+uint32_t def_tx_window_width = 5;
+uint32_t def_tun_width = 5;
+int32_t def_offset_delay = -1;
+
 /* function declarations */
 
 int parse_config_file(uint32_t *bitmap, const char *filename);
