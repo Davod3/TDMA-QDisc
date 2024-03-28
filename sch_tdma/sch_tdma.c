@@ -18,7 +18,7 @@
 #include <net/pkt_cls.h>
 #include <net/pkt_sched.h>
 
-#include "tc_tdma.h" // TODO: change tc_tbf_test_qopt to tc_tdma; must do the same in the tc cli implementation as tc_tdma.h is shared
+#include "tc_tdma.h"
 
 
 /*	Simple Token Bucket Filter.
@@ -374,7 +374,7 @@ static void tbf_reset(struct Qdisc *sch)
 }
 
 static const struct nla_policy tbf_policy[TCA_TBF_MAX + 1] = {
-	[TCA_TBF_PARMS]	= { .len = sizeof(struct tc_tbf_test_qopt) },
+	[TCA_TBF_PARMS]	= { .len = sizeof(struct tc_tdma_qopt) },
 	[TCA_TBF_RTAB]	= { .type = NLA_BINARY, .len = TC_RTAB_SIZE },
 	[TCA_TBF_PTAB]	= { .type = NLA_BINARY, .len = TC_RTAB_SIZE },
 	[TCA_TBF_RATE64]	= { .type = NLA_U64 },
@@ -389,7 +389,7 @@ static int tbf_change(struct Qdisc *sch, struct nlattr *opt,
 	int err;
 	struct tbf_sched_data *q = qdisc_priv(sch);
 	struct nlattr *tb[TCA_TBF_MAX + 1];
-	struct tc_tbf_test_qopt *qopt;
+	struct tc_tdma_qopt *qopt;
 	struct Qdisc *child = NULL;
 	struct Qdisc *old = NULL;
 	struct psched_ratecfg rate;
@@ -504,8 +504,12 @@ static int tbf_change(struct Qdisc *sch, struct nlattr *opt,
 	memcpy(&q->peak, &peak, sizeof(struct psched_ratecfg));
 
 	// HERE
-	q->param = qopt->param;
-	// printk(KERN_ALERT "(change %08x) param: (kernel, user) = (%d, %d)\n", sch->handle, q->param, qopt->param);
+	// q->param = qopt->param;
+	q->t_frame = qopt->frame;
+	q->t_slot = qopt->slot;
+	// printk(KERN_DEBUG "(change %08x) param: (kernel, user) = (%d, %d)\n", sch->handle, q->param, qopt->param);
+	printk(KERN_DEBUG "(change %08x) frame: (kernel, user) = (%lld, %lld)\n", sch->handle, q->t_frame, qopt->frame);
+	printk(KERN_DEBUG "(change %08x) slot: (kernel, user) = (%lld, %lld)\n", sch->handle, q->t_slot, qopt->slot);
 
 	sch_tree_unlock(sch);
 	qdisc_put(old);
@@ -547,7 +551,7 @@ static int tbf_dump(struct Qdisc *sch, struct sk_buff *skb)
 {
 	struct tbf_sched_data *q = qdisc_priv(sch);
 	struct nlattr *nest;
-	struct tc_tbf_test_qopt opt;
+	struct tc_tdma_qopt opt;
 	// int err;
 
 	// err = tbf_offload_dump(sch);
@@ -568,8 +572,12 @@ static int tbf_dump(struct Qdisc *sch, struct sk_buff *skb)
 	opt.buffer = PSCHED_NS2TICKS(q->buffer);
 
 	// HERE
-	opt.param = q->param;
-	// printk(KERN_ALERT "(dump %08x) param: (kernel, user) = (%d, %d)\n", sch->handle, q->param, opt.param);
+	// opt.param = q->param;
+	opt.frame = q->t_frame;
+	opt.slot = q->t_slot;
+	// printk(KERN_DEBUG "(dump %08x) param: (kernel, user) = (%d, %d)\n", sch->handle, q->param, opt.param);
+	printk(KERN_DEBUG "(dump %08x) frame: (kernel, user) = (%lld, %lld)\n", sch->handle, q->t_frame, opt.frame);
+	printk(KERN_DEBUG "(dump %08x) slot: (kernel, user) = (%lld, %lld)\n", sch->handle, q->t_slot, opt.slot);
 
 	if (nla_put(skb, TCA_TBF_PARMS, sizeof(opt), &opt))
 		goto nla_put_failure;
@@ -644,7 +652,7 @@ nla_put_failure:
 static struct Qdisc_ops tbf_qdisc_ops __read_mostly = {
 	.next		=	NULL,
 	// .cl_ops		=	&tbf_class_ops,
-	.id		=	"tbf_test",
+	.id		=	"tdma",
 	.priv_size	=	sizeof(struct tbf_sched_data),
 	.enqueue	=	tbf_enqueue,
 	.dequeue	=	tbf_dequeue,
