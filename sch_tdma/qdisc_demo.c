@@ -17,6 +17,10 @@
 
 #include "tc_tdma.h"
 
+
+// gcc -I ~/sources/iproute2/include/ -I ~/sources/iproute2/include/ -I . -DHAVE_ELF -c -o qdisc_demo.o qdisc_demo.c; gcc qdisc_demo.o ~/sources/iproute2/lib/libutil.a ~/sources/iproute2/lib/libnetlink.a ~/sources/iproute2/tc/libtc.a -Wl,-export-dynamic -ltirpc -lelf ~/sources/iproute2/lib/libutil.a ~/sources/iproute2/lib/libnetlink.a -ltirpc -lelf -lm -ldl -o qdisc_demo
+
+
 struct rtnl_handle rth;
 
 static int qdisc_modify(int cmd, unsigned int flags, struct tc_tdma_qopt *opt) {
@@ -37,7 +41,7 @@ static int qdisc_modify(int cmd, unsigned int flags, struct tc_tdma_qopt *opt) {
     struct {
         struct nlmsghdr n;
         struct tcmsg t;
-        char buf[64 * 1024];
+	char buf[64 * 1024];
         // char buf[TCA_BUF_MAX];
     } req = {
         .n.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcmsg)),
@@ -118,7 +122,7 @@ int main(int argc, char **argv) {
 
     if (qdisc_modify(RTM_NEWQDISC, NLM_F_EXCL | NLM_F_CREATE, opt)) {
         printf("Failed to add qdisc\n");
-        exit(1);
+	exit(1);
     }
 
     rtnl_close(&rth);
@@ -126,4 +130,3 @@ int main(int argc, char **argv) {
     printf("Success\n");
     return 0;
 }
-
