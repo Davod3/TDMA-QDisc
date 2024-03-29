@@ -17,10 +17,6 @@
 
 #include "tc_tdma.h"
 
-
-// gcc -I ~/sources/iproute2/include/ -I ~/sources/iproute2/include/ -I . -DHAVE_ELF -c -o qdisc_demo.o qdisc_demo.c; gcc qdisc_demo.o ~/sources/iproute2/lib/libutil.a ~/sources/iproute2/lib/libnetlink.a ~/sources/iproute2/tc/libtc.a -Wl,-export-dynamic -ltirpc -lelf ~/sources/iproute2/lib/libutil.a ~/sources/iproute2/lib/libnetlink.a -ltirpc -lelf -lm -ldl -o qdisc_demo
-
-
 struct rtnl_handle rth;
 
 static int qdisc_modify(int cmd, unsigned int flags, struct tc_tdma_qopt *opt) {
@@ -32,16 +28,18 @@ static int qdisc_modify(int cmd, unsigned int flags, struct tc_tdma_qopt *opt) {
     // flags = NLM_F_REPLACE // link
 
     // char d[IFNAMSIZ] = {};
-    // char d[16] = {}; // device (interface) name
-    char *d = "enp0s1";
+    char d[16] = {}; // device (interface) name
+    // char *d = "enp0s1";
+    strncpy(d, "enp0s1", 16);
     // char k[FILTER_NAMESZ] = {};
-    // char k[16] = {}; // qdisc (kind) name
-    char *k = "tdma";
+    char k[16] = {}; // qdisc (kind) name
+    strncpy(k, "tdma", 16);
+    // char *k = "tdma";
 
     struct {
         struct nlmsghdr n;
         struct tcmsg t;
-	char buf[64 * 1024];
+        char buf[64 * 1024];
         // char buf[TCA_BUF_MAX];
     } req = {
         .n.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcmsg)),
@@ -60,11 +58,11 @@ static int qdisc_modify(int cmd, unsigned int flags, struct tc_tdma_qopt *opt) {
     // BEGIN hardcoding    // END hardcoding
 
     if (k[0])
-        addattr_l(&req.n, sizeof(req), TCA_KIND, k, strlen(k));
+        addattr_l(&req.n, sizeof(req), TCA_KIND, k, strlen(k) + 1);
 
     // Add TCA_OPTIONS
     tail = addattr_nest(&req.n, 1024, TCA_OPTIONS);
-    addattr_l(&req.n, 1024, TCA_TBF_PARMS, opt, sizeof(opt));
+    addattr_l(&req.n, 2024, TCA_TBF_PARMS, opt, sizeof(*opt));
     addattr_nest_end(&req.n, tail);
 
     if (d[0]) {
@@ -89,7 +87,7 @@ struct tc_ratespec *dummy_ratespec() {
     struct tc_ratespec *rs;
     rs = malloc(sizeof(struct tc_ratespec));
     rs->cell_log = '\0';
-    rs->linklayer = 9;
+    rs->linklayer = 0;
     rs->overhead = 0;
     rs->cell_align = 0;
     rs->mpu = 0;
@@ -113,16 +111,19 @@ int main(int argc, char **argv) {
 
     opt = malloc(sizeof(struct tc_tdma_qopt));
     opt->rate = *dummy_ratespec();
+    opt->rate.linklayer = 1;
+    opt->rate.rate = 27500;
     opt->peakrate = *dummy_ratespec();
+
     opt->limit = 2915;
-    opt->buffer = 1000;
-    opt->mtu = 1000;
+    opt->buffer = 874999;
+    opt->mtu = 0;
     opt->frame = 1000000000;
     opt->slot = 100000000;
 
     if (qdisc_modify(RTM_NEWQDISC, NLM_F_EXCL | NLM_F_CREATE, opt)) {
         printf("Failed to add qdisc\n");
-	exit(1);
+        exit(1);
     }
 
     rtnl_close(&rth);
