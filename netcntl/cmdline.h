@@ -60,6 +60,7 @@ struct gengetopt_args_info
   int offset_delay_arg;	/**< @brief offset delay (can be negative).  */
   char * offset_delay_orig;	/**< @brief offset delay (can be negative) original value given at command line.  */
   const char *offset_delay_help; /**< @brief offset delay (can be negative) help description.  */
+  const char *use_tc_help; /**< @brief use Linux Traffic Control (tc) to set additional qdisc parameters help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
@@ -70,6 +71,7 @@ struct gengetopt_args_info
   unsigned int tx_window_width_given ;	/**< @brief Whether tx-window-width was given.  */
   unsigned int tunnel_width_given ;	/**< @brief Whether tunnel-width was given.  */
   unsigned int offset_delay_given ;	/**< @brief Whether offset-delay was given.  */
+  unsigned int use_tc_given ;	/**< @brief Whether use-tc was given.  */
 
 } ;
 

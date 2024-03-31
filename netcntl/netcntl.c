@@ -1,20 +1,92 @@
 
 #include "netcntl.h"
 
-void set_tdma_var_bit(uint32_t *bitmap, enum tdma_vars_e var) 
+int modify_qdisc(int cmd, uint32_t flags, struct tc_tdma_qopt *opt) 
 {
-	*bitmap |= (1 << var);
+	// TODO: Modify this to use existing netlink message header
+	return 0;
+    // cmd = RTM_NEWQDISC // add | change | replace | link
+    // cmd = RTM_DELQDISC // delete
+    // flags = NLM_F_EXCL | NLM_F_CREATE // add
+    // flags = 0 // change | delete
+    // flags = NLM_F_CREATE | NLM_F_REPLACE // replace
+    // flags = NLM_F_REPLACE // link
+
+    // char d[IFNAMSIZ] = {};
+    // char d[16] = {}; // device (interface) name
+    // // char *d = "enp0s1";
+    // strncpy(d, "enp0s1", 16);
+    // // char k[FILTER_NAMESZ] = {};
+    // char k[16] = {}; // qdisc (kind) name
+    // strncpy(k, "tdma", 16);
+    // // char *k = "tdma";
+
+    // struct {
+    //     struct nlmsghdr n;
+    //     struct tcmsg t;
+    //     char buf[64 * 1024];
+    //     // char buf[TCA_BUF_MAX];
+    // } 
+	// req = {
+    //     .n.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcmsg)),
+    //     .n.nlmsg_flags = NLM_F_REQUEST | flags,
+    //     .n.nlmsg_type = cmd,
+
+    //     .t.tcm_family = AF_UNSPEC, // unsigned char
+    //     // .t.tcm_ifindex // int // required
+    //     // .t.tcm_handle = handle, // __u32 // optional
+    //     .t.tcm_parent = TC_H_ROOT, // __u32
+    //     // .t.tcm_info = 0 // __u32 // optional
+    // };
+
+    // struct rtattr *tail;
+
+    // // BEGIN hardcoding    // END hardcoding
+
+    // if (k[0])
+    //     addattr_l(&req.n, sizeof(req), TCA_KIND, k, strlen(k) + 1);
+
+    // // Add TCA_OPTIONS
+    // tail = addattr_nest(&req.n, 1024, TCA_OPTIONS);
+    // addattr_l(&req.n, 2024, TCA_TBF_PARMS, opt, sizeof(*opt));
+    // addattr_nest_end(&req.n, tail);
+
+    // if (d[0]) {
+    //     int idx;
+
+    //     ll_init_map(&rth);
+
+    //     idx = ll_name_to_index(d);
+    //     if (!idx)
+    //         return 1;
+    //     req.t.tcm_ifindex = idx;
+    // printf("%d\n", idx);
+    // }
+
+    // if (rtnl_talk(&rth, &req.n, NULL) < 0)
+    //     return 1;
+    
+    // return 0;
 }
 
-bool get_tdma_var_bit(uint32_t *bitmap, enum tdma_vars_e var)
+struct tc_ratespec *dummy_ratespec(void) 
 {
-	return (((*bitmap & (1 << var)) != 0) == true);
+    struct tc_ratespec *rs;
+    rs = malloc(sizeof(struct tc_ratespec));
+    rs->cell_log = '\0';
+    rs->linklayer = 0;
+    rs->overhead = 0;
+    rs->cell_align = 0;
+    rs->mpu = 0;
+    rs->rate = 0;
+    return rs;
 }
 
-void clear_tdma_var_bit(uint32_t *bitmap, enum tdma_vars_e var)
-{
-	*bitmap &= ~(1 << var);
-}
+void set_tdma_var_bit(uint32_t *bitmap, enum tdma_vars_e var) { *bitmap |= (1 << var); }
+
+bool get_tdma_var_bit(uint32_t *bitmap, enum tdma_vars_e var) { return (((*bitmap & (1 << var)) != 0) == true); }
+
+void clear_tdma_var_bit(uint32_t *bitmap, enum tdma_vars_e var) { *bitmap &= ~(1 << var); }
 
 struct tdma_vars_t *update_vars(uint32_t *bitmap)
 {
@@ -92,6 +164,14 @@ struct tdma_vars_t *update_vars(uint32_t *bitmap)
 	}
 	else data->offset_delay = def_offset_delay; // set default
 
+	if (get_tdma_var_bit(bitmap, USE_TC))
+	{
+		printf("%sattr: %s is set!%s\n", yellow, (int)USE_TC, reset);
+		data->use_tc = use_tc;
+		clear_tdma_var_bit(bitmap, USE_TC);
+	}
+	else data->use_tc = def_use_tc; // set default
+
 	// return pointer to data struct
 	return data;
 }
@@ -106,6 +186,7 @@ void print_vars(void)
 	printf("tx_window_width: %u\n", tx_window_width);
 	printf("tun_width: %u\n", tun_width);
 	printf("offset_delay: %d\n", offset_delay);
+	printf("use_tc: %d\n", (int)use_tc);
 }
 
 int parse_config_file(uint32_t *bitmap, const char *filename)
@@ -173,8 +254,14 @@ int parse_config_file(uint32_t *bitmap, const char *filename)
 			{
                 offset_delay = (uint32_t)strtoul(value, &end_ptr, 10);
 				set_tdma_var_bit(bitmap, OFFSET_DELAY);
-				printf("set offset_delay: %d\n", (offset_delay));
+				printf("set offset_delay: %d\n", offset_delay);
             } 
+			else if (strcmp(key, "use_tc") == 0)
+			{
+				use_tc = (bool)value;
+				set_tdma_var_bit(bitmap, USE_TC);
+				printf("set use_tc: %d\n", use_tc);
+			}
 			else 
 			{
                 printf("Invalid key: %s specified\n", key);
@@ -259,6 +346,11 @@ int main(int argc, char *argv[])
 			offset_delay = args_info.offset_delay_arg;
 			set_tdma_var_bit(bitmap, OFFSET_DELAY);
 		}
+		if (args_info.use_tc_given)
+		{
+			use_tc = true;
+			set_tdma_var_bit(bitmap, USE_TC);
+		}
 	}
 
 	printf("%sSaving variables to data%s\n", magenta, reset);
@@ -305,6 +397,9 @@ int main(int argc, char *argv[])
 	nla_put_u32(msg, GNL_RATDMA_TUN_WIDTH, data->tun_width);
 	printf("nla_put offset_delay: %d\n", data->offset_delay);	
 	nla_put_s32(msg, GNL_RATDMA_OFFSET_DELAY, data->offset_delay);
+	printf("nla_put use_tc: %d\n", data->use_tc);
+	// TODO: set nla_put here for use_tc? -> add functionality to netlink_sock
+	// to use TC (add additional operation)
 
 	// send message to kernel
 	printf("%sSending message to kernel%s\n", magenta, reset);

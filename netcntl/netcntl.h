@@ -40,6 +40,7 @@ struct tdma_vars_t
     uint32_t tx_window_width;
     uint32_t tun_width;
     int32_t offset_delay;
+    bool use_tc;
 };
 
 enum tdma_vars_e
@@ -52,6 +53,7 @@ enum tdma_vars_e
     TX_WINDOW_WIDTH = 5,
     TUN_WIDTH = 6,
     OFFSET_DELAY = 7,
+    USE_TC = 8,
 };
 
 /*******************************************************************************/
@@ -67,6 +69,7 @@ uint64_t t_off_ns = 0;
 uint32_t tx_window_width = 0;
 uint32_t tun_width = 0;
 int32_t offset_delay = 0;
+bool use_tc = false;
 
 /*
  * Default Values
@@ -82,6 +85,7 @@ const uint64_t def_t_off_ns = 800000000;
 const uint32_t def_tx_window_width = 5;
 const uint32_t def_tun_width = 5;
 const int32_t def_offset_delay = -1;
+const bool def_use_tc = false;
 
 // ANSI escape codes (colors for stdout)
 const char* red = "\033[31m";
@@ -102,6 +106,10 @@ int parse_config_file(uint32_t *bitmap, const char *filename);
 void set_tdma_var_bit(uint32_t *bitmap, enum tdma_vars_e var);
 bool get_tdma_var_bit(uint32_t *bitmap, enum tdma_vars_e var);
 void clear_tdma_var_bit(uint32_t *bitmap, enum tdma_vars_e var);
+
+// qdisc operations
+int modify_qdisc(int cmd, uint32_t flags, struct tc_tdma_qopt *opt);
+struct tc_ratespec *dummy_ratespc(void);
 
 // variable helpers
 struct tdma_vars_t *update_vars(uint32_t *bitmap);

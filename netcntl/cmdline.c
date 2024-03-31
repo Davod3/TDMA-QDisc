@@ -43,6 +43,7 @@ const char *gengetopt_args_info_help[] = {
   "  -x, --tx-window-width=INT  width of transmission window",
   "  -w, --tunnel-width=INT     width of tunnel time",
   "  -o, --offset-delay=INT     offset delay (can be negative)",
+  "  -c, --use-tc               use Linux Traffic Control (tc) to set additional\n                               qdisc parameters",
     0
 };
 
@@ -77,6 +78,7 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->tx_window_width_given = 0 ;
   args_info->tunnel_width_given = 0 ;
   args_info->offset_delay_given = 0 ;
+  args_info->use_tc_given = 0 ;
 }
 
 static
@@ -111,6 +113,7 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->tx_window_width_help = gengetopt_args_info_help[6] ;
   args_info->tunnel_width_help = gengetopt_args_info_help[7] ;
   args_info->offset_delay_help = gengetopt_args_info_help[8] ;
+  args_info->use_tc_help = gengetopt_args_info_help[9] ;
   
 }
 
@@ -257,6 +260,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "tunnel-width", args_info->tunnel_width_orig, 0);
   if (args_info->offset_delay_given)
     write_into_file(outfile, "offset-delay", args_info->offset_delay_orig, 0);
+  if (args_info->use_tc_given)
+    write_into_file(outfile, "use-tc", 0, 0 );
   
 
   i = EXIT_SUCCESS;
@@ -526,10 +531,11 @@ cmdline_parser_internal (
         { "tx-window-width",	1, NULL, 'x' },
         { "tunnel-width",	1, NULL, 'w' },
         { "offset-delay",	1, NULL, 'o' },
+        { "use-tc",	0, NULL, 'c' },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVf:d:t:p:x:w:o:", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVf:d:t:p:x:w:o:c", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -625,6 +631,18 @@ cmdline_parser_internal (
               &(local_args_info.offset_delay_given), optarg, 0, 0, ARG_INT,
               check_ambiguity, override, 0, 0,
               "offset-delay", 'o',
+              additional_error))
+            goto failure;
+        
+          break;
+        case 'c':	/* use Linux Traffic Control (tc) to set additional qdisc parameters.  */
+        
+        
+          if (update_arg( 0 , 
+               0 , &(args_info->use_tc_given),
+              &(local_args_info.use_tc_given), optarg, 0, 0, ARG_NO,
+              check_ambiguity, override, 0, 0,
+              "use-tc", 'c',
               additional_error))
             goto failure;
         
