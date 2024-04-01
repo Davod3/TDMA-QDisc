@@ -43,6 +43,17 @@ struct tdma_vars_t
     bool use_tc;
 };
 
+struct tc_tdma_qopt
+{
+    struct tc_ratespec rate;
+    struct tc_ratespec peakrate;
+    uint32_t limit;
+    uint32_t buffer;
+    uint32_t mtu;
+    int64_t frame;
+    int64_t slot;
+};
+
 enum tdma_vars_e
 {
     DEVNAME = 0,

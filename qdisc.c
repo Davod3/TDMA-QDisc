@@ -6,6 +6,8 @@
  *		Dmitry Torokhov <dtor@mail.ru> - allow attaching inner qdiscs -
  *						 original idea by Martin Devera
  */
+#ifndef QDISC_K
+#define QDISC_K
 
 #include <linux/module.h>
 #include <linux/types.h>
@@ -14,6 +16,7 @@
 #include <linux/errno.h>
 #include <linux/skbuff.h>
 #include <net/netlink.h>
+#include <net/gso.h>
 #include <net/sch_generic.h>
 #include <net/pkt_cls.h>
 #include <net/pkt_sched.h>
@@ -677,3 +680,5 @@ static void __exit tbf_module_exit(void)
 module_init(tbf_module_init)
 module_exit(tbf_module_exit)
 MODULE_LICENSE("GPL");
+
+#endif

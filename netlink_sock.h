@@ -44,11 +44,16 @@ enum
 #define TCA_TBF_TEST_MAX (__TCA_TBF_TEST_MAX - 1)
 
 #ifdef NETLINK_SOCK
+
 extern char devname[64];
 extern u64 t_on_s;
 extern u64 t_on_ns;
 extern u64 t_off_s;
 extern u64 t_off_ns;
+
+#endif
+
+#ifdef QDISC_K
 
 struct tc_tdma_qopt
 {
@@ -60,6 +65,7 @@ struct tc_tdma_qopt
     s64 frame;
     s64 slot;
 };
-#endif
+
+#endif 
 
 int handle_nl_recv_msg(struct sk_buff *skb, struct genl_info *info);
