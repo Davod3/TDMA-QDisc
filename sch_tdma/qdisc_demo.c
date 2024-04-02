@@ -30,7 +30,8 @@ static int qdisc_modify(int cmd, unsigned int flags, struct tc_tdma_qopt *opt) {
     // char d[IFNAMSIZ] = {};
     char d[16] = {}; // device (interface) name
     // char *d = "enp0s1";
-    strncpy(d, "enp0s1", 16);
+    // strncpy(d, "enp0s1", 16);
+    strncpy(d, "eth0", 16);
     // char k[FILTER_NAMESZ] = {};
     char k[16] = {}; // qdisc (kind) name
     strncpy(k, "tdma", 16);
@@ -39,7 +40,7 @@ static int qdisc_modify(int cmd, unsigned int flags, struct tc_tdma_qopt *opt) {
     struct {
         struct nlmsghdr n;
         struct tcmsg t;
-        char buf[64 * 1024];
+	char buf[64 * 1024];
         // char buf[TCA_BUF_MAX];
     } req = {
         .n.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcmsg)),
@@ -74,10 +75,75 @@ static int qdisc_modify(int cmd, unsigned int flags, struct tc_tdma_qopt *opt) {
         if (!idx)
             return 1;
         req.t.tcm_ifindex = idx;
-    printf("%d\n", idx);
     }
 
     if (rtnl_talk(&rth, &req.n, NULL) < 0)
+        return 1;
+        
+    return 0;
+}
+
+int qdisc_list_filter(struct nlmsghdr *n, void *arg) {
+    int len;
+    struct tcmsg *t = NLMSG_DATA(n);
+    struct rtattr *tb[TCA_MAX + 1];
+
+    printf("nlmsg_type: %s\n", n->nlmsg_type == RTM_NEWQDISC ? "new" : n->nlmsg_type == RTM_DELQDISC ? "del" : n->nlmsg_type == RTM_GETQDISC ? "get" : "other");
+    printf("nlmsg_len, nlmsghdr_len: %d, %d\n", n->nlmsg_len, NLMSG_LENGTH(sizeof(*t)));
+    printf("device: %d\n", t->tcm_ifindex);
+    printf("handle: %x:%x\n", t->tcm_handle >> 16, t->tcm_handle);
+    printf("parent: %s\n", t->tcm_parent == TC_H_ROOT ? "root" : "other");
+
+    len = n->nlmsg_len - NLMSG_LENGTH(sizeof(*t));
+    if (len < 0)
+        return -1;
+
+    parse_rtattr_flags(tb, TCA_MAX, TCA_RTA(t), n->nlmsg_len - NLMSG_LENGTH(sizeof(*t)), NLA_F_NESTED);
+
+    printf("kind: %s\n", (const char *) RTA_DATA(tb[TCA_KIND]));
+    printf("stats: %d, %d, %d\n", tb[TCA_STATS] ? 1 : 0, tb[TCA_STATS2] ? 1 : 0, tb[TCA_XSTATS] ? 1 : 0);
+
+    printf("\n");
+
+    return 0;
+}
+
+static int qdisc_list() {
+    struct {
+        struct nlmsghdr n;
+        struct tcmsg t;
+        char buf[256];
+    } req = {
+        .n.nlmsg_type = RTM_GETQDISC,
+        .n.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcmsg)),
+        .t.tcm_family = AF_UNSPEC,
+    };
+    
+    // char d[IFNAMSIZ] = {};
+    char d[16] = {}; // device (interface) name
+    // char *d = "enp0s1";
+    // strncpy(d, "enp0s1", 16);
+    strncpy(d, "eth0", 16);
+    // char k[FILTER_NAMESZ] = {};
+    char k[16] = {}; // qdisc (kind) name
+    strncpy(k, "tdma", 16);
+    // char *k = "tdma";
+
+    if (d[0]) {
+        int idx;
+
+        ll_init_map(&rth);
+
+        idx = ll_name_to_index(d);
+        if (!idx)
+            return 1;
+        req.t.tcm_ifindex = idx;
+    }
+
+    if (rtnl_dump_request_n(&rth, &req.n) < 0)
+        return 1;
+    
+    if (rtnl_dump_filter(&rth, qdisc_list_filter, NULL) < 0)
         return 1;
     
     return 0;
@@ -99,7 +165,6 @@ int main(int argc, char **argv) {
     struct tc_tdma_qopt *opt;
     struct tc_ratespec *rate;
     struct tc_ratespec *peakrate;
-    
 
 
     if (rtnl_open(&rth, 0) < 0) {
@@ -117,13 +182,23 @@ int main(int argc, char **argv) {
 
     opt->limit = 2915;
     opt->buffer = 874999;
+    opt->buffer = 875000;
     opt->mtu = 0;
     opt->frame = 1000000000;
     opt->slot = 100000000;
 
-    if (qdisc_modify(RTM_NEWQDISC, NLM_F_EXCL | NLM_F_CREATE, opt)) {
-        printf("Failed to add qdisc\n");
-        exit(1);
+    if (argc > 1) {
+        if (strcmp(argv[1], "add") == 0) {
+            if (qdisc_modify(RTM_NEWQDISC, NLM_F_EXCL | NLM_F_CREATE, opt)) {
+                printf("Failed to add qdisc\n");
+                exit(1);
+            }
+        } else if (strcmp(argv[1], "show") == 0) {
+            if (qdisc_list()) {
+                printf("Failed to list qdiscs\n");
+                exit(1);
+            }
+        }
     }
 
     rtnl_close(&rth);
