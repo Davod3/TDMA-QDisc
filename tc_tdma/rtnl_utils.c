@@ -20,6 +20,13 @@
 
 #include "tc_tdma.h"
 
+// To compile, just do
+//  `gcc rtnl_utils.c -o rtnl_utils`
+// and then
+//  `./rtnl_utils add`,
+//  `./rtnl_utils change 100000000`,
+// etc.
+
 #define NLMSG_TAIL(nmsg) ((struct rtattr *) (((void *) (nmsg)) + NLMSG_ALIGN((nmsg)->nlmsg_len)))
 
 struct rtnl_handle {
