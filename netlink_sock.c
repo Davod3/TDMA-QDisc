@@ -27,6 +27,11 @@ static const struct genl_ops ops[] = {
         .doit = handle_nl_recv_msg,
         .policy = ratdma_policy,
     },
+    {
+        .cmd = GNL_RATDMA_REPLY_MSG,
+        .doit = handle_nl_send_msg,
+        .policy = ratdma_policy,
+    },
     /* define more operations here */
 };
 
@@ -85,6 +90,13 @@ int handle_nl_recv_msg(struct sk_buff *skb, struct genl_info *info)
 
     return 0;
 }
+
+int handle_nl_send_msg(struct sk_buff *skb, struct genl_info *info)
+{
+    // TODO handle sending replies back to user-land
+    return 0;
+}
+
 /*******************************************************************************/
 
 int __init init_netlink(void)

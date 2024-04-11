@@ -61,6 +61,16 @@ struct gengetopt_args_info
   char * offset_delay_orig;	/**< @brief offset delay (can be negative) original value given at command line.  */
   const char *offset_delay_help; /**< @brief offset delay (can be negative) help description.  */
   const char *use_tc_help; /**< @brief use Linux Traffic Control (tc) to set additional qdisc parameters help description.  */
+  int set_tc_limit_arg;	/**< @brief sets limit value for tc.  */
+  char * set_tc_limit_orig;	/**< @brief sets limit value for tc original value given at command line.  */
+  const char *set_tc_limit_help; /**< @brief sets limit value for tc help description.  */
+  int set_tc_buffer_arg;	/**< @brief sets buffer value for tc.  */
+  char * set_tc_buffer_orig;	/**< @brief sets buffer value for tc original value given at command line.  */
+  const char *set_tc_buffer_help; /**< @brief sets buffer value for tc help description.  */
+  int set_tc_mtu_arg;	/**< @brief sets MTU value for tc.  */
+  char * set_tc_mtu_orig;	/**< @brief sets MTU value for tc original value given at command line.  */
+  const char *set_tc_mtu_help; /**< @brief sets MTU value for tc help description.  */
+  const char *graph_help; /**< @brief start sending/receiving NETLINK messages to plot network activity help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
@@ -72,6 +82,10 @@ struct gengetopt_args_info
   unsigned int tunnel_width_given ;	/**< @brief Whether tunnel-width was given.  */
   unsigned int offset_delay_given ;	/**< @brief Whether offset-delay was given.  */
   unsigned int use_tc_given ;	/**< @brief Whether use-tc was given.  */
+  unsigned int set_tc_limit_given ;	/**< @brief Whether set-tc-limit was given.  */
+  unsigned int set_tc_buffer_given ;	/**< @brief Whether set-tc-buffer was given.  */
+  unsigned int set_tc_mtu_given ;	/**< @brief Whether set-tc-mtu was given.  */
+  unsigned int graph_given ;	/**< @brief Whether graph was given.  */
 
 } ;
 

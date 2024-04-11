@@ -1,85 +1,19 @@
 
 #include "netcntl.h"
 
-int modify_qdisc(int cmd, uint32_t flags, struct tc_tdma_qopt *opt) 
+
+void print_program_header(void)
 {
-	// TODO: Modify this to use existing netlink message header
-	return 0;
-    // cmd = RTM_NEWQDISC // add | change | replace | link
-    // cmd = RTM_DELQDISC // delete
-    // flags = NLM_F_EXCL | NLM_F_CREATE // add
-    // flags = 0 // change | delete
-    // flags = NLM_F_CREATE | NLM_F_REPLACE // replace
-    // flags = NLM_F_REPLACE // link
-
-    // char d[IFNAMSIZ] = {};
-    // char d[16] = {}; // device (interface) name
-    // // char *d = "enp0s1";
-    // strncpy(d, "enp0s1", 16);
-    // // char k[FILTER_NAMESZ] = {};
-    // char k[16] = {}; // qdisc (kind) name
-    // strncpy(k, "tdma", 16);
-    // // char *k = "tdma";
-
-    // struct {
-    //     struct nlmsghdr n;
-    //     struct tcmsg t;
-    //     char buf[64 * 1024];
-    //     // char buf[TCA_BUF_MAX];
-    // } 
-	// req = {
-    //     .n.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcmsg)),
-    //     .n.nlmsg_flags = NLM_F_REQUEST | flags,
-    //     .n.nlmsg_type = cmd,
-
-    //     .t.tcm_family = AF_UNSPEC, // unsigned char
-    //     // .t.tcm_ifindex // int // required
-    //     // .t.tcm_handle = handle, // __u32 // optional
-    //     .t.tcm_parent = TC_H_ROOT, // __u32
-    //     // .t.tcm_info = 0 // __u32 // optional
-    // };
-
-    // struct rtattr *tail;
-
-    // // BEGIN hardcoding    // END hardcoding
-
-    // if (k[0])
-    //     addattr_l(&req.n, sizeof(req), TCA_KIND, k, strlen(k) + 1);
-
-    // // Add TCA_OPTIONS
-    // tail = addattr_nest(&req.n, 1024, TCA_OPTIONS);
-    // addattr_l(&req.n, 2024, TCA_TBF_PARMS, opt, sizeof(*opt));
-    // addattr_nest_end(&req.n, tail);
-
-    // if (d[0]) {
-    //     int idx;
-
-    //     ll_init_map(&rth);
-
-    //     idx = ll_name_to_index(d);
-    //     if (!idx)
-    //         return 1;
-    //     req.t.tcm_ifindex = idx;
-    // printf("%d\n", idx);
-    // }
-
-    // if (rtnl_talk(&rth, &req.n, NULL) < 0)
-    //     return 1;
-    
-    // return 0;
-}
-
-struct tc_ratespec *dummy_ratespec(void) 
-{
-    struct tc_ratespec *rs;
-    rs = malloc(sizeof(struct tc_ratespec));
-    rs->cell_log = '\0';
-    rs->linklayer = 0;
-    rs->overhead = 0;
-    rs->cell_align = 0;
-    rs->mpu = 0;
-    rs->rate = 0;
-    return rs;
+	printf("███▄    █ ▓█████▄▄▄█████▓ ▄████▄   ███▄    █ ▄▄▄█████▓ ██▓     ██▀███\n"); 
+	printf("██ ▀█   █ ▓█   ▀▓  ██▒ ▓▒▒██▀ ▀█   ██ ▀█   █ ▓  ██▒ ▓▒▓██▒    ▓██ ▒ ██▒\n");
+	printf("▓██  ▀█ ██▒▒███  ▒ ▓██░ ▒░▒▓█    ▄ ▓██  ▀█ ██▒▒ ▓██░ ▒░▒██░    ▓██ ░▄█ ▒\n");
+	printf("▓██▒  ▐▌██▒▒▓█  ▄░ ▓██▓ ░ ▒▓▓▄ ▄██▒▓██▒  ▐▌██▒░ ▓██▓ ░ ▒██░    ▒██▀▀█▄ \n");
+	printf("▒██░   ▓██░░▒████▒ ▒██▒ ░ ▒ ▓███▀ ░▒██░   ▓██░  ▒██▒ ░ ░██████▒░██▓ ▒██▒\n");
+	printf("░ ▒░   ▒ ▒ ░░ ▒░ ░ ▒ ░░   ░ ░▒ ▒  ░░ ▒░   ▒ ▒   ▒ ░░   ░ ▒░▓  ░░ ▒▓ ░▒▓░\n");
+	printf("░ ░░   ░ ▒░ ░ ░  ░   ░      ░  ▒   ░ ░░   ░ ▒░    ░    ░ ░ ▒  ░  ░▒ ░ ▒░\n");
+	printf("░   ░ ░    ░    ░      ░           ░   ░ ░   ░        ░ ░     ░░   ░ \n");
+	printf("		░    ░  ░        ░ ░               ░              ░  ░   ░\n");   
+	printf("						░                                             \n");
 }
 
 void set_tdma_var_bit(uint32_t *bitmap, enum tdma_vars_e var) { *bitmap |= (1 << var); }
@@ -166,11 +100,27 @@ struct tdma_vars_t *update_vars(uint32_t *bitmap)
 
 	if (get_tdma_var_bit(bitmap, USE_TC))
 	{
-		printf("%sattr: %s is set!%s\n", yellow, (int)USE_TC, reset);
+		printf("%sattr: %s is set!%s\n", yellow, "USE_TC", reset);
 		data->use_tc = use_tc;
 		clear_tdma_var_bit(bitmap, USE_TC);
 	}
 	else data->use_tc = def_use_tc; // set default
+
+	if (get_tdma_var_bit(bitmap, TC_LIMIT))
+	{
+		printf("%attr: %s is set!%s\n", yellow, "TC_LIMIT", reset);
+		data->tc_limit = tc_limit;
+		clear_tdma_var_bit(bitmap, TC_LIMIT);
+	}
+	else data->tc_limit = def_tc_limit; // set default
+
+	if (get_tdma_var_bit(bitmap, GRAPH))
+	{
+		printf("%sattr: %s is set!%s\n", yellow, "GRAPH", reset);
+		data->graph = graph;
+		clear_tdma_var_bit(bitmap, GRAPH);
+	}
+	else data->graph = def_graph; // set default
 
 	// return pointer to data struct
 	return data;
@@ -185,8 +135,10 @@ void print_vars(void)
 	printf("t_off_ns: %lu\n", t_off_ns);
 	printf("tx_window_width: %u\n", tx_window_width);
 	printf("tun_width: %u\n", tun_width);
+	printf("tc_limit: %u\n", tc_limit);
 	printf("offset_delay: %d\n", offset_delay);
 	printf("use_tc: %d\n", (int)use_tc);
+	printf("graph: %d\n", (int)graph);
 }
 
 int parse_config_file(uint32_t *bitmap, const char *filename)
@@ -212,55 +164,65 @@ int parse_config_file(uint32_t *bitmap, const char *filename)
 			{
 				strcpy(&devname, value);
 				set_tdma_var_bit(bitmap, DEVNAME);
-				printf("set devname: %s\n", value);
+				//printf("set devname: %s\n", value);
             } 
 			else if (strcmp(key, "t_on_s") == 0) 
 			{
                 t_on_s = (uint64_t)strtoull(value, &end_ptr, 10);
 				set_tdma_var_bit(bitmap, T_ON_S);
-				printf("set t_on_s: %lu\n", t_on_s);
+				//printf("set t_on_s: %lu\n", t_on_s);
             } 
 			else if (strcmp(key, "t_off_s") == 0) 
 			{
                 t_off_s = (uint64_t)strtoull(value, &end_ptr, 10);
 				set_tdma_var_bit(bitmap, T_OFF_S);
-				printf("set t_off_s: %lu\n", t_off_s);
+				//printf("set t_off_s: %lu\n", t_off_s);
             } 
 			else if (strcmp(key, "t_on_ns") == 0) 
 			{
                 t_on_ns = (uint64_t)strtoull(value, &end_ptr, 10);
 				set_tdma_var_bit(bitmap, T_ON_NS);
-				printf("set t_on_ns: %lu\n", t_on_ns);
+				//printf("set t_on_ns: %lu\n", t_on_ns);
             } 
 			else if (strcmp(key, "t_off_ns") == 0) 
 			{
                 t_off_ns = (uint64_t)strtoull(value, &end_ptr, 10);
 				set_tdma_var_bit(bitmap, T_OFF_NS);
-				printf("set t_off_ns: %lu\n", t_off_ns);
+				//printf("set t_off_ns: %lu\n", t_off_ns);
             } 
 			else if (strcmp(key, "tx_window_width") == 0) 
 			{
                 tx_window_width = (uint32_t)strtoul(value, &end_ptr, 10);
 				set_tdma_var_bit(bitmap, TX_WINDOW_WIDTH);
-				printf("set tx_window_width: %u\n", tx_window_width);
+				//printf("set tx_window_width: %u\n", tx_window_width);
             } 
 			else if (strcmp(key, "tun_width") == 0) 
 			{
                 tun_width = (uint32_t)strtoul(value, &end_ptr, 10);
 				set_tdma_var_bit(bitmap, TUN_WIDTH);
-				printf("set tun_width: %u\n", tun_width);
+				//printf("set tun_width: %u\n", tun_width);
             } 
 			else if (strcmp(key, "offset_delay") == 0) 
 			{
                 offset_delay = (uint32_t)strtoul(value, &end_ptr, 10);
 				set_tdma_var_bit(bitmap, OFFSET_DELAY);
-				printf("set offset_delay: %d\n", offset_delay);
+				//printf("set offset_delay: %d\n", offset_delay);
             } 
 			else if (strcmp(key, "use_tc") == 0)
 			{
 				use_tc = (bool)value;
 				set_tdma_var_bit(bitmap, USE_TC);
-				printf("set use_tc: %d\n", use_tc);
+				//printf("set use_tc: %d\n", use_tc);
+			}
+			else if (strcmp(key, "set-tc-limit") == 0)
+			{
+				tc_limit = (uint32_t)stroul(value, &end_ptr, 10);
+				set_tdma_var_bit(bitmap, )
+			}
+			else if (strcmp(key, "graph") == 0)
+			{
+				graph = (bool)value;
+				set_tdma_var_bit(bitmap, GRAPH);
 			}
 			else 
 			{
@@ -341,6 +303,11 @@ int main(int argc, char *argv[])
 			tun_width = args_info.tunnel_width_given;
 			set_tdma_var_bit(bitmap, TUN_WIDTH);
 		}
+		if (args_info.set_tc_limit_given)
+		{
+			tc_limit = args_info.set_tc_limit_given;
+			set_tdma_var_bit(bitmap, TC_LIMIT);
+		}
 		if (args_info.offset_delay_given)
 		{
 			offset_delay = args_info.offset_delay_arg;
@@ -351,8 +318,14 @@ int main(int argc, char *argv[])
 			use_tc = true;
 			set_tdma_var_bit(bitmap, USE_TC);
 		}
+		if (args_info.graph_given)
+		{
+			graph = true;
+			set_tdma_var_bit(bitmap, GRAPH);
+		}
 	}
 
+	print_program_header();
 	printf("%sSaving variables to data%s\n", magenta, reset);
 
 	// save variable changes to struct
@@ -402,7 +375,7 @@ int main(int argc, char *argv[])
 	// to use TC (add additional operation)
 
 	// send message to kernel
-	printf("%sSending message to kernel%s\n", magenta, reset);
+	printf("%sSending message to kernel...%s\n", magenta, reset);
 	if (nl_send_auto(sk, msg) < 0)
 	{
 		perror("failed to send netlink message");
@@ -410,8 +383,8 @@ int main(int argc, char *argv[])
 	}
 	// TODO Collect Timestamp on Receiving End
 
-	printf("%sSent netlink message with updates:%s\n", magenta, reset);
-	print_vars();
+	printf("%sSent netlink message!%s\n", magenta, reset);
+	// print_vars();
 
 	// cleanup
 	nlmsg_free(msg);

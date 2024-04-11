@@ -39,8 +39,10 @@ struct tdma_vars_t
     uint64_t t_off_ns;
     uint32_t tx_window_width;
     uint32_t tun_width;
+    uint32_t tc_limit;
     int32_t offset_delay;
     bool use_tc;
+    bool graph;
 };
 
 struct tc_tdma_qopt
@@ -65,6 +67,8 @@ enum tdma_vars_e
     TUN_WIDTH = 6,
     OFFSET_DELAY = 7,
     USE_TC = 8,
+    TC_LIMIT = 9,
+    GRAPH = 10,
 };
 
 /*******************************************************************************/
@@ -79,8 +83,10 @@ uint64_t t_on_ns = 0;
 uint64_t t_off_ns = 0;
 uint32_t tx_window_width = 0;
 uint32_t tun_width = 0;
+uint32_t tc_limit = 0;
 int32_t offset_delay = 0;
 bool use_tc = false;
+bool graph = false;
 
 /*
  * Default Values
@@ -95,8 +101,10 @@ const uint64_t def_t_on_ns = 200000000;
 const uint64_t def_t_off_ns = 800000000;
 const uint32_t def_tx_window_width = 5;
 const uint32_t def_tun_width = 5;
+const uint32_t def_tc_limit = 0;
 const int32_t def_offset_delay = -1;
 const bool def_use_tc = false;
+const bool def_graph = false;
 
 // ANSI escape codes (colors for stdout)
 const char* red = "\033[31m";
@@ -123,7 +131,7 @@ int modify_qdisc(int cmd, uint32_t flags, struct tc_tdma_qopt *opt);
 struct tc_ratespec *dummy_ratespc(void);
 
 // variable helpers
-struct tdma_vars_t *update_vars(uint32_t *bitmap);
-void print_vars(void);
+// struct tdma_vars_t *update_vars(uint32_t *bitmap);
+// void print_vars(void);
 
 #endif

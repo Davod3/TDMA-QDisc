@@ -9,6 +9,7 @@
 enum genl_ratdma_ops
 {
     GNL_RATDMA_RECV_MSG,
+    GNL_RATDMA_REPLY_MSG,
     /* add more operations for different request types */
 };
 
@@ -69,3 +70,4 @@ struct tc_tdma_qopt
 #endif 
 
 int handle_nl_recv_msg(struct sk_buff *skb, struct genl_info *info);
+int handle_nl_send_msg(struct sk_buff *skb, struct genl_info *info);

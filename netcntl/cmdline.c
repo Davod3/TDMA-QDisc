@@ -44,6 +44,10 @@ const char *gengetopt_args_info_help[] = {
   "  -w, --tunnel-width=INT     width of tunnel time",
   "  -o, --offset-delay=INT     offset delay (can be negative)",
   "  -c, --use-tc               use Linux Traffic Control (tc) to set additional\n                               qdisc parameters",
+  "  -l, --set-tc-limit=INT     sets limit value for tc",
+  "  -b, --set-tc-buffer=INT    sets buffer value for tc",
+  "  -m, --set-tc-mtu=INT       sets MTU value for tc",
+  "  -g, --graph                start sending/receiving NETLINK messages to plot\n                               network activity",
     0
 };
 
@@ -79,6 +83,10 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->tunnel_width_given = 0 ;
   args_info->offset_delay_given = 0 ;
   args_info->use_tc_given = 0 ;
+  args_info->set_tc_limit_given = 0 ;
+  args_info->set_tc_buffer_given = 0 ;
+  args_info->set_tc_mtu_given = 0 ;
+  args_info->graph_given = 0 ;
 }
 
 static
@@ -96,6 +104,9 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->tx_window_width_orig = NULL;
   args_info->tunnel_width_orig = NULL;
   args_info->offset_delay_orig = NULL;
+  args_info->set_tc_limit_orig = NULL;
+  args_info->set_tc_buffer_orig = NULL;
+  args_info->set_tc_mtu_orig = NULL;
   
 }
 
@@ -114,6 +125,10 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->tunnel_width_help = gengetopt_args_info_help[7] ;
   args_info->offset_delay_help = gengetopt_args_info_help[8] ;
   args_info->use_tc_help = gengetopt_args_info_help[9] ;
+  args_info->set_tc_limit_help = gengetopt_args_info_help[10] ;
+  args_info->set_tc_buffer_help = gengetopt_args_info_help[11] ;
+  args_info->set_tc_mtu_help = gengetopt_args_info_help[12] ;
+  args_info->graph_help = gengetopt_args_info_help[13] ;
   
 }
 
@@ -212,6 +227,9 @@ cmdline_parser_release (struct gengetopt_args_info *args_info)
   free_string_field (&(args_info->tx_window_width_orig));
   free_string_field (&(args_info->tunnel_width_orig));
   free_string_field (&(args_info->offset_delay_orig));
+  free_string_field (&(args_info->set_tc_limit_orig));
+  free_string_field (&(args_info->set_tc_buffer_orig));
+  free_string_field (&(args_info->set_tc_mtu_orig));
   
   
 
@@ -262,6 +280,14 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "offset-delay", args_info->offset_delay_orig, 0);
   if (args_info->use_tc_given)
     write_into_file(outfile, "use-tc", 0, 0 );
+  if (args_info->set_tc_limit_given)
+    write_into_file(outfile, "set-tc-limit", args_info->set_tc_limit_orig, 0);
+  if (args_info->set_tc_buffer_given)
+    write_into_file(outfile, "set-tc-buffer", args_info->set_tc_buffer_orig, 0);
+  if (args_info->set_tc_mtu_given)
+    write_into_file(outfile, "set-tc-mtu", args_info->set_tc_mtu_orig, 0);
+  if (args_info->graph_given)
+    write_into_file(outfile, "graph", 0, 0 );
   
 
   i = EXIT_SUCCESS;
@@ -532,10 +558,14 @@ cmdline_parser_internal (
         { "tunnel-width",	1, NULL, 'w' },
         { "offset-delay",	1, NULL, 'o' },
         { "use-tc",	0, NULL, 'c' },
+        { "set-tc-limit",	1, NULL, 'l' },
+        { "set-tc-buffer",	1, NULL, 'b' },
+        { "set-tc-mtu",	1, NULL, 'm' },
+        { "graph",	0, NULL, 'g' },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVf:d:t:p:x:w:o:c", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVf:d:t:p:x:w:o:cl:b:m:g", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -643,6 +673,54 @@ cmdline_parser_internal (
               &(local_args_info.use_tc_given), optarg, 0, 0, ARG_NO,
               check_ambiguity, override, 0, 0,
               "use-tc", 'c',
+              additional_error))
+            goto failure;
+        
+          break;
+        case 'l':	/* sets limit value for tc.  */
+        
+        
+          if (update_arg( (void *)&(args_info->set_tc_limit_arg), 
+               &(args_info->set_tc_limit_orig), &(args_info->set_tc_limit_given),
+              &(local_args_info.set_tc_limit_given), optarg, 0, 0, ARG_INT,
+              check_ambiguity, override, 0, 0,
+              "set-tc-limit", 'l',
+              additional_error))
+            goto failure;
+        
+          break;
+        case 'b':	/* sets buffer value for tc.  */
+        
+        
+          if (update_arg( (void *)&(args_info->set_tc_buffer_arg), 
+               &(args_info->set_tc_buffer_orig), &(args_info->set_tc_buffer_given),
+              &(local_args_info.set_tc_buffer_given), optarg, 0, 0, ARG_INT,
+              check_ambiguity, override, 0, 0,
+              "set-tc-buffer", 'b',
+              additional_error))
+            goto failure;
+        
+          break;
+        case 'm':	/* sets MTU value for tc.  */
+        
+        
+          if (update_arg( (void *)&(args_info->set_tc_mtu_arg), 
+               &(args_info->set_tc_mtu_orig), &(args_info->set_tc_mtu_given),
+              &(local_args_info.set_tc_mtu_given), optarg, 0, 0, ARG_INT,
+              check_ambiguity, override, 0, 0,
+              "set-tc-mtu", 'm',
+              additional_error))
+            goto failure;
+        
+          break;
+        case 'g':	/* start sending/receiving NETLINK messages to plot network activity.  */
+        
+        
+          if (update_arg( 0 , 
+               0 , &(args_info->graph_given),
+              &(local_args_info.graph_given), optarg, 0, 0, ARG_NO,
+              check_ambiguity, override, 0, 0,
+              "graph", 'g',
               additional_error))
             goto failure;
         
