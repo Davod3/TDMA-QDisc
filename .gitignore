@@ -6,3 +6,6 @@
 *.mod.c
 *.order
 *.vscode
+
+# userspace virtual environment
+netcntl/graph_env
