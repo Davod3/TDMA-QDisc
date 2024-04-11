@@ -19,6 +19,9 @@ struct nla_policy const ratdma_policy[__GNL_RATDMA_COUNT] = {
     [GNL_RATDMA_TX_WINDOW_WIDTH]    = { .type = NLA_U32 },
     [GNL_RATDMA_TUN_WIDTH]          = { .type = NLA_U32 },
     [GNL_RATDMA_OFFSET_DELAY]       = { .type = NLA_S32 },
+    [GNL_RATMDA_USE_TC]             = { .type = NLA_FLAG },
+    [GNL_RATDMA_TC_LIMIT]           = { .type = NLA_U32 },
+    [GNL_RATMDA_GRAPH]              = { .type = NLA_FLAG },
 };
 
 static const struct genl_ops ops[] = {

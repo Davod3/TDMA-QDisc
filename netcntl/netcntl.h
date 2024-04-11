@@ -127,11 +127,11 @@ bool get_tdma_var_bit(uint32_t *bitmap, enum tdma_vars_e var);
 void clear_tdma_var_bit(uint32_t *bitmap, enum tdma_vars_e var);
 
 // qdisc operations
-int modify_qdisc(int cmd, uint32_t flags, struct tc_tdma_qopt *opt);
-struct tc_ratespec *dummy_ratespc(void);
+// int modify_qdisc(int cmd, uint32_t flags, struct tc_tdma_qopt *opt);
+// struct tc_ratespec *dummy_ratespc(void);
 
 // variable helpers
-// struct tdma_vars_t *update_vars(uint32_t *bitmap);
-// void print_vars(void);
+struct tdma_vars_t *update_vars(uint32_t *bitmap);
+void print_vars(void);
 
 #endif

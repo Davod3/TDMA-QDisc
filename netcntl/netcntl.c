@@ -278,6 +278,9 @@ int main(int argc, char *argv[])
 			exit(EXIT_FAILURE);
 		}
 
+		/* START REFACTOR
+		 * refactor this into parse_config_file() to avoid confusion / make simpler
+		*/
 		if (args_info.devname_given)
 		{
 			strcpy(&devname, args_info.devname_arg);
@@ -323,8 +326,13 @@ int main(int argc, char *argv[])
 			graph = true;
 			set_tdma_var_bit(bitmap, GRAPH);
 		}
+		/* END REFACTOR */
 	}
 
+	/* START REFACTOR
+	 * we should separate this code to construct different types of NL messages
+	 * based on what operation we want, i.e. update_vars, use_tc, graph, etc.
+	*/
 	print_program_header();
 	printf("%sSaving variables to data%s\n", magenta, reset);
 
@@ -368,12 +376,15 @@ int main(int argc, char *argv[])
 	nla_put_u32(msg, GNL_RATDMA_TX_WINDOW_WIDTH, data->tx_window_width);
 	printf("nla_put tun_width: %u\n", data->tun_width);	
 	nla_put_u32(msg, GNL_RATDMA_TUN_WIDTH, data->tun_width);
+	printf("nla_put tc_limit: %u\n", data->tc_limit);
+	nla_put_u32(msg, GNL_RATDMA_TC_LIMIT, data->tc_limit);
 	printf("nla_put offset_delay: %d\n", data->offset_delay);	
 	nla_put_s32(msg, GNL_RATDMA_OFFSET_DELAY, data->offset_delay);
-	printf("nla_put use_tc: %d\n", data->use_tc);
-	// TODO: set nla_put here for use_tc? -> add functionality to netlink_sock
-	// to use TC (add additional operation)
+	printf("nla_put use_tc: %d\n", (int)data->use_tc);
+	nla_put_flag(msg, GNL_RATDMA_USE_TC);
+	printf("nla_put graph: %d\n", (int)data->graph);
 
+	/* END REFACTOR */
 	// send message to kernel
 	printf("%sSending message to kernel...%s\n", magenta, reset);
 	if (nl_send_auto(sk, msg) < 0)

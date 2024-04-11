@@ -23,6 +23,9 @@ enum genl_ratdma_attr_ids
     GNL_RATDMA_TX_WINDOW_WIDTH,
     GNL_RATDMA_TUN_WIDTH,
     GNL_RATDMA_OFFSET_DELAY,
+    GNL_RATDMA_USE_TC,
+    GNL_RATMDA_TC_LIMIT,
+    GNL_RATDMA_GRAPH,
     /* include additional variables here */
     __GNL_RATDMA_COUNT
 };
