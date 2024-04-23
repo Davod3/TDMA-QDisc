@@ -12,6 +12,8 @@ struct tc_tdma_qopt {
 enum {
 	TCA_TDMA_UNSPEC,
 	TCA_TDMA_PARMS,
+	TCA_TDMA_OFFSET_FUTURE,
+	TCA_TDMA_OFFSET_RELATIVE,
 	__TCA_TDMA_MAX,
 };
 
