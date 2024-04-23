@@ -11,14 +11,19 @@
 
 #include <linux/pkt_sched.h>
 
-#include <libnetlink.h>
+// #include <libnetlink.h>
+#include <librtnetlink.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <linux/gen_stats.h>
+#include <net/if.h>
 
 #include "tc_tdma.h"
 
 struct rtnl_handle rth;
+
+char dev_name[16] = {};
+unsigned int dev_idx = 0;
 
 static int qdisc_modify(int cmd, unsigned int flags, struct tc_tdma_qopt *opt) {
     // cmd = RTM_NEWQDISC // add | change | replace | link
@@ -28,11 +33,11 @@ static int qdisc_modify(int cmd, unsigned int flags, struct tc_tdma_qopt *opt) {
     // flags = NLM_F_CREATE | NLM_F_REPLACE // replace
     // flags = NLM_F_REPLACE // link
 
-    // char d[IFNAMSIZ] = {};
-    char d[16] = {}; // device (interface) name
-    // char *d = "enp0s1";
-    // strncpy(d, "enp0s1", 16);
-    strncpy(d, "eth0", 16);
+    // // char d[IFNAMSIZ] = {};
+    // char d[16] = {}; // device (interface) name
+    // // char *d = "enp0s1";
+    // // strncpy(d, "enp0s1", 16);
+    // strncpy(d, "eth0", 16);
     // char k[FILTER_NAMESZ] = {};
     char k[16] = {}; // qdisc (kind) name
     strncpy(k, "tdma", 16);
@@ -65,22 +70,25 @@ static int qdisc_modify(int cmd, unsigned int flags, struct tc_tdma_qopt *opt) {
     // Add TCA_OPTIONS
     tail = addattr_nest(&req.n, 1024, TCA_OPTIONS);
     // addattr_l(&req.n, 2024, TCA_TBF_PARMS, opt, sizeof(*opt));
-    addattr_l(&req.n, 2024, TCA_TDMA_PARMS, opt, sizeof(*opt));
+    addattr_l(&req.n, 1024, TCA_TDMA_PARMS, opt, sizeof(*opt));
+    // addattr32(&req.n, 2048, TCA_TDMA_OFFSET_FUTURE, 1);
+    // addattr32(&req.n, 2048, TCA_TDMA_OFFSET_RELATIVE, 1);
     addattr_nest_end(&req.n, tail);
 
-    if (d[0]) {
-        int idx;
+    // if (d[0]) {
+    //     int idx;
 
-        ll_init_map(&rth);
+    //     ll_init_map(&rth);
 
-        idx = ll_name_to_index(d);
-        if (!idx)
-            return 1;
-        req.t.tcm_ifindex = idx;
-    }
+    //     idx = ll_name_to_index(d);
+    //     if (!idx)
+    //         return 1;
+    //     req.t.tcm_ifindex = idx;
+    // }
+    req.t.tcm_ifindex = dev_idx;
 
     if (rtnl_talk(&rth, &req.n, NULL) < 0)
-        return 1;
+        return -1;
         
     return 0;
 }
@@ -99,22 +107,26 @@ int qdisc_list_filter(struct nlmsghdr *n, void *arg) {
     struct gnet_stats_rate_est64 *rstats64;
 
     struct tc_estimator *est;
-    
 
-    printf("nlmsg_type: %s\n", n->nlmsg_type == RTM_NEWQDISC ? "new" : n->nlmsg_type == RTM_DELQDISC ? "del" : n->nlmsg_type == RTM_GETQDISC ? "get" : "other");
-    printf("nlmsg_len, nlmsghdr_len: %d, %d\n", n->nlmsg_len, NLMSG_LENGTH(sizeof(*t)));
-    printf("family: %s\n", t->tcm_family == AF_UNSPEC ? "unspecified" : "other");
-    printf("device: %d\n", t->tcm_ifindex);
-    printf("handle: %04x:%04x\n", t->tcm_handle >> 16, t->tcm_handle & 0xffff);
-    printf("parent: %s\n", t->tcm_parent == TC_H_ROOT ? "root" : "other");
-
-    len = n->nlmsg_len - NLMSG_LENGTH(sizeof(*t));
-    if (len < 0)
+    if ((len = n->nlmsg_len - NLMSG_LENGTH(sizeof(*t))) < 0)
         return -1;
+
+    if (t->tcm_ifindex != dev_idx)
+        return 0;
 
     parse_rtattr_flags(tb, TCA_MAX, TCA_RTA(t), n->nlmsg_len - NLMSG_LENGTH(sizeof(*t)), NLA_F_NESTED);
 
+
+    printf("nlmsg_type: %s\n", n->nlmsg_type == RTM_NEWQDISC ? "new" : n->nlmsg_type == RTM_DELQDISC ? "del" : n->nlmsg_type == RTM_GETQDISC ? "get" : "other");
+    printf("nlmsg_len, nlmsghdr_len: %d, %d\n", n->nlmsg_len, NLMSG_LENGTH(sizeof(*t)));
+
+    printf("family: %d (%s)\n", t->tcm_family, t->tcm_family == AF_UNSPEC ? "unspecified" : "other");
+    printf("device: %d (%s)\n", t->tcm_ifindex, dev_name);
+    printf("handle: %04x:%04x\n", t->tcm_handle >> 16, t->tcm_handle & 0xffff);
+    printf("parent: %04x:%04x%s\n", t->tcm_parent >> 16, t->tcm_parent & 0xffff, t->tcm_parent == TC_H_ROOT ? " (root)" : "");
+    
     printf("kind: %s\n", (const char *) RTA_DATA(tb[TCA_KIND]));
+
     printf("stats: %d, %d, %d\n", tb[TCA_STATS] ? 1 : 0, tb[TCA_STATS2] ? 1 : 0, tb[TCA_XSTATS] ? 1 : 0);
     
     if (tb[TCA_STATS]) {
@@ -137,7 +149,7 @@ int qdisc_list_filter(struct nlmsghdr *n, void *arg) {
             printf("stats_2 (rate_est): %lu, %lu\n", rstats->bps, rstats->pps);
         }
         if (tbs[TCA_STATS_RATE_EST64]) {
-            rstats64 = RTA_DATA(tbs[TCA_STATS_RATE_EST]);
+            rstats64 = RTA_DATA(tbs[TCA_STATS_RATE_EST64]);
             printf("stats_2 (rate_est64): %llu, %llu\n", rstats64->bps, rstats64->pps);
         }
     }
@@ -163,35 +175,36 @@ static int qdisc_list(int invisible) {
         .t.tcm_family = AF_UNSPEC,
     };
     
-    // char d[IFNAMSIZ] = {};
-    char d[16] = {}; // device (interface) name
-    // char *d = "enp0s1";
-    // strncpy(d, "enp0s1", 16);
-    strncpy(d, "eth0", 16);
+    // // char d[IFNAMSIZ] = {};
+    // char d[16] = {}; // device (interface) name
+    // // char *d = "enp0s1";
+    // // strncpy(d, "enp0s1", 16);
+    // strncpy(d, "eth0", 16);
     // char k[FILTER_NAMESZ] = {};
     char k[16] = {}; // qdisc (kind) name
     strncpy(k, "tdma", 16);
     // char *k = "tdma";
 
-    if (d[0]) {
-        int idx;
+    // if (d[0]) {
+    //     int idx;
 
-        ll_init_map(&rth);
+    //     ll_init_map(&rth);
 
-        idx = ll_name_to_index(d);
-        if (!idx)
-            return 1;
-        req.t.tcm_ifindex = idx;
-    }
+    //     idx = ll_name_to_index(d);
+    //     if (!idx)
+    //         return 1;
+    //     req.t.tcm_ifindex = idx;
+    // }
+    req.t.tcm_ifindex = dev_idx;
 
     if (invisible)
         addattr_l(&req.n, 256, TCA_DUMP_INVISIBLE, NULL, 0);
 
     if (rtnl_dump_request_n(&rth, &req.n) < 0)
-        return 1;
+        return -1;
     
     if (rtnl_dump_filter(&rth, qdisc_list_filter, NULL) < 0)
-        return 1;
+        return -1;
     
     return 0;
 }
@@ -214,15 +227,16 @@ int main(int argc, char **argv) {
     // struct tc_ratespec *rate;
     // struct tc_ratespec *peakrate;
 
-    long long int frame;
-    long long int slot;
-    long long int offset;
+    // long long int frame;
+    // long long int slot;
+    // long long int offset;
 
 
     if (rtnl_open(&rth, 0) < 0) {
-        printf("Cannot open rtnetlink\n");
+        printf("Failed to open rtnl_handle\n");
         exit(1);
     }
+    printf("Opened rtnl_handle\n");
 
     // opt = malloc(sizeof(struct tc_tdma_qopt));
     // opt->rate = *dummy_ratespec();
@@ -238,33 +252,59 @@ int main(int argc, char **argv) {
     // opt->frame = 1000000000;
     // opt->slot = 100000000;
 
+    // opt->limit = 0;
+    // // opt->t_frame = 1000000000;
+    // opt->t_frame = 0;
+    // // opt->t_slot = 100000000;
+    // opt->t_slot = 0;
+    // opt->t_offset = 0;
+
     opt = malloc(sizeof(struct tc_tdma_qopt));
-    opt->limit = 0;
-    opt->t_frame = 1000000000;
-    opt->t_slot = 100000000;
-    opt->t_offset = 0;
+    memset(opt, 0, sizeof(*opt));
 
     if (argc > 1) {
-        if (strcmp(argv[1], "add") == 0) {
-            if (argc > 3) {
-                sscanf(argv[2], "%lld", &opt->t_frame);
-                sscanf(argv[3], "%lld", &opt->t_slot);
-            }
-            if (qdisc_modify(RTM_NEWQDISC, NLM_F_EXCL | NLM_F_CREATE, opt)) {
-                printf("Failed to add qdisc\n");
-                exit(1);
-            }
-        } else if (strcmp(argv[1], "change") == 0) {
-            if (argc > 2)
-                sscanf(argv[2], "%lld", &opt->t_offset);
-            if (qdisc_modify(RTM_NEWQDISC, 0, opt)) {
-                printf("Failed to change qdisc\n");
-                exit(1);
-            }
-        } else if (strcmp(argv[1], "show") == 0) {
-            if (qdisc_list(1)) {
-                printf("Failed to list qdiscs\n");
-                exit(1);
+        strcpy(dev_name, argv[1]);
+        dev_idx = if_nametoindex(dev_name);
+
+        if (dev_idx == 0) {
+            printf("Failed to open device %d\n", dev_idx);
+            exit(1);
+        } else if (argc > 2) {
+            if (strcmp(argv[2], "add") == 0) {
+                if (argc > 4) {
+                    if (argc > 5) {
+                        sscanf(argv[3], "%lld", &opt->limit);
+                        sscanf(argv[4], "%lld", &opt->t_frame);
+                        sscanf(argv[5], "%lld", &opt->t_slot);
+                    } else {
+                        sscanf(argv[3], "%lld", &opt->t_frame);
+                        sscanf(argv[4], "%lld", &opt->t_slot);
+                    }
+                } else {
+                    opt->t_frame = 1000000000;
+                    opt->t_slot = 100000000;
+                }
+                if (qdisc_modify(RTM_NEWQDISC, NLM_F_EXCL | NLM_F_CREATE, opt)) {
+                    printf("Failed to add qdisc\n");
+                    exit(1);
+                }
+            } else if (strcmp(argv[2], "change") == 0) {
+                if (argc > 3)
+                    sscanf(argv[3], "%lld", &opt->t_offset);
+                if (qdisc_modify(RTM_NEWQDISC, 0, opt)) {
+                    printf("Failed to change qdisc\n");
+                    exit(1);
+                }
+            } else if (strcmp(argv[2], "del") == 0) {
+                if (qdisc_modify(RTM_DELQDISC, 0, opt)) {
+                    printf("Failed to delete qdisc\n");
+                    exit(1);
+                }
+            } else if (strcmp(argv[2], "show") == 0) {
+                if (qdisc_list(1)) {
+                    printf("Failed to list qdiscs\n");
+                    exit(1);
+                }
             }
         }
     }
