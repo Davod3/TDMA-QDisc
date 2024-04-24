@@ -24,7 +24,9 @@
 /* Macro Definitions */
 /*******************************************************************************/
 
-#define MAX_LINE_LEN 64
+#define MAX_LINE_LEN 128
+#define NETLINK_SOCK_KMOD_PATH "../netlink_sock.ko"
+#define TDMA_KMOD_PATH "../tdma.ko"
 
 /*******************************************************************************/
 /* Shared Data Structures */
@@ -119,19 +121,19 @@ const char* reset = "\033[0m";
 /* Function Declarations */
 /*******************************************************************************/
 
-int parse_config_file(uint32_t *bitmap, const char *filename);
+int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info);
 
 // bitmap operations
 void set_tdma_var_bit(uint32_t *bitmap, enum tdma_vars_e var);
 bool get_tdma_var_bit(uint32_t *bitmap, enum tdma_vars_e var);
 void clear_tdma_var_bit(uint32_t *bitmap, enum tdma_vars_e var);
 
-// qdisc operations
-// int modify_qdisc(int cmd, uint32_t flags, struct tc_tdma_qopt *opt);
-// struct tc_ratespec *dummy_ratespc(void);
-
 // variable helpers
 struct tdma_vars_t *update_vars(uint32_t *bitmap);
 void print_vars(void);
+
+// kernel module helpers
+int load_kernel_mod(const char *mod_path, const char *params);
+int offload_kernel_mod(const char *mod_path, const char *params);
 
 #endif

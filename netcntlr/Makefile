@@ -2,16 +2,16 @@ CC=gcc
 CFLAGS=-Wall -Wextra -std=c99 -I /usr/include/libnl3
 LIBS=-lnl-3 -lnl-genl-3
 
-SRC=netcntl.c cmdline.c
+SRC=netcntlr.c cmdline.c
 OBJ=$(SRC:.c=.o)
-EXE=netcntl
+EXE=netcntlr
 
 all: $(EXE)
 
 $(EXE): $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $(OBJ) $(LIBS)
 
-%.o: %.c netcntl.h
+%.o: %.c netcntlr.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 gengetopt:

@@ -45,6 +45,9 @@ struct gengetopt_args_info
   char * devname_arg;	/**< @brief name of network device to use.  */
   char * devname_orig;	/**< @brief name of network device to use original value given at command line.  */
   const char *devname_help; /**< @brief name of network device to use help description.  */
+  char * init_mod_arg;	/**< @brief path of kernel module to load.  */
+  char * init_mod_orig;	/**< @brief path of kernel module to load original value given at command line.  */
+  const char *init_mod_help; /**< @brief path of kernel module to load help description.  */
   long time_on_ns_arg;	/**< @brief time on in nanoseconds (default='200000000').  */
   char * time_on_ns_orig;	/**< @brief time on in nanoseconds original value given at command line.  */
   const char *time_on_ns_help; /**< @brief time on in nanoseconds help description.  */
@@ -64,18 +67,13 @@ struct gengetopt_args_info
   int set_tc_limit_arg;	/**< @brief sets limit value for tc.  */
   char * set_tc_limit_orig;	/**< @brief sets limit value for tc original value given at command line.  */
   const char *set_tc_limit_help; /**< @brief sets limit value for tc help description.  */
-  int set_tc_buffer_arg;	/**< @brief sets buffer value for tc.  */
-  char * set_tc_buffer_orig;	/**< @brief sets buffer value for tc original value given at command line.  */
-  const char *set_tc_buffer_help; /**< @brief sets buffer value for tc help description.  */
-  int set_tc_mtu_arg;	/**< @brief sets MTU value for tc.  */
-  char * set_tc_mtu_orig;	/**< @brief sets MTU value for tc original value given at command line.  */
-  const char *set_tc_mtu_help; /**< @brief sets MTU value for tc help description.  */
   const char *graph_help; /**< @brief start sending/receiving NETLINK messages to plot network activity help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
   unsigned int config_file_given ;	/**< @brief Whether config-file was given.  */
   unsigned int devname_given ;	/**< @brief Whether devname was given.  */
+  unsigned int init_mod_given ;	/**< @brief Whether init-mod was given.  */
   unsigned int time_on_ns_given ;	/**< @brief Whether time-on-ns was given.  */
   unsigned int time_off_ns_given ;	/**< @brief Whether time-off-ns was given.  */
   unsigned int tx_window_width_given ;	/**< @brief Whether tx-window-width was given.  */
@@ -83,8 +81,6 @@ struct gengetopt_args_info
   unsigned int offset_delay_given ;	/**< @brief Whether offset-delay was given.  */
   unsigned int use_tc_given ;	/**< @brief Whether use-tc was given.  */
   unsigned int set_tc_limit_given ;	/**< @brief Whether set-tc-limit was given.  */
-  unsigned int set_tc_buffer_given ;	/**< @brief Whether set-tc-buffer was given.  */
-  unsigned int set_tc_mtu_given ;	/**< @brief Whether set-tc-mtu was given.  */
   unsigned int graph_given ;	/**< @brief Whether graph was given.  */
 
 } ;

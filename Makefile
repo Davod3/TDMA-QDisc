@@ -5,16 +5,16 @@ obj-m += qdisc.o
 
 # Kernel src directory
 KDIR = /lib/modules/$(shell uname -r)/build
-.PHONY: all netcntl
+.PHONY: all netcntlr
 
 # build all modules
-all: netcntl
+all: netcntlr
 	$(MAKE) -C $(KDIR) M=$(PWD) modules
 
 # (sub)build user-space program
 # invokes 'Makefile' in netcntl directory
-netcntl:
-	@$(MAKE) -C netcntl
+netcntlr:
+	@$(MAKE) -C netcntlr
 
 # ensure correct ordering of module insertion
 install:

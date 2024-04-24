@@ -38,6 +38,7 @@ const char *gengetopt_args_info_help[] = {
   "  -V, --version              Print version and exit",
   "  -f, --config-file=STRING   path to configuration file to use",
   "  -d, --devname=STRING       name of network device to use",
+  "  -i, --init-mod=STRING      path of kernel module to load",
   "  -t, --time-on-ns=LONG      time on in nanoseconds  (default=`200000000')",
   "  -p, --time-off-ns=LONG     time off in nanoseconds  (default=`800000000')",
   "  -x, --tx-window-width=INT  width of transmission window",
@@ -45,8 +46,6 @@ const char *gengetopt_args_info_help[] = {
   "  -o, --offset-delay=INT     offset delay (can be negative)",
   "  -c, --use-tc               use Linux Traffic Control (tc) to set additional\n                               qdisc parameters",
   "  -l, --set-tc-limit=INT     sets limit value for tc",
-  "  -b, --set-tc-buffer=INT    sets buffer value for tc",
-  "  -m, --set-tc-mtu=INT       sets MTU value for tc",
   "  -g, --graph                start sending/receiving NETLINK messages to plot\n                               network activity",
     0
 };
@@ -77,6 +76,7 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->version_given = 0 ;
   args_info->config_file_given = 0 ;
   args_info->devname_given = 0 ;
+  args_info->init_mod_given = 0 ;
   args_info->time_on_ns_given = 0 ;
   args_info->time_off_ns_given = 0 ;
   args_info->tx_window_width_given = 0 ;
@@ -84,8 +84,6 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->offset_delay_given = 0 ;
   args_info->use_tc_given = 0 ;
   args_info->set_tc_limit_given = 0 ;
-  args_info->set_tc_buffer_given = 0 ;
-  args_info->set_tc_mtu_given = 0 ;
   args_info->graph_given = 0 ;
 }
 
@@ -97,6 +95,8 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->config_file_orig = NULL;
   args_info->devname_arg = NULL;
   args_info->devname_orig = NULL;
+  args_info->init_mod_arg = NULL;
+  args_info->init_mod_orig = NULL;
   args_info->time_on_ns_arg = 200000000;
   args_info->time_on_ns_orig = NULL;
   args_info->time_off_ns_arg = 800000000;
@@ -105,8 +105,6 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->tunnel_width_orig = NULL;
   args_info->offset_delay_orig = NULL;
   args_info->set_tc_limit_orig = NULL;
-  args_info->set_tc_buffer_orig = NULL;
-  args_info->set_tc_mtu_orig = NULL;
   
 }
 
@@ -119,16 +117,15 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->version_help = gengetopt_args_info_help[1] ;
   args_info->config_file_help = gengetopt_args_info_help[2] ;
   args_info->devname_help = gengetopt_args_info_help[3] ;
-  args_info->time_on_ns_help = gengetopt_args_info_help[4] ;
-  args_info->time_off_ns_help = gengetopt_args_info_help[5] ;
-  args_info->tx_window_width_help = gengetopt_args_info_help[6] ;
-  args_info->tunnel_width_help = gengetopt_args_info_help[7] ;
-  args_info->offset_delay_help = gengetopt_args_info_help[8] ;
-  args_info->use_tc_help = gengetopt_args_info_help[9] ;
-  args_info->set_tc_limit_help = gengetopt_args_info_help[10] ;
-  args_info->set_tc_buffer_help = gengetopt_args_info_help[11] ;
-  args_info->set_tc_mtu_help = gengetopt_args_info_help[12] ;
-  args_info->graph_help = gengetopt_args_info_help[13] ;
+  args_info->init_mod_help = gengetopt_args_info_help[4] ;
+  args_info->time_on_ns_help = gengetopt_args_info_help[5] ;
+  args_info->time_off_ns_help = gengetopt_args_info_help[6] ;
+  args_info->tx_window_width_help = gengetopt_args_info_help[7] ;
+  args_info->tunnel_width_help = gengetopt_args_info_help[8] ;
+  args_info->offset_delay_help = gengetopt_args_info_help[9] ;
+  args_info->use_tc_help = gengetopt_args_info_help[10] ;
+  args_info->set_tc_limit_help = gengetopt_args_info_help[11] ;
+  args_info->graph_help = gengetopt_args_info_help[12] ;
   
 }
 
@@ -222,14 +219,14 @@ cmdline_parser_release (struct gengetopt_args_info *args_info)
   free_string_field (&(args_info->config_file_orig));
   free_string_field (&(args_info->devname_arg));
   free_string_field (&(args_info->devname_orig));
+  free_string_field (&(args_info->init_mod_arg));
+  free_string_field (&(args_info->init_mod_orig));
   free_string_field (&(args_info->time_on_ns_orig));
   free_string_field (&(args_info->time_off_ns_orig));
   free_string_field (&(args_info->tx_window_width_orig));
   free_string_field (&(args_info->tunnel_width_orig));
   free_string_field (&(args_info->offset_delay_orig));
   free_string_field (&(args_info->set_tc_limit_orig));
-  free_string_field (&(args_info->set_tc_buffer_orig));
-  free_string_field (&(args_info->set_tc_mtu_orig));
   
   
 
@@ -268,6 +265,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "config-file", args_info->config_file_orig, 0);
   if (args_info->devname_given)
     write_into_file(outfile, "devname", args_info->devname_orig, 0);
+  if (args_info->init_mod_given)
+    write_into_file(outfile, "init-mod", args_info->init_mod_orig, 0);
   if (args_info->time_on_ns_given)
     write_into_file(outfile, "time-on-ns", args_info->time_on_ns_orig, 0);
   if (args_info->time_off_ns_given)
@@ -282,10 +281,6 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "use-tc", 0, 0 );
   if (args_info->set_tc_limit_given)
     write_into_file(outfile, "set-tc-limit", args_info->set_tc_limit_orig, 0);
-  if (args_info->set_tc_buffer_given)
-    write_into_file(outfile, "set-tc-buffer", args_info->set_tc_buffer_orig, 0);
-  if (args_info->set_tc_mtu_given)
-    write_into_file(outfile, "set-tc-mtu", args_info->set_tc_mtu_orig, 0);
   if (args_info->graph_given)
     write_into_file(outfile, "graph", 0, 0 );
   
@@ -552,6 +547,7 @@ cmdline_parser_internal (
         { "version",	0, NULL, 'V' },
         { "config-file",	1, NULL, 'f' },
         { "devname",	1, NULL, 'd' },
+        { "init-mod",	1, NULL, 'i' },
         { "time-on-ns",	1, NULL, 't' },
         { "time-off-ns",	1, NULL, 'p' },
         { "tx-window-width",	1, NULL, 'x' },
@@ -559,13 +555,11 @@ cmdline_parser_internal (
         { "offset-delay",	1, NULL, 'o' },
         { "use-tc",	0, NULL, 'c' },
         { "set-tc-limit",	1, NULL, 'l' },
-        { "set-tc-buffer",	1, NULL, 'b' },
-        { "set-tc-mtu",	1, NULL, 'm' },
         { "graph",	0, NULL, 'g' },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVf:d:t:p:x:w:o:cl:b:m:g", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVf:d:i:t:p:x:w:o:cl:g", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -601,6 +595,18 @@ cmdline_parser_internal (
               &(local_args_info.devname_given), optarg, 0, 0, ARG_STRING,
               check_ambiguity, override, 0, 0,
               "devname", 'd',
+              additional_error))
+            goto failure;
+        
+          break;
+        case 'i':	/* path of kernel module to load.  */
+        
+        
+          if (update_arg( (void *)&(args_info->init_mod_arg), 
+               &(args_info->init_mod_orig), &(args_info->init_mod_given),
+              &(local_args_info.init_mod_given), optarg, 0, 0, ARG_STRING,
+              check_ambiguity, override, 0, 0,
+              "init-mod", 'i',
               additional_error))
             goto failure;
         
@@ -685,30 +691,6 @@ cmdline_parser_internal (
               &(local_args_info.set_tc_limit_given), optarg, 0, 0, ARG_INT,
               check_ambiguity, override, 0, 0,
               "set-tc-limit", 'l',
-              additional_error))
-            goto failure;
-        
-          break;
-        case 'b':	/* sets buffer value for tc.  */
-        
-        
-          if (update_arg( (void *)&(args_info->set_tc_buffer_arg), 
-               &(args_info->set_tc_buffer_orig), &(args_info->set_tc_buffer_given),
-              &(local_args_info.set_tc_buffer_given), optarg, 0, 0, ARG_INT,
-              check_ambiguity, override, 0, 0,
-              "set-tc-buffer", 'b',
-              additional_error))
-            goto failure;
-        
-          break;
-        case 'm':	/* sets MTU value for tc.  */
-        
-        
-          if (update_arg( (void *)&(args_info->set_tc_mtu_arg), 
-               &(args_info->set_tc_mtu_orig), &(args_info->set_tc_mtu_given),
-              &(local_args_info.set_tc_mtu_given), optarg, 0, 0, ARG_INT,
-              check_ambiguity, override, 0, 0,
-              "set-tc-mtu", 'm',
               additional_error))
             goto failure;
         
