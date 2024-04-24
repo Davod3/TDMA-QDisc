@@ -4,7 +4,9 @@
 #include <linux/pkt_sched.h>
 
 // custom NETLINK 'family name' to bind socket to
+// ra = reconfigurable and adaptive
 #define NETLINK_FAMILY_NAME "raTDMA"
+#define NETLINK_FAMILY_MC "raTDMA-group" // multicast group
 
 enum genl_ratdma_ops
 {
@@ -24,7 +26,7 @@ enum genl_ratdma_attr_ids
     GNL_RATDMA_TUN_WIDTH,
     GNL_RATDMA_OFFSET_DELAY,
     GNL_RATDMA_USE_TC,
-    GNL_RATMDA_TC_LIMIT,
+    GNL_RATDMA_TC_LIMIT,
     GNL_RATDMA_GRAPH,
     /* include additional variables here */
     __GNL_RATDMA_COUNT

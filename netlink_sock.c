@@ -19,16 +19,16 @@ struct nla_policy const ratdma_policy[__GNL_RATDMA_COUNT] = {
     [GNL_RATDMA_TX_WINDOW_WIDTH]    = { .type = NLA_U32 },
     [GNL_RATDMA_TUN_WIDTH]          = { .type = NLA_U32 },
     [GNL_RATDMA_OFFSET_DELAY]       = { .type = NLA_S32 },
-    [GNL_RATMDA_USE_TC]             = { .type = NLA_FLAG },
+    [GNL_RATDMA_USE_TC]             = { .type = NLA_FLAG },
     [GNL_RATDMA_TC_LIMIT]           = { .type = NLA_U32 },
-    [GNL_RATMDA_GRAPH]              = { .type = NLA_FLAG },
+    [GNL_RATDMA_GRAPH]              = { .type = NLA_FLAG },
 };
 
 static const struct genl_ops ops[] = {
     {
-        .cmd = GNL_RATDMA_RECV_MSG,
-        .doit = handle_nl_recv_msg,
-        .policy = ratdma_policy,
+        .cmd = GNL_RATDMA_RECV_MSG, // message type
+        .doit = handle_nl_recv_msg, // callback function
+        .policy = ratdma_policy,    // policy to use
     },
     {
         .cmd = GNL_RATDMA_REPLY_MSG,
@@ -86,6 +86,12 @@ int handle_nl_recv_msg(struct sk_buff *skb, struct genl_info *info)
         printk(KERN_INFO "[raTDMA]: t_off_ns set to %lu\n", t_off_ns);
     }
 
+    if (info->attrs[GNL_RATDMA_GRAPH])
+    {
+        printk(KERN_INFO "[raTDMA]: starting plot capture...\n");
+        handle_nl_send_msg(skb,info);
+    }
+
     // variables not yet used...
     // tx_window_width = nla_get_u64(info->attrs[GNL_RATDMA_TX_WINDOW_WIDTH]);
     // tun_width = nla_get_u64(info->attrs[GNL_RATDMA_TUN_WIDTH]);
@@ -96,8 +102,39 @@ int handle_nl_recv_msg(struct sk_buff *skb, struct genl_info *info)
 
 int handle_nl_send_msg(struct sk_buff *skb, struct genl_info *info)
 {
-    // TODO handle sending replies back to user-land
-    return 0;
+    void *hdr;
+    int ret = 0;
+    struct sk_buff *msg;
+
+    msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
+    if (!msg)
+    {
+        printk(KERN_ALERT "[raTDMA]: failed to allocate message buffer\n");
+        return -ENOMEM;
+    }
+
+    hdr = genlmsg_put(msg, info->snd_portid, info->snd_seq, &raTDMA_family, 0, GNL_RATDMA_REPLY_MSG);
+    if (!hdr)
+    {
+        printk(KERN_ALERT "[raTDMA]: failed to create netlink header\n");
+        nlmsg_free(msg);
+        return -EMSGSIZE;
+    }
+
+    if ((ret = nla_put_string(msg, GNL_RATDMA_DEVNAME, devname)))
+    {
+        printk(KERN_ALERT "[raTDMA]: failed to create test message\n");
+        genlmsg_cancel(msg, hdr);
+        nlmsg_free(msg);
+        goto out;
+    }
+
+    genlmsg_end(msg, hdr);
+    ret = genlmsg_reply(msg, info);
+    printk(KERN_INFO "[raTDMA]: message sent %s", __FUNCTION__);
+
+out:
+    return ret;
 }
 
 /*******************************************************************************/

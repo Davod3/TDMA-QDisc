@@ -1,21 +1,6 @@
 
 #include "netcntl.h"
 
-
-void print_program_header(void)
-{
-	printf("███▄    █ ▓█████▄▄▄█████▓ ▄████▄   ███▄    █ ▄▄▄█████▓ ██▓     ██▀███\n"); 
-	printf("██ ▀█   █ ▓█   ▀▓  ██▒ ▓▒▒██▀ ▀█   ██ ▀█   █ ▓  ██▒ ▓▒▓██▒    ▓██ ▒ ██▒\n");
-	printf("▓██  ▀█ ██▒▒███  ▒ ▓██░ ▒░▒▓█    ▄ ▓██  ▀█ ██▒▒ ▓██░ ▒░▒██░    ▓██ ░▄█ ▒\n");
-	printf("▓██▒  ▐▌██▒▒▓█  ▄░ ▓██▓ ░ ▒▓▓▄ ▄██▒▓██▒  ▐▌██▒░ ▓██▓ ░ ▒██░    ▒██▀▀█▄ \n");
-	printf("▒██░   ▓██░░▒████▒ ▒██▒ ░ ▒ ▓███▀ ░▒██░   ▓██░  ▒██▒ ░ ░██████▒░██▓ ▒██▒\n");
-	printf("░ ▒░   ▒ ▒ ░░ ▒░ ░ ▒ ░░   ░ ░▒ ▒  ░░ ▒░   ▒ ▒   ▒ ░░   ░ ▒░▓  ░░ ▒▓ ░▒▓░\n");
-	printf("░ ░░   ░ ▒░ ░ ░  ░   ░      ░  ▒   ░ ░░   ░ ▒░    ░    ░ ░ ▒  ░  ░▒ ░ ▒░\n");
-	printf("░   ░ ░    ░    ░      ░           ░   ░ ░   ░        ░ ░     ░░   ░ \n");
-	printf("		░    ░  ░        ░ ░               ░              ░  ░   ░\n");   
-	printf("						░                                             \n");
-}
-
 void set_tdma_var_bit(uint32_t *bitmap, enum tdma_vars_e var) { *bitmap |= (1 << var); }
 
 bool get_tdma_var_bit(uint32_t *bitmap, enum tdma_vars_e var) { return (((*bitmap & (1 << var)) != 0) == true); }
@@ -204,7 +189,7 @@ int parse_config_file(uint32_t *bitmap, const char *filename)
             } 
 			else if (strcmp(key, "offset_delay") == 0) 
 			{
-                offset_delay = (uint32_t)strtoul(value, &end_ptr, 10);
+                offset_delay = (uint32_t)strtoull(value, &end_ptr, 10);
 				set_tdma_var_bit(bitmap, OFFSET_DELAY);
 				//printf("set offset_delay: %d\n", offset_delay);
             } 
@@ -216,8 +201,8 @@ int parse_config_file(uint32_t *bitmap, const char *filename)
 			}
 			else if (strcmp(key, "set-tc-limit") == 0)
 			{
-				tc_limit = (uint32_t)stroul(value, &end_ptr, 10);
-				set_tdma_var_bit(bitmap, )
+				tc_limit = (uint32_t)strtoul(value, &end_ptr, 10);
+				set_tdma_var_bit(bitmap, TC_LIMIT);
 			}
 			else if (strcmp(key, "graph") == 0)
 			{
@@ -333,7 +318,6 @@ int main(int argc, char *argv[])
 	 * we should separate this code to construct different types of NL messages
 	 * based on what operation we want, i.e. update_vars, use_tc, graph, etc.
 	*/
-	print_program_header();
 	printf("%sSaving variables to data%s\n", magenta, reset);
 
 	// save variable changes to struct
