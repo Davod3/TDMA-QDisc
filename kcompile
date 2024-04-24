@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# Script for compiling Kernel automatically
+# -----------------------------------------
+# Ivan Bondarenko
+# ivb8@pitt.edu
+# -----------------------------------------
+
+# Text color variables
+RED='\033[0;31m' 
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# check for correct usage
+if [ "$#" -ne 2 ]; then
+    echo -e "usage: $0 <path_to_kernel_src> <num_jobs(threads)>"
+    exit 1
+fi
+
+# extract arguments
+KERNEL_PATH="$1"
+NUM_JOBS="$2"
+
+# Label for new kernel (set in .config)
+BUILD_LABEL="arch-1980"
+
+cd "$KERNEL_PATH" || exit 1
+
+# Compile kernel
+if make -j"$NUM_JOBS"; then
+    echo -e "${YELLOW}Kernel compilation successful${NC}"
+else
+    echo -e "${RED}[Error]:${NC} Kernel compilation failed!"
+    exit 1
+fi
+
+# Make modules
+if make modules; then
+    echo -e "${YELLOW}Kernel modules compilation successful${NC}"
+else
+    echo -e "${RED}[Error]:${NC} Kernel modules compilation failed!"
+    exit 1
+fi
+
+# Install modules
+if make modules_install; then
+    echo -e "${YELLOW}Installed kernel modules successfully${NC}"
+else
+    echo -e "${RED}[Error]:${NC} Failed to install kernel modules!"
+    exit 1
+fi
+
+# Copy new kernel image
+cp -v arch/x86/boot/bzImage /boot/vmlinuz-linux-"$BUILD_LABEL"
+
+# Generate initramfs
+# NOTE: /etc/mkinitcpio.d/linux-$BUILD_LABEL.preset should already exist!
+mkinitcpio -p linux-"$BUILD_LABEL"
+
+# Copy System.map
+cp System.map /boot/System.map-linux-"$BUILD_LABEL"
+ln -sf /boot/System.map-linux-"$BUILD_LABEL" /boot/System.map
+
+# Configure bootloader
+if grub-mkconfig -o /boot/grub/grub.cfg; then
+    echo -e "${YELLOW}Bootloader configuration successful${NC}"
+else
+    echo -e "${RED}[Error]:${NC} Bootloader configuration failed!"
+    exit 1
+fi
+
+# Return
+echo "Done"
+cd .. || exit 1
+
