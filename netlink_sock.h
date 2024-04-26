@@ -34,20 +34,15 @@ enum genl_ratdma_attr_ids
 
 enum
 {
-    TCA_TBF_TEST_UNSPEC,
-	TCA_TBF_TEST_PARMS,
-	TCA_TBF_TEST_RTAB,
-	TCA_TBF_TEST_PTAB,
-	TCA_TBF_TEST_RATE64,
-	TCA_TBF_TEST_PRATE64,
-	TCA_TBF_TEST_BURST,
-	TCA_TBF_TEST_PBURST,
-	TCA_TBF_TEST_PAD,
-	__TCA_TBF_TEST_MAX,
+    TCA_TDMA_UNSPEC,
+	TCA_TDMA_PARMS,
+    TCA_TDMA_OFFSET_FUTURE,
+    TCA_TDMA_OFFSET_RELATIVE,
+	__TCA_TDMA_MAX,
 };
 
 #define GNL_RATDMA_MAX (__GNL_RATDMA_COUNT - 1)
-#define TCA_TBF_TEST_MAX (__TCA_TBF_TEST_MAX - 1)
+#define TCA_TDMA_MAX (__TCA_TDMA_MAX - 1)
 
 #ifdef NETLINK_SOCK
 
@@ -63,13 +58,10 @@ extern u64 t_off_ns;
 
 struct tc_tdma_qopt
 {
-    struct tc_ratespec rate;
-    struct tc_ratespec peakrate;
     u32 limit;
-    u32 buffer;
-    u32 mtu;
-    s64 frame;
-    s64 slot;
+    s64 t_frame;
+    s64 t_slot;
+    s64 t_offset;
 };
 
 #endif 

@@ -1,129 +1,453 @@
-#ifndef TDMA_KERNEL_MOD
-#define TDMA_KERNEL_MOD
+// SPDX-License-Identifier: GPL-2.0-or-later
+/*
+ * net/sched/sch_tbf.c	Token Bucket Filter queue.
+ *
+ * Authors:	Alexey Kuznetsov, <kuznet@ms2.inr.ac.ru>
+ *		Dmitry Torokhov <dtor@mail.ru> - allow attaching inner qdiscs -
+ *						 original idea by Martin Devera
+ */
 
 #include <linux/module.h>
-#include <linux/printk.h>
-#include <linux/skbuff.h>
 #include <linux/types.h>
-#include <linux/init.h>
-#include <linux/netdevice.h>
-#include <linux/moduleparam.h>
-#include <linux/hrtimer.h>
-#include <net/genetlink.h>
+#include <linux/kernel.h>
+#include <linux/string.h>
+#include <linux/errno.h>
+#include <linux/skbuff.h>
+#include <net/netlink.h>
+#include <net/sch_generic.h>
+#include <net/pkt_cls.h>
+#include <net/pkt_sched.h>
 
 #include "netlink_sock.h"
 
-typedef struct _Cycle 
-{
-    unsigned long T;        // Cycle duration in ms
-    unsigned int n_slots;   // Number of slots
-} TDMACycle;
 
-// Holds the device info for the device we are controlling
-static struct net_device *device = NULL;
+/*	Simple Token Bucket Filter.
+	=======================================
 
-// The name of the device we want to control
-char devname[] = "enp0s2";
+	SOURCE.
+	-------
 
-u64 t_on_s = 0;             //s
-u64 t_on_ns = 200000000UL;  //ns
-u64 t_off_s = 0;            //s
-u64 t_off_ns = 800000000UL; //ns
+	None.
 
-// export variables
-EXPORT_SYMBOL(devname);
-EXPORT_SYMBOL(t_on_s);
-EXPORT_SYMBOL(t_on_ns);
-EXPORT_SYMBOL(t_off_s);
-EXPORT_SYMBOL(t_off_ns);
+	Description.
+	------------
 
-// module_param(t_on_ns, long long unsigned int, 0);
-// MODULE_PARM_DESC(t_on_ns, "Time spent tx in nanoseconds");
-// module_param(t_off_ns, long long unsigned int, 0);
-// MODULE_PARM_DESC(t_off_ns, "Time spent not tx in nanoseconds");
+	A data flow obeys TBF with rate R and depth B, if for any
+	time interval t_i...t_f the number of transmitted bits
+	does not exceed B + R*(t_f-t_i).
 
-static struct hrtimer on_timer;
-static struct hrtimer off_timer;
+	Packetized version of this definition:
+	The sequence of packets of sizes s_i served at moments t_i
+	obeys TBF, if for any i<=k:
 
-static enum hrtimer_restart enable_queue(struct hrtimer *timer) 
-{
-    ktime_t time = ktime_add(ktime_get_real(), ktime_set(t_on_s, t_on_ns));
-    hrtimer_start(&off_timer, time, HRTIMER_MODE_ABS);
+	s_i+....+s_k <= B + R*(t_k - t_i)
 
-    printk(KERN_ALERT "ENABLE QUEUE!\n");
-    netif_wake_queue(device);
+	Algorithm.
+	----------
 
-    return HRTIMER_NORESTART;
+	Let N(t_i) be B/R initially and N(t) grow continuously with time as:
+
+	N(t+delta) = min{B/R, N(t) + delta}
+
+	If the first packet in queue has length S, it may be
+	transmitted only at the time t_* when S/R <= N(t_*),
+	and in this case N(t) jumps:
+
+	N(t_* + 0) = N(t_* - 0) - S/R.
+
+
+
+	Actually, QoS requires two TBF to be applied to a data stream.
+	One of them controls steady state burst size, another
+	one with rate P (peak rate) and depth M (equal to link MTU)
+	limits bursts at a smaller time scale.
+
+	It is easy to see that P>R, and B>M. If P is infinity, this double
+	TBF is equivalent to a single one.
+
+	When TBF works in reshaping mode, latency is estimated as:
+
+	lat = max ((L-B)/R, (L-M)/P)
+
+
+	NOTES.
+	------
+
+	If TBF throttles, it starts a watchdog timer, which will wake it up
+	when it is ready to transmit.
+	Note that the minimal timer resolution is 1/HZ.
+	If no new packets arrive during this period,
+	or if the device is not awaken by EOI for some previous packet,
+	TBF can stop its activity for 1/HZ.
+
+
+	This means, that with depth B, the maximal rate is
+
+	R_crit = B*HZ
+
+	F.e. for 10Mbit ethernet and HZ=100 the minimal allowed B is ~10Kbytes.
+
+	Note that the peak rate TBF is much more tough: with MTU 1500
+	P_crit = 150Kbytes/sec. So, if you need greater peak
+	rates, use alpha with HZ=1000 :-)
+
+	With classful TBF, limit is just kept for backwards compatibility.
+	It is passed to the default bfifo qdisc - if the inner qdisc is
+	changed the limit is not effective anymore.
+*/
+
+struct tdma_sched_data {
+/* Parameters */
+	u32		limit;		/* Maximal length of backlog: bytes */
+
+	s64 t_frame;
+	s64 t_slot;
+	s64	t_offset;			/* Time check-point */
+
+	u32 offset_future;
+	u32 offset_relative;
+
+	struct Qdisc	*qdisc;		/* Inner qdisc, default - bfifo queue */
+	struct qdisc_watchdog watchdog;	/* Watchdog timer */
+};
+
+
+static s64 intdiv(s64 a, u64 b) {
+	return (((a * ((a >= 0) ? 1 : -1)) / b) * ((a >= 0) ? 1 : -1)) - ((!(a >= 0)) && (!(((a * ((a >= 0) ? 1 : -1)) % b) == 0)));
 }
 
-static enum hrtimer_restart disable_queue(struct hrtimer *timer) 
+// static s64 calc_offset_1(s64 now, s64 offset, u64 frame) {
+// 	return offset + (intdiv(now - offset, frame) * frame);
+// }
+
+// static s64 calc_offset_2(s64 now, s64 offset, u64 frame) {
+// 	while (now >= (offset + frame))
+// 		offset += frame;
+// 	while (now < offset)
+// 		offset -= frame;
+// 	return offset;
+// }
+
+
+/* GSO packet is too big, segment it so that tdma can transmit
+ * each segment in time
+ */
+static int tdma_segment(struct sk_buff *skb, struct Qdisc *sch,
+		       struct sk_buff **to_free)
 {
-    ktime_t time = ktime_add(ktime_get_real(), ktime_set(t_off_s, t_off_ns));
-    hrtimer_start(&on_timer, time, HRTIMER_MODE_ABS);
+	struct tdma_sched_data *q = qdisc_priv(sch);
+	struct sk_buff *segs, *nskb;
+	netdev_features_t features = netif_skb_features(skb);
+	// unsigned int len = 0, prev_len = qdisc_pkt_len(skb);
+	unsigned int len = 0;
+	// int ret, nb;
+	int ret, nb, nt;
 
-    printk(KERN_ALERT "DISABLE QUEUE!\n");
-    netif_stop_queue(device);
+	segs = skb_gso_segment(skb, features & ~NETIF_F_GSO_MASK);
 
-    return HRTIMER_NORESTART;
+	if (IS_ERR_OR_NULL(segs)) {
+		// printk(KERN_DEBUG "drop\t%u\t%s\t(gso)\n", len, qdisc_dev(sch)->name);
+		printk(KERN_DEBUG "\e[0;31mdrop\t%u\t%s\t(gso)\e[0m\n", len, qdisc_dev(sch)->name);
+		return qdisc_drop(skb, sch, to_free);
+	}
+
+	nb = 0;
+	nt = 0;
+	skb_list_walk_safe(segs, segs, nskb) {
+		skb_mark_not_on_list(segs);
+		qdisc_skb_cb(segs)->pkt_len = segs->len;
+		// len += segs->len;
+		len = segs->len;
+		ret = qdisc_enqueue(segs, q->qdisc, to_free);
+		if (ret != NET_XMIT_SUCCESS) {
+			if (net_xmit_drop_count(ret))
+				qdisc_qstats_drop(sch);
+			// printk(KERN_DEBUG "drop\t%u\t%s\t(gso %d)\n", len, qdisc_dev(sch)->name, nt + 1);
+			printk(KERN_DEBUG "\e[0;31mdrop\t%u\t%s\t(gso %d)\e[0m\n", len, qdisc_dev(sch)->name, nt + 1);
+		} else {
+			// printk(KERN_DEBUG "enqueue\t%u\t%s\t(gso %d)\n", len, qdisc_dev(sch)->name, nt + 1);
+			printk(KERN_DEBUG "\e[0;34menqueue\t%u\t%s\t(gso %d)\e[0m\n", len, qdisc_dev(sch)->name, nt + 1);
+
+			sch->qstats.backlog += len;
+			sch->q.qlen++;
+			nb++;
+		}
+		nt++;
+	}
+	// sch->q.qlen += nb;
+	// if (nb > 1)
+	// 	qdisc_tree_reduce_backlog(sch, 1 - nb, prev_len - len);
+	consume_skb(skb);
+	return nb > 0 ? NET_XMIT_SUCCESS : NET_XMIT_DROP;
 }
 
-static int start(void) 
+static int tdma_enqueue(struct sk_buff *skb, struct Qdisc *sch,
+		       struct sk_buff **to_free)
 {
-    int retval;
-    ktime_t time;
+	struct tdma_sched_data *q = qdisc_priv(sch);
+	unsigned int len = qdisc_pkt_len(skb), max_len = psched_mtu(qdisc_dev(sch));
+	int ret;
 
-    // // start netlink socket
-    // retval = init_netlink();
-    // if (retval < 0)
-    // {
-    //     printk(KERN_ALERT "[TDMA]: failed to create raTDMA netlink family\n");
-    //     return -retval;
-    // }
-    // printk(KERN_ALERT "[TDMA]: listening on Netlink socket...\n");
+	// TODO: make choice of split-gso configurable
+	if (qdisc_pkt_len(skb) > max_len) {
+		if (skb_is_gso(skb) && skb_gso_validate_mac_len(skb, max_len))
+			return tdma_segment(skb, sch, to_free);
 
-    // get device (by devname) to control
-    device = dev_get_by_name(&init_net, devname);
-    if (!device) 
-    {
-        printk(KERN_ALERT "Tap device not found!\n");
-        retval = -ENODEV;
-        return retval;
-    }
+		// printk(KERN_DEBUG "drop\t%u\t%s\t(gso)\n", len, qdisc_dev(sch)->name);
+		printk(KERN_DEBUG "\e[0;31mdrop\t%u\t%s\t(gso)\e[0m\n", len, qdisc_dev(sch)->name);
 
-    // initialize timers
-    hrtimer_init(&on_timer, CLOCK_REALTIME, HRTIMER_MODE_ABS);
-    hrtimer_init(&off_timer, CLOCK_REALTIME, HRTIMER_MODE_ABS);
+		return qdisc_drop(skb, sch, to_free);
+	}
 
-    on_timer.function = enable_queue;
-    off_timer.function = disable_queue;
+	ret = qdisc_enqueue(skb, q->qdisc, to_free);
+	if (ret != NET_XMIT_SUCCESS) {
+		if (net_xmit_drop_count(ret))
+			qdisc_qstats_drop(sch);
 
-    // start timer
-    time = ktime_add(ktime_get_real(), ktime_set(1, 0));
-    hrtimer_start(&off_timer, time, HRTIMER_MODE_ABS);
+		// printk(KERN_DEBUG "drop\t%u\t%s\n", len, qdisc_dev(sch)->name);
+		printk(KERN_DEBUG "\e[0;31mdrop\t%u\t%s\e[0m\n", len, qdisc_dev(sch)->name);
 
-    return 0;
+		return ret;
+	}
+
+	// printk(KERN_DEBUG "enqueue\t%u\t%s\n", len, qdisc_dev(sch)->name);
+	printk(KERN_DEBUG "\e[0;34menqueue\t%u\t%s\e[0m\n", len, qdisc_dev(sch)->name);
+
+	sch->qstats.backlog += len;
+	sch->q.qlen++;
+	return NET_XMIT_SUCCESS;
 }
 
-static void stop(void) 
+static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 {
-    printk(KERN_ALERT "Goodbye Module\n");
+	struct tdma_sched_data *q = qdisc_priv(sch);
+	struct sk_buff *skb;
 
-    // if (remove_netlink() == 0)
-    // {
-    //     printk(KERN_ALERT "[TDMA]: released Netlink socket\n");
-    // }
-    if (device) 
-    {
-        netif_start_queue(device);
-        dev_put(device);
-    }
+	s64 now = ktime_get_ns();
+	s64 offset = q->t_offset + (intdiv(now - q->t_offset, q->t_frame) * q->t_frame);
 
-    hrtimer_cancel(&on_timer);
-    hrtimer_cancel(&off_timer);
+	// if (!((q->t_offset <= now) || (now < (q->t_offset + q->t_frame)) || (((offset - q->t_offset) % q->t_frame) == 0)))
+	// 	printk(KERN_DEBUG "TDMA: bad offsets (%lld -> %lld)\n", q->t_offset, offset);
+	// if (!((offset <= now) && (now < (offset + q->t_frame)) && ((offset - q->t_offset) % q->t_frame)))
+	// 	printk(KERN_DEBUG "TDMA: bad offsets (%lld -> %lld @ %lld)\n", q->t_offset, offset, now);
+	if (!((offset <= now) && (now < (offset + q->t_frame)) && (((offset - q->t_offset) % q->t_frame) == 0)))
+		printk(KERN_DEBUG "TDMA: bad offsets (%lld -> %lld @ %lld)\n", q->t_offset, offset, now);
+		// printk(KERN_DEBUG "%d, %d, %d\n", offset <= now, now < (offset + q->t_frame), ((offset - q->t_offset) % q->t_frame) == 0);
+
+	// // TODO: make choice of offset configurable
+	// q->t_offset = offset; // q->t_offset <= now < q->t_offset + frame
+	// // q->t_offset = now >= offset ? q->t_offset : offset; // now < q->t_offset + frame
+	if (!(q->offset_future && now < q->t_offset))
+		q->t_offset = offset;
+
+	if (q->qdisc->ops->peek(q->qdisc)) {
+		// if (!(now >= q->t_offset + q->t_slot)) {
+		if ((q->t_offset <= now) && (now < (q->t_offset + q->t_slot))) {
+			skb = qdisc_dequeue_peeked(q->qdisc);
+			if (unlikely(!skb))
+				return NULL;
+				
+			// printk(KERN_DEBUG "dequeue\t%u\t%s\n", qdisc_pkt_len(skb), qdisc_dev(sch)->name);
+			printk(KERN_DEBUG "%sdequeue\t%u\t%s%s\n", "\033[1;32m", qdisc_pkt_len(skb), qdisc_dev(sch)->name, "\033[0m");
+
+			qdisc_qstats_backlog_dec(sch, skb);
+			sch->q.qlen--;
+			qdisc_bstats_update(sch, skb);
+			return skb;
+		}
+
+		qdisc_watchdog_schedule_ns(&q->watchdog, q->t_frame - (now - q->t_offset));
+	}
+
+	return NULL;
 }
 
-module_init(start);
-module_exit(stop);
+static void tdma_reset(struct Qdisc *sch)
+{
+	struct tdma_sched_data *q = qdisc_priv(sch);
 
+	qdisc_watchdog_cancel(&q->watchdog);
+	qdisc_reset(q->qdisc);
+}
+
+static const struct nla_policy tdma_policy[TCA_TDMA_MAX + 1] = {
+	[TCA_TDMA_PARMS] = { .len = sizeof(struct tc_tdma_qopt) },
+	[TCA_TDMA_OFFSET_FUTURE] = { .type = NLA_U32 },
+	[TCA_TDMA_OFFSET_RELATIVE] = { .type = NLA_U32 },
+};
+
+static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext_ack *extack)
+{
+	int err;
+	struct tdma_sched_data *q = qdisc_priv(sch);
+	struct nlattr *tb[TCA_TDMA_MAX + 1];
+	struct tc_tdma_qopt *qopt;
+	u32 offset_future, offset_relative;
+	struct Qdisc *child;
+
+	printk(KERN_DEBUG "change\t\t%s", qdisc_dev(sch)->name);
+
+	if (!opt)
+		return -EINVAL;
+
+	if ((err = nla_parse_nested_deprecated(tb, TCA_TDMA_MAX, opt, tdma_policy, NULL)) < 0)
+		return err;
+
+	if (!tb[TCA_TDMA_PARMS])
+		return -EINVAL;
+
+	offset_future = 0;
+	if (tb[TCA_TDMA_OFFSET_FUTURE])
+		offset_future = nla_get_u32(tb[TCA_TDMA_OFFSET_FUTURE]);
+	
+	offset_relative = 0;
+	if (tb[TCA_TDMA_OFFSET_RELATIVE])
+		offset_relative = nla_get_u32(tb[TCA_TDMA_OFFSET_RELATIVE]);
+
+	qopt = nla_data(tb[TCA_TDMA_PARMS]);
+
+	if ((child = q->qdisc) == &noop_qdisc) {
+		if (!(child = qdisc_create_dflt(sch->dev_queue, &bfifo_qdisc_ops, sch->handle, extack)))
+			return -ENOMEM;
+		qdisc_hash_add(child, true);
+	}
+
+	if (qopt->limit && (err = fifo_set_limit(child, qopt->limit)) < 0)
+		return err;
+
+	// printk(KERN_DEBUG "%lld, %lld\n", q->t_offset, qopt->t_offset);
+
+	sch_tree_lock(sch);
+
+	q->qdisc = child;
+
+	q->limit = child->limit;
+
+	q->offset_future = offset_future;
+	q->offset_relative = offset_relative;
+	if (q->offset_relative)
+		q->t_offset = ktime_get_ns();
+
+	if (qopt->t_frame > 0)
+		q->t_frame = qopt->t_frame;
+	if (qopt->t_slot > 0)
+		q->t_slot = qopt->t_slot;
+	if (qopt->t_offset)
+		q->t_offset += qopt->t_offset;
+
+	sch_tree_unlock(sch);
+
+	// if ((qopt->t_frame > 0) || (qopt->t_slot > 0) || qopt->t_offset || offset_relative) {
+	// 	// printk(KERN_DEBUG "change\t%u\t%s", offset_relative, qdisc_dev(sch)->name);
+	// 	qdisc_watchdog_schedule_ns(&q->watchdog, 0);
+	// 	// printk(KERN_DEBUG "change\t%u\t%s", offset_relative, qdisc_dev(sch)->name);
+	// }
+
+	qdisc_watchdog_schedule_ns(&q->watchdog, 0);
+
+	printk(KERN_DEBUG "change\tflags=%u%u\t%s", q->offset_future, q->offset_relative, qdisc_dev(sch)->name);
+
+	return 0;
+}
+
+static int tdma_init(struct Qdisc *sch, struct nlattr *opt,
+		    struct netlink_ext_ack *extack)
+{
+	struct tdma_sched_data *q = qdisc_priv(sch);
+
+	// // // q->qdisc = &noop_qdisc;
+	// // q->qdisc = fifo_create_dflt(sch, &bfifo_qdisc_ops, qdisc_dev(sch)->tx_queue_len * psched_mtu(qdisc_dev(sch)), extack);
+	// // if (IS_ERR(q->qdisc))
+	// // 	return PTR_ERR(q->qdisc);
+	// // qdisc_hash_add(q->qdisc, true);
+
+	// // if (!(q->qdisc = qdisc_create_dflt(sch->dev_queue, &bfifo_qdisc_ops, TC_H_MAKE(sch->handle, 1), extack)))
+	// if (!(q->qdisc = qdisc_create_dflt(sch->dev_queue, &bfifo_qdisc_ops, sch->handle, extack)))
+	// 	return -ENOMEM;
+	// qdisc_hash_add(q->qdisc, true);
+
+	q->limit = 0;
+
+	q->t_frame = q->t_slot = 1;
+	q->t_offset = 0;
+
+	q->offset_future = q->offset_relative = 0;
+
+	q->qdisc = &noop_qdisc;
+
+	qdisc_watchdog_init(&q->watchdog, sch);
+
+	return tdma_change(sch, opt, extack);
+}
+
+static void tdma_destroy(struct Qdisc *sch)
+{
+	struct tdma_sched_data *q = qdisc_priv(sch);
+
+	qdisc_watchdog_cancel(&q->watchdog);
+	qdisc_put(q->qdisc);
+}
+
+static int tdma_dump(struct Qdisc *sch, struct sk_buff *skb)
+{
+	struct tdma_sched_data *q = qdisc_priv(sch);
+	struct nlattr *nest;
+	struct tc_tdma_qopt opt;
+
+	nest = nla_nest_start_noflag(skb, TCA_OPTIONS);
+	if (nest == NULL)
+		goto nla_put_failure;
+
+
+	opt.limit = q->limit;
+
+	opt.t_frame = q->t_frame;
+	opt.t_slot = q->t_slot;
+	opt.t_offset = q->t_offset;
+
+	printk(KERN_DEBUG "(dump %08x) dev: (name, tx_queue_len, psched_mtu) = (%s, %d, %d)\n", sch->handle, qdisc_dev(sch)->name, qdisc_dev(sch)->tx_queue_len, psched_mtu(qdisc_dev(sch)));
+	printk(KERN_DEBUG "(dump %08x) bfifo: (limit, qlen, backlog, drops) = (%d, %d, %d, %d)\n", sch->handle, q->qdisc->limit, q->qdisc->q.qlen, q->qdisc->qstats.backlog, q->qdisc->qstats.drops);
+	printk(KERN_DEBUG "(dump %08x) tdma: (limit, qlen, backlog, drops) = (%d, %d, %d, %d)\n", sch->handle, q->limit, sch->q.qlen, sch->qstats.backlog, sch->qstats.drops);
+	printk(KERN_DEBUG "(dump %08x) limit: (kernel, user) = (%d, %d)\n", sch->handle, q->limit, opt.limit);
+	printk(KERN_DEBUG "(dump %08x) t_frame: (kernel, user) = (%lld, %lld)\n", sch->handle, q->t_frame, opt.t_frame);
+	printk(KERN_DEBUG "(dump %08x) t_slot: (kernel, user) = (%lld, %lld)\n", sch->handle, q->t_slot, opt.t_slot);
+	printk(KERN_DEBUG "(dump %08x) t_offset: (kernel, user) = (%lld, %lld)\n", sch->handle, q->t_offset, opt.t_offset);
+
+	if (nla_put(skb, TCA_TDMA_PARMS, sizeof(opt), &opt))
+		goto nla_put_failure;
+
+	return nla_nest_end(skb, nest);
+
+nla_put_failure:
+	nla_nest_cancel(skb, nest);
+	return -1;
+}
+
+
+static struct Qdisc_ops tdma_qdisc_ops __read_mostly = {
+	.next		=	NULL,
+	.id			=	"tdma",
+	.priv_size	=	sizeof(struct tdma_sched_data),
+	.enqueue	=	tdma_enqueue,
+	.dequeue	=	tdma_dequeue,
+	.peek		=	qdisc_peek_dequeued,
+	.init		=	tdma_init,
+	.reset		=	tdma_reset,
+	.destroy	=	tdma_destroy,
+	.change		=	tdma_change,
+	.dump		=	tdma_dump,
+	.owner		=	THIS_MODULE,
+};
+
+static int __init tdma_module_init(void)
+{
+	return register_qdisc(&tdma_qdisc_ops);
+}
+
+static void __exit tdma_module_exit(void)
+{
+	unregister_qdisc(&tdma_qdisc_ops);
+}
+module_init(tdma_module_init)
+module_exit(tdma_module_exit)
 MODULE_LICENSE("GPL");
-#endif
