@@ -6,6 +6,8 @@
  *		Dmitry Torokhov <dtor@mail.ru> - allow attaching inner qdiscs -
  *						 original idea by Martin Devera
  */
+#ifndef TDMA_K
+#define TDMA_K
 
 #include <linux/module.h>
 #include <linux/types.h>
@@ -451,3 +453,5 @@ static void __exit tdma_module_exit(void)
 module_init(tdma_module_init)
 module_exit(tdma_module_exit)
 MODULE_LICENSE("GPL");
+
+#endif

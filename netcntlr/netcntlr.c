@@ -1,5 +1,184 @@
 #include "netcntlr.h"
 
+int add_attr(struct nlmsghdr *n, int maxlen, int type, void *data, int alen) 
+{
+    int len = RTA_LENGTH(alen), nlmsg_len = NLMSG_ALIGN(n->nlmsg_len) + RTA_ALIGN(len);
+    struct rtattr *rta;
+
+    if (nlmsg_len > maxlen) 
+	{
+        fprintf(stderr, "too long message\n");
+        return -1;
+    }
+
+    rta = NLMSG_TAIL(n);
+    rta->rta_type = type;
+    rta->rta_len = len;
+    memcpy(RTA_DATA(rta), data, alen);
+    n->nlmsg_len = nlmsg_len;
+    return 0;
+}
+
+struct rtattr *add_attr_nest(struct nlmsghdr *n, int maxlen, int type) 
+{
+    struct rtattr *nest = NLMSG_TAIL(n);
+    add_attr(n, maxlen, type, NULL, 0);
+    return nest;
+}
+
+int add_attr_nest_end(struct nlmsghdr *n, struct rtattr *nest) 
+{
+    nest->rta_len = ((void *) NLMSG_TAIL(n)) - ((void *) nest);
+    return n->nlmsg_len;
+}
+
+void cls(struct rtnl_handle *rtnl) 
+{
+	if (rtnl->fd >= 0) 
+	{
+		close(rtnl->fd);
+		rtnl->fd = -1;
+	}
+}
+
+int opn(struct rtnl_handle *rtnl) 
+{
+    socklen_t addr_len;
+    int sndbuf = 32768;
+    int rcvbuf = 1024 * 1024;
+    int one = 1;
+
+    memset(rtnl, 0, sizeof(*rtnl));
+    rtnl->proto = NETLINK_ROUTE;
+    rtnl->fd = socket(AF_NETLINK, SOCK_RAW | SOCK_CLOEXEC, NETLINK_ROUTE);
+    if (rtnl->fd < 0) 
+	{
+        return -1;
+    }
+    
+    if (setsockopt(rtnl->fd, SOL_SOCKET, SO_SNDBUF, &sndbuf, sizeof(sndbuf)) < 0 || setsockopt(rtnl->fd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof(rcvbuf)) < 0)
+        goto err;
+
+    setsockopt(rtnl->fd, SOL_NETLINK, NETLINK_EXT_ACK, &one, sizeof(one));
+    
+    memset(&rtnl->local, 0, sizeof(rtnl->local));
+    rtnl->local.nl_family = AF_NETLINK;
+    rtnl->local.nl_groups = 0;
+
+    if (bind(rtnl->fd, (struct sockaddr *)(&rtnl->local), sizeof(rtnl->local)) < 0)
+        goto err;
+    addr_len = sizeof(rtnl->local);
+    if (getsockname(rtnl->fd, (struct sockaddr *)&rtnl->local, &addr_len) < 0)
+        goto err;
+    if (addr_len != sizeof(rtnl->local))
+        goto err;
+    if (rtnl->local.nl_family != AF_NETLINK)
+        goto err;
+    rtnl->seq = time(NULL);
+    return 0;
+
+err:
+    fprintf(stderr, "err\n");
+    cls(rtnl);
+    return -1;
+}
+
+static int talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, struct nlmsghdr **answer) 
+{
+    int fd = rtnl->fd;
+    struct sockaddr_nl nladdr = { .nl_family = AF_NETLINK, };
+    struct iovec iov = {
+        .iov_base = n,
+        .iov_len = n->nlmsg_len,
+    };
+    struct msghdr msg = {
+        .msg_name = &nladdr,
+        .msg_namelen = sizeof(nladdr),
+        .msg_iov = &iov,
+        .msg_iovlen = 1,
+    };
+
+    n->nlmsg_seq = ++rtnl->seq;
+    n->nlmsg_flags |= NLM_F_ACK;
+
+    if (sendmsg(fd, &msg, 0) < 0)
+        return -1;
+    return 0;
+}
+
+static int qdisc_modify(int cmd, unsigned int flags, struct tc_tdma_qopt *opt) 
+{
+    // cmd = RTM_NEWQDISC // add | change | replace | link
+    // cmd = RTM_DELQDISC // delete
+    // flags = NLM_F_EXCL | NLM_F_CREATE // add
+    // flags = 0 // change | delete
+    // flags = NLM_F_CREATE | NLM_F_REPLACE // replace
+    // flags = NLM_F_REPLACE // link
+
+    // char d[IFNAMSIZ] = {};
+    char d[16] = {}; // device (interface) name
+    // char *d = "enp0s1";
+    // strncpy(d, "enp0s1", 16);
+    strncpy(d, "eth0", 16);
+    // char k[FILTER_NAMESZ] = {};
+    char k[16] = {}; // qdisc (kind) name
+    strncpy(k, "tdma", 16);
+    // char *k = "tdma";
+
+    struct {
+        struct nlmsghdr n;
+        struct tcmsg t;
+	char buf[64 * 1024];
+        // char buf[TCA_BUF_MAX];
+    } req = {
+        .n.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcmsg)),
+        .n.nlmsg_flags = NLM_F_REQUEST | flags,
+        .n.nlmsg_type = cmd,
+
+        .t.tcm_family = AF_UNSPEC, // unsigned char
+        // .t.tcm_ifindex // int // required
+        // .t.tcm_handle = handle, // __u32 // optional
+        .t.tcm_parent = TC_H_ROOT, // __u32
+        // .t.tcm_info = 0 // __u32 // optional
+    };
+
+    struct rtattr *tail;
+
+    // BEGIN hardcoding    // END hardcoding
+
+    if (k[0])
+        // addattr_l(&req.n, sizeof(req), TCA_KIND, k, strlen(k) + 1);
+        add_attr(&req.n, sizeof(req), TCA_KIND, k, strlen(k) + 1);
+
+    // Add TCA_OPTIONS
+    // tail = addattr_nest(&req.n, 1024, TCA_OPTIONS);
+    tail = add_attr_nest(&req.n, 1024, TCA_OPTIONS);
+    // addattr_l(&req.n, 2024, TCA_TBF_PARMS, opt, sizeof(*opt));
+    // addattr_l(&req.n, 2024, TCA_TDMA_PARMS, opt, sizeof(*opt));
+    add_attr(&req.n, 2024, TCA_TDMA_PARMS, opt, sizeof(*opt));
+    // addattr_nest_end(&req.n, tail);
+    add_attr_nest_end(&req.n, tail);
+
+    // if (d[0]) {
+    //     int idx;
+
+    //     ll_init_map(&rth);
+
+    //     idx = ll_name_to_index(d);
+    //     if (!idx)
+    //         return 1;
+    //     req.t.tcm_ifindex = idx;
+    // }
+    // HARDCODING
+    req.t.tcm_ifindex = 2;
+
+    // if (rtnl_talk(&rth, &req.n, NULL) < 0)
+    if (talk(&rth, &req.n, NULL) < 0)
+        return 1;
+        
+    return 0;
+}
+
 int load_kernel_mod(const char *mod_path, const char *params)
 {
 	int ret = 0;

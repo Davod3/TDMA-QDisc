@@ -10,7 +10,12 @@
 #include <errno.h>
 #include <stdint.h>
 #include <string.h>
+#include <malloc.h>
+#include <math.h>
+#include <time.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 // custom library imports
 #include <libnl3/netlink/genl/ctrl.h>
@@ -27,6 +32,7 @@
 #define MAX_LINE_LEN 128
 #define NETLINK_SOCK_KMOD_PATH "../netlink_sock.ko"
 #define TDMA_KMOD_PATH "../tdma.ko"
+#define NLMSG_TAIL(nmsg) ((struct rtattr *) (((void *) (nmsg)) + NLMSG_ALIGN((nmsg)->nlmsg_len)))
 
 /*******************************************************************************/
 /* Shared Data Structures */
@@ -72,6 +78,24 @@ enum tdma_vars_e
     TC_LIMIT = 9,
     GRAPH = 10,
 };
+
+struct rtnl_handle 
+{
+	int			        fd;
+	struct sockaddr_nl	local;
+	struct sockaddr_nl	peer;
+	uint32_t			seq;
+	uint32_t			dump;
+	int			        proto;
+	FILE		       *dump_fp;
+    #define RTNL_HANDLE_F_LISTEN_ALL_NSID		0x01
+    #define RTNL_HANDLE_F_SUPPRESS_NLERR		0x02
+    #define RTNL_HANDLE_F_STRICT_CHK		    0x04
+	int			flags;
+};
+
+struct rtnl_handle rth;
+
 
 /*******************************************************************************/
 /* Shared Variables */
@@ -135,5 +159,14 @@ void print_vars(void);
 // kernel module helpers
 int load_kernel_mod(const char *mod_path, const char *params);
 int offload_kernel_mod(const char *mod_path, const char *params);
+
+// RTNL Utility Functions
+int add_attr(struct nlmsghdr *n, int maxlen, int type, void *data, int alen);
+struct rtattr *add_attr_nest(struct nlmsghdr *n, int maxlen, int type);
+int add_attr_nest_end(struct nlmsghdr *n, struct rtattr *nest);
+void cls(struct rtnl_handle *rtnl);
+int opn(struct rtnl_handle *rtnl);
+static int talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, struct nlmsghdr **answer);
+static int qdisc_modify(int cmd, unsigned int flags, struct tc_tdma_qopt *opt);
 
 #endif

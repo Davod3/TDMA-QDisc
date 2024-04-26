@@ -54,7 +54,8 @@ extern u64 t_off_ns;
 
 #endif
 
-#ifdef QDISC_K
+// imports for kernel-land
+#ifdef TDMA_K
 
 struct tc_tdma_qopt
 {
