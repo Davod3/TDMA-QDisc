@@ -54,33 +54,45 @@ int handle_nl_recv_msg(struct sk_buff *skb, struct genl_info *info)
     // update kernel variables with values from message
     if (info->attrs[GNL_RATDMA_DEVNAME])
     {
-        //strncpy(devname, (const char *)nla_data(info->attrs[GNL_RATDMA_DEVNAME]), sizeof(devname)-1);
-        //devname[sizeof(devname)-1] = '\0'; // null-terminate string
-        // printk(KERN_INFO "[raTDMA]: devname set to %s\n", devname);
+        strncpy(devname, (const char *)nla_data(info->attrs[GNL_RATDMA_DEVNAME]), sizeof(devname)-1);
+        devname[sizeof(devname)-1] = '\0'; // null-terminate string
+        printk(KERN_INFO "[raTDMA]: devname set to %s\n", devname);
     }
 
-    if (info->attrs[GNL_RATDMA_T_ON_S])
+    if (info->attrs[GNL_RATDMA_LIMIT])
     {
-        // t_on_s = nla_get_u64(info->attrs[GNL_RATDMA_T_ON_S]);
-        // printk(KERN_INFO "[raTDMA]: t_on_s set to %lu\n", t_on_s);
+        limit = nla_get_u32(info->attrs[GNL_RATDMA_LIMIT]);
+        printk(KERN_INFO "[raTDMA]: limit set to %ld\n", limit);
     }
 
-    if (info->attrs[GNL_RATDMA_T_OFF_S])
+    if (info->attrs[GNL_RATDMA_OFFSET])
     {
-        // t_off_s = nla_get_u64(info->attrs[GNL_RATDMA_T_OFF_S]);
-        // printk(KERN_INFO "[raTDMA]: t_off_s set to %lu\n", t_off_s);
+        t_offset = nla_get_s64(info->attrs[GNL_RATDMA_OFFSET]);
+        printk(KERN_INFO "[raTDMA]: t_offset set to %ld\n", t_offset);
     }
 
-    if (info->attrs[GNL_RATDMA_T_ON_NS])
+    if (info->attrs[GNL_RATDMA_FRAME])
     {
-        // t_on_ns = nla_get_u64(info->attrs[GNL_RATDMA_T_ON_NS]);
-        // printk(KERN_INFO "[raTDMA]: t_on_ns set to %lu\n", t_on_ns);
+        t_frame = nla_get_s64(info->attrs[GNL_RATDMA_FRAME]);
+        printk(KERN_INFO "[raTDMA]: t_frame set to %ld\n", t_frame);
     }
 
-    if (info->attrs[GNL_RATDMA_T_OFF_NS])
+    if (info->attrs[GNL_RATDMA_SLOT])
     {
-        // t_off_ns = nla_get_u64(info->attrs[GNL_RATDMA_T_OFF_NS]);
-        // printk(KERN_INFO "[raTDMA]: t_off_ns set to %lu\n", t_off_ns);
+        t_slot = nla_get_s64(info->attrs[GNL_RATDMA_SLOT]);
+        printk(KERN_INFO "[raTDMA]: t_slot set to %ld\n", t_slot);
+    }
+
+    if (info->attrs[GNL_RATDMA_OFFSET_FUTURE])
+    {
+        offset_future = nla_get_u32(info->attrs[GNL_RATDMA_OFFSET_FUTURE]);
+        printk(KERN_INFO "[raTDMA]: offset_future set to %u\n", offset_future);
+    }
+
+    if (info->attrs[GNL_RATDMA_OFFSET_RELATIVE])
+    {
+        offset_relative = nla_get_u32(info->attrs[GNL_RATDMA_OFFSET_RELATIVE]);
+        printk(KERN_INFO "[raTDMA]: offset_relative set to %u\n", offset_relative);
     }
 
     if (info->attrs[GNL_RATDMA_GRAPH])
@@ -88,11 +100,6 @@ int handle_nl_recv_msg(struct sk_buff *skb, struct genl_info *info)
         printk(KERN_INFO "[raTDMA]: starting plot capture...\n");
         handle_nl_send_msg(skb,info);
     }
-
-    // variables not yet used...
-    // tx_window_width = nla_get_u64(info->attrs[GNL_RATDMA_TX_WINDOW_WIDTH]);
-    // tun_width = nla_get_u64(info->attrs[GNL_RATDMA_TUN_WIDTH]);
-    // offset_delay = nla_get_u64(info->attrs[GNL_RATDMA_OFFSET_DELAY]);
 
     return 0;
 }

@@ -98,6 +98,22 @@
 	changed the limit is not effective anymore.
 */
 
+char devname[] = "enp0s2";
+u32 limit = 0;
+s64 t_frame = 0;
+s64 t_slot = 0;
+s64 t_offset = 0;
+u32 offset_future = 0;
+u32 offset_relative = 0;
+
+EXPORT_SYMBOL(devname);
+EXPORT_SYMBOL(limit);
+EXPORT_SYMBOL(t_frame);
+EXPORT_SYMBOL(t_slot);
+EXPORT_SYMBOL(t_offset);
+EXPORT_SYMBOL(offset_future);
+EXPORT_SYMBOL(offset_relative);
+
 struct tdma_sched_data {
 /* Parameters */
 	u32		limit;		/* Maximal length of backlog: bytes */
@@ -112,7 +128,6 @@ struct tdma_sched_data {
 	struct Qdisc	*qdisc;		/* Inner qdisc, default - bfifo queue */
 	struct qdisc_watchdog watchdog;	/* Watchdog timer */
 };
-
 
 static s64 intdiv(s64 a, u64 b) {
 	return (((a * ((a >= 0) ? 1 : -1)) / b) * ((a >= 0) ? 1 : -1)) - ((!(a >= 0)) && (!(((a * ((a >= 0) ? 1 : -1)) % b) == 0)));
@@ -450,6 +465,7 @@ static void __exit tdma_module_exit(void)
 {
 	unregister_qdisc(&tdma_qdisc_ops);
 }
+
 module_init(tdma_module_init)
 module_exit(tdma_module_exit)
 MODULE_LICENSE("GPL");

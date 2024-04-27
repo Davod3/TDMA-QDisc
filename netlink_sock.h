@@ -43,11 +43,13 @@ enum
 
 #ifdef NETLINK_SOCK
 
-// extern char devname[64];
-// extern u64 t_on_s;
-// extern u64 t_on_ns;
-// extern u64 t_off_s;
-// extern u64 t_off_ns;
+extern char devname[64];
+extern u32 limit;
+extern s64 t_frame;
+extern s64 t_slot;
+extern s64 t_offset;
+extern u32_offset_future;
+extern u32_offset_relative;
 
 #endif
 
