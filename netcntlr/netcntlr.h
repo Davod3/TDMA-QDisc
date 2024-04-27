@@ -41,15 +41,12 @@
 struct tdma_vars_t
 {
     char *devname;
-    uint64_t t_on_s;
-    uint64_t t_off_s;
-    uint64_t t_on_ns;
-    uint64_t t_off_ns;
-    uint32_t tx_window_width;
-    uint32_t tun_width;
-    uint32_t tc_limit;
-    int32_t offset_delay;
-    bool use_tc;
+    uint32_t limit;
+    int64_t t_frame;
+    int64_t t_slot;
+    int64_t t_offset;
+    uint32_t offset_future;
+    uint32_t offset_relative;
     bool graph;
 };
 
@@ -67,16 +64,13 @@ struct tc_tdma_qopt
 enum tdma_vars_e
 {
     DEVNAME = 0,
-    T_ON_S = 1,
-    T_OFF_S = 2,
-    T_ON_NS = 3,
-    T_OFF_NS = 4,
-    TX_WINDOW_WIDTH = 5,
-    TUN_WIDTH = 6,
-    OFFSET_DELAY = 7,
-    USE_TC = 8,
-    TC_LIMIT = 9,
-    GRAPH = 10,
+    LIMIT,
+    OFFSET,
+    FRAME,
+    SLOT,
+    OFFSET_FUTURE,
+    OFFSET_RELATIVE,
+    GRAPH
 };
 
 struct rtnl_handle 
@@ -96,41 +90,21 @@ struct rtnl_handle
 
 struct rtnl_handle rth;
 
-
 /*******************************************************************************/
 /* Shared Variables */
 /*******************************************************************************/
 
 // config variables
 char devname[MAX_LINE_LEN];
-uint64_t t_on_s = 0;
-uint64_t t_off_s = 0;
-uint64_t t_on_ns = 0;
-uint64_t t_off_ns = 0;
-uint32_t tx_window_width = 0;
-uint32_t tun_width = 0;
-uint32_t tc_limit = 0;
-int32_t offset_delay = 0;
-bool use_tc = false;
+uint32_t limit = 0;
+int64_t t_frame = 0;
+int64_t t_slot = 0;
+int64_t t_offset = 0;
+uint32_t offset_future = 0;
+uint32_t offset_relative = 0;
 bool graph = false;
-
-/*
- * Default Values
- *
- * whenever possible, these should reflect
- * the default values set in tdma.c, and qdisc.c
-*/ 
-const char def_devname[] = "enp0s2";
-const uint64_t def_t_on_s = 0;
-const uint64_t def_t_off_s = 0;
-const uint64_t def_t_on_ns = 200000000;
-const uint64_t def_t_off_ns = 800000000;
-const uint32_t def_tx_window_width = 5;
-const uint32_t def_tun_width = 5;
-const uint32_t def_tc_limit = 0;
-const int32_t def_offset_delay = -1;
-const bool def_use_tc = false;
-const bool def_graph = false;
+bool tdma_mod_loaded = false;
+bool netlink_sock_mod_loaded = false;
 
 // ANSI escape codes (colors for stdout)
 const char* red = "\033[31m";
@@ -159,6 +133,8 @@ void print_vars(void);
 // kernel module helpers
 int load_kernel_mod(const char *mod_path, const char *params);
 int offload_kernel_mod(const char *mod_path, const char *params);
+int is_module_loaded(const char *mod_name);
+int start_modules(void);
 
 // RTNL Utility Functions
 int add_attr(struct nlmsghdr *n, int maxlen, int type, void *data, int alen);
@@ -167,6 +143,6 @@ int add_attr_nest_end(struct nlmsghdr *n, struct rtattr *nest);
 void cls(struct rtnl_handle *rtnl);
 int opn(struct rtnl_handle *rtnl);
 static int talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, struct nlmsghdr **answer);
-static int qdisc_modify(int cmd, unsigned int flags, struct tc_tdma_qopt *opt);
+static int qdisc_modify(int cmd, const char *dev, unsigned int flags, struct tc_tdma_qopt *opt);
 
 #endif

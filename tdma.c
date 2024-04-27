@@ -19,9 +19,9 @@
 #include <net/sch_generic.h>
 #include <net/pkt_cls.h>
 #include <net/pkt_sched.h>
+#include <net/gso.h>
 
 #include "netlink_sock.h"
-
 
 /*	Simple Token Bucket Filter.
 	=======================================

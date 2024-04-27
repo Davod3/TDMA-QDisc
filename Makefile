@@ -1,14 +1,14 @@
 # build modules
 obj-m += tdma.o 
 obj-m += netlink_sock.o
-obj-m += qdisc.o
+# obj-m += qdisc.o
 
 # Kernel src directory
 KDIR = /lib/modules/$(shell uname -r)/build
 .PHONY: all netcntlr
 
 # build all modules
-all: netcntlr
+all: netcntlr 
 	$(MAKE) -C $(KDIR) M=$(PWD) modules
 
 # (sub)build user-space program
@@ -30,5 +30,5 @@ remove:
 
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean
-	@$(MAKE) -C netcntl clean
+	@$(MAKE) -C netcntlr clean
 

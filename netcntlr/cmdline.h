@@ -45,42 +45,36 @@ struct gengetopt_args_info
   char * devname_arg;	/**< @brief name of network device to use.  */
   char * devname_orig;	/**< @brief name of network device to use original value given at command line.  */
   const char *devname_help; /**< @brief name of network device to use help description.  */
-  char * init_mod_arg;	/**< @brief path of kernel module to load.  */
-  char * init_mod_orig;	/**< @brief path of kernel module to load original value given at command line.  */
-  const char *init_mod_help; /**< @brief path of kernel module to load help description.  */
-  long time_on_ns_arg;	/**< @brief time on in nanoseconds (default='200000000').  */
-  char * time_on_ns_orig;	/**< @brief time on in nanoseconds original value given at command line.  */
-  const char *time_on_ns_help; /**< @brief time on in nanoseconds help description.  */
-  long time_off_ns_arg;	/**< @brief time off in nanoseconds (default='800000000').  */
-  char * time_off_ns_orig;	/**< @brief time off in nanoseconds original value given at command line.  */
-  const char *time_off_ns_help; /**< @brief time off in nanoseconds help description.  */
-  int tx_window_width_arg;	/**< @brief width of transmission window.  */
-  char * tx_window_width_orig;	/**< @brief width of transmission window original value given at command line.  */
-  const char *tx_window_width_help; /**< @brief width of transmission window help description.  */
-  int tunnel_width_arg;	/**< @brief width of tunnel time.  */
-  char * tunnel_width_orig;	/**< @brief width of tunnel time original value given at command line.  */
-  const char *tunnel_width_help; /**< @brief width of tunnel time help description.  */
-  int offset_delay_arg;	/**< @brief offset delay (can be negative).  */
-  char * offset_delay_orig;	/**< @brief offset delay (can be negative) original value given at command line.  */
-  const char *offset_delay_help; /**< @brief offset delay (can be negative) help description.  */
-  const char *use_tc_help; /**< @brief use Linux Traffic Control (tc) to set additional qdisc parameters help description.  */
-  int set_tc_limit_arg;	/**< @brief sets limit value for tc.  */
-  char * set_tc_limit_orig;	/**< @brief sets limit value for tc original value given at command line.  */
-  const char *set_tc_limit_help; /**< @brief sets limit value for tc help description.  */
+  int limit_arg;	/**< @brief sets limit value for tc.  */
+  char * limit_orig;	/**< @brief sets limit value for tc original value given at command line.  */
+  const char *limit_help; /**< @brief sets limit value for tc help description.  */
+  int offset_arg;	/**< @brief offset delay (can be negative).  */
+  char * offset_orig;	/**< @brief offset delay (can be negative) original value given at command line.  */
+  const char *offset_help; /**< @brief offset delay (can be negative) help description.  */
+  int frame_arg;	/**< @brief size of TDMA frame.  */
+  char * frame_orig;	/**< @brief size of TDMA frame original value given at command line.  */
+  const char *frame_help; /**< @brief size of TDMA frame help description.  */
+  int slot_arg;	/**< @brief size of TDMA slot.  */
+  char * slot_orig;	/**< @brief size of TDMA slot original value given at command line.  */
+  const char *slot_help; /**< @brief size of TDMA slot help description.  */
+  int offset_future_arg;	/**< @brief delay tranmission window longer than t_frame time.  */
+  char * offset_future_orig;	/**< @brief delay tranmission window longer than t_frame time original value given at command line.  */
+  const char *offset_future_help; /**< @brief delay tranmission window longer than t_frame time help description.  */
+  int offset_relative_arg;	/**< @brief delay transmission window relative to current time.  */
+  char * offset_relative_orig;	/**< @brief delay transmission window relative to current time original value given at command line.  */
+  const char *offset_relative_help; /**< @brief delay transmission window relative to current time help description.  */
   const char *graph_help; /**< @brief start sending/receiving NETLINK messages to plot network activity help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
   unsigned int config_file_given ;	/**< @brief Whether config-file was given.  */
   unsigned int devname_given ;	/**< @brief Whether devname was given.  */
-  unsigned int init_mod_given ;	/**< @brief Whether init-mod was given.  */
-  unsigned int time_on_ns_given ;	/**< @brief Whether time-on-ns was given.  */
-  unsigned int time_off_ns_given ;	/**< @brief Whether time-off-ns was given.  */
-  unsigned int tx_window_width_given ;	/**< @brief Whether tx-window-width was given.  */
-  unsigned int tunnel_width_given ;	/**< @brief Whether tunnel-width was given.  */
-  unsigned int offset_delay_given ;	/**< @brief Whether offset-delay was given.  */
-  unsigned int use_tc_given ;	/**< @brief Whether use-tc was given.  */
-  unsigned int set_tc_limit_given ;	/**< @brief Whether set-tc-limit was given.  */
+  unsigned int limit_given ;	/**< @brief Whether limit was given.  */
+  unsigned int offset_given ;	/**< @brief Whether offset was given.  */
+  unsigned int frame_given ;	/**< @brief Whether frame was given.  */
+  unsigned int slot_given ;	/**< @brief Whether slot was given.  */
+  unsigned int offset_future_given ;	/**< @brief Whether offset-future was given.  */
+  unsigned int offset_relative_given ;	/**< @brief Whether offset-relative was given.  */
   unsigned int graph_given ;	/**< @brief Whether graph was given.  */
 
 } ;

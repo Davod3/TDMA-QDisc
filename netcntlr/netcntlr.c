@@ -106,7 +106,7 @@ static int talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, struct nlmsghdr **
     return 0;
 }
 
-static int qdisc_modify(int cmd, unsigned int flags, struct tc_tdma_qopt *opt) 
+static int qdisc_modify(int cmd, const char *dev, unsigned int flags, struct tc_tdma_qopt *opt) 
 {
     // cmd = RTM_NEWQDISC // add | change | replace | link
     // cmd = RTM_DELQDISC // delete
@@ -119,7 +119,7 @@ static int qdisc_modify(int cmd, unsigned int flags, struct tc_tdma_qopt *opt)
     char d[16] = {}; // device (interface) name
     // char *d = "enp0s1";
     // strncpy(d, "enp0s1", 16);
-    strncpy(d, "eth0", 16);
+    strncpy(d, dev, 16);
     // char k[FILTER_NAMESZ] = {};
     char k[16] = {}; // qdisc (kind) name
     strncpy(k, "tdma", 16);
@@ -177,6 +177,52 @@ static int qdisc_modify(int cmd, unsigned int flags, struct tc_tdma_qopt *opt)
         return 1;
         
     return 0;
+}
+
+int start_modules(void)
+{
+	if (!netlink_sock_mod_loaded && is_module_loaded("netlink_sock") == 0)
+	{
+		load_kernel_mod(NETLINK_SOCK_KMOD_PATH, NULL);
+		netlink_sock_mod_loaded = true;
+	}
+
+	if (!tdma_mod_loaded && is_module_loaded("tdma") == 0)
+	{
+		load_kernel_mod(TDMA_KMOD_PATH, NULL);
+		tdma_mod_loaded = true;
+	}
+
+	return 0;
+}
+
+int is_module_loaded(const char *mod_name)
+{
+	FILE *fp;
+	char buf[MAX_LINE_LEN];
+	int found = 0;
+
+	// open /proc/modules file
+	fp = fopen("/proc/modules", "r");
+	if (fp == NULL)
+	{
+		perror("failed to open /proc/modules");
+		return -1;
+	}
+
+	// read and check each line for module name
+	while (fgets(buf, sizeof(buf), fp) != NULL)
+	{
+		if (strncmp(buf, mod_name, strlen(mod_name)) == 0 && buf[strlen(mod_name)] == ' ')
+		{
+			found = 1;
+			break;
+		}
+	}
+
+	// close file, return result
+	fclose(fp);
+	return found;
 }
 
 int load_kernel_mod(const char *mod_path, const char *params)
@@ -238,79 +284,48 @@ struct tdma_vars_t *update_vars(uint32_t *bitmap)
 		data->devname = devname;
 		clear_tdma_var_bit(bitmap, DEVNAME);
 	}
-	else data->devname = def_devname; // set default
 
-	if (get_tdma_var_bit(bitmap, T_ON_S))
+	if (get_tdma_var_bit(bitmap, LIMIT))
 	{
-		printf("%sattr: %s is set!%s\n", yellow, "T_ON_S", reset);
-		data->t_on_s = t_on_s;
-		clear_tdma_var_bit(bitmap, T_ON_S);
+		printf("%sattr: %s is set!%s\n", yellow, "LIMIT", reset);
+		data->limit = limit;
+		clear_tdma_var_bit(bitmap, LIMIT);
 	}
-	else data->t_on_s = def_t_on_s; // set default
 
-	if (get_tdma_var_bit(bitmap, T_OFF_S))
+	if (get_tdma_var_bit(bitmap, OFFSET))
 	{
-		printf("%sattr: %s is set!%s\n", yellow, "T_OFF_S", reset);
-		data->t_off_s = t_off_s;
-		clear_tdma_var_bit(bitmap, T_OFF_S);
+		printf("%sattr: %s is set!%s\n", yellow, "OFFSET", reset);
+		data->t_offset = t_offset;
+		clear_tdma_var_bit(bitmap, OFFSET);
 	}
-	else data->t_off_s = def_t_off_s; // set default
 
-	if (get_tdma_var_bit(bitmap, T_ON_NS))
+	if (get_tdma_var_bit(bitmap, FRAME))
 	{
-		printf("%sattr: %s is set!%s\n", yellow, "T_ON_NS", reset);
-		data->t_on_ns = t_on_ns;
-		clear_tdma_var_bit(bitmap, T_ON_NS);
+		printf("%sattr: %s is set!%s\n", yellow, "FRAME", reset);
+		data->t_frame = t_frame;
+		clear_tdma_var_bit(bitmap, FRAME);
 	}
-	else data->t_on_ns = def_t_on_ns; // set default
 
-	if (get_tdma_var_bit(bitmap, T_OFF_NS))
+	if (get_tdma_var_bit(bitmap, SLOT))
 	{
-		printf("%sattr: %s is set!%s\n", yellow, "T_OFF_NS", reset);
-		data->t_off_ns = t_off_ns;
-		clear_tdma_var_bit(bitmap, T_OFF_NS);
+		printf("%sattr: %s is set!%s\n", yellow, "SLOT", reset);
+		data->t_slot = t_slot;
+		clear_tdma_var_bit(bitmap, SLOT);
 	}
-	else data->t_off_ns = def_t_off_ns; // set default
 
-	if (get_tdma_var_bit(bitmap, TX_WINDOW_WIDTH))
+	if (get_tdma_var_bit(bitmap, OFFSET_FUTURE))
 	{
-		printf("%sattr: %s is set!%s\n", yellow, "TX_WINDOW_WIDTH", reset);
-		data->tx_window_width = tx_window_width;
-		clear_tdma_var_bit(bitmap, TX_WINDOW_WIDTH);
+		printf("%sattr: %s is set!%s\n", yellow, "OFFSET_FUTURE", reset);
+		data->offset_future = offset_future;
+		clear_tdma_var_bit(bitmap, OFFSET_FUTURE);
 	}
-	else data->tx_window_width = def_tx_window_width; // set default
 
-	if (get_tdma_var_bit(bitmap, TUN_WIDTH))
+	if (get_tdma_var_bit(bitmap, OFFSET_RELATIVE))
 	{
-		printf("%sattr: %s is set!%s\n", yellow, "TUN_WIDTH", reset);
-		data->tun_width = tun_width;
-		clear_tdma_var_bit(bitmap, TUN_WIDTH);
+		printf("%sattr: %s is set!%s\n", yellow, "OFFSET_RELATIVE", reset);
+		data->offset_relative = offset_relative;
+		clear_tdma_var_bit(bitmap, OFFSET_RELATIVE);
 	}
-	else data->tun_width = def_tun_width; // set default
-
-	if (get_tdma_var_bit(bitmap, OFFSET_DELAY))
-	{
-		printf("%sattr: %s is set!%s\n", yellow, "OFFSET_DELAY", reset);
-		data->offset_delay = offset_delay;
-		clear_tdma_var_bit(bitmap, OFFSET_DELAY);
-	}
-	else data->offset_delay = def_offset_delay; // set default
-
-	if (get_tdma_var_bit(bitmap, USE_TC))
-	{
-		printf("%sattr: %s is set!%s\n", yellow, "USE_TC", reset);
-		data->use_tc = use_tc;
-		clear_tdma_var_bit(bitmap, USE_TC);
-	}
-	else data->use_tc = def_use_tc; // set default
-
-	if (get_tdma_var_bit(bitmap, TC_LIMIT))
-	{
-		printf("%attr: %s is set!%s\n", yellow, "TC_LIMIT", reset);
-		data->tc_limit = tc_limit;
-		clear_tdma_var_bit(bitmap, TC_LIMIT);
-	}
-	else data->tc_limit = def_tc_limit; // set default
 
 	if (get_tdma_var_bit(bitmap, GRAPH))
 	{
@@ -318,7 +333,6 @@ struct tdma_vars_t *update_vars(uint32_t *bitmap)
 		data->graph = graph;
 		clear_tdma_var_bit(bitmap, GRAPH);
 	}
-	else data->graph = def_graph; // set default
 
 	// return pointer to data struct
 	return data;
@@ -327,15 +341,12 @@ struct tdma_vars_t *update_vars(uint32_t *bitmap)
 void print_vars(void)
 {
 	printf("devname: %s\n", devname);
-	printf("t_on_s: %lu\n", t_on_s);
-	printf("t_off_s: %lu\n", t_off_s);
-	printf("t_on_ns: %lu\n", t_on_ns);
-	printf("t_off_ns: %lu\n", t_off_ns);
-	printf("tx_window_width: %u\n", tx_window_width);
-	printf("tun_width: %u\n", tun_width);
-	printf("tc_limit: %u\n", tc_limit);
-	printf("offset_delay: %d\n", offset_delay);
-	printf("use_tc: %d\n", (int)use_tc);
+	printf("limit: %u\n", limit);
+	printf("t_frame: %ld\n", t_frame);
+	printf("t_slot: %ld\n", t_slot);
+	printf("t_offset: %ld\n", t_offset);
+	printf("offset_future: %u\n", offset_future);
+	printf("offset_relative: %u\n", offset_relative);
 	printf("graph: %d\n", (int)graph);
 }
 
@@ -368,61 +379,37 @@ int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info)
 				{
 					strcpy(&devname, value);
 					set_tdma_var_bit(bitmap, DEVNAME);
-					//printf("set devname: %s\n", value);
 				} 
-				else if (strcmp(key, "t_on_s") == 0) 
+				else if (strcmp(key, "limit") == 0) 
 				{
-					t_on_s = (uint64_t)strtoull(value, &end_ptr, 10);
-					set_tdma_var_bit(bitmap, T_ON_S);
-					//printf("set t_on_s: %lu\n", t_on_s);
+					limit = (uint32_t)strtoul(value, &end_ptr, 10);
+					set_tdma_var_bit(bitmap, LIMIT);
 				} 
-				else if (strcmp(key, "t_off_s") == 0) 
+				else if (strcmp(key, "t_offset") == 0) 
 				{
-					t_off_s = (uint64_t)strtoull(value, &end_ptr, 10);
-					set_tdma_var_bit(bitmap, T_OFF_S);
-					//printf("set t_off_s: %lu\n", t_off_s);
+					t_offset = (int64_t)strtoull(value, &end_ptr, 10);
+					set_tdma_var_bit(bitmap, OFFSET);
 				} 
-				else if (strcmp(key, "t_on_ns") == 0) 
+				else if (strcmp(key, "t_frame") == 0) 
 				{
-					t_on_ns = (uint64_t)strtoull(value, &end_ptr, 10);
-					set_tdma_var_bit(bitmap, T_ON_NS);
-					//printf("set t_on_ns: %lu\n", t_on_ns);
+					t_frame = (int64_t)strtoull(value, &end_ptr, 10);
+					set_tdma_var_bit(bitmap, FRAME);
 				} 
-				else if (strcmp(key, "t_off_ns") == 0) 
+				else if (strcmp(key, "t_slot") == 0) 
 				{
-					t_off_ns = (uint64_t)strtoull(value, &end_ptr, 10);
-					set_tdma_var_bit(bitmap, T_OFF_NS);
-					//printf("set t_off_ns: %lu\n", t_off_ns);
+					t_slot = (int64_t)strtoull(value, &end_ptr, 10);
+					set_tdma_var_bit(bitmap, SLOT);
 				} 
-				else if (strcmp(key, "tx_window_width") == 0) 
+				else if (strcmp(key, "offset_future") == 0) 
 				{
-					tx_window_width = (uint32_t)strtoul(value, &end_ptr, 10);
-					set_tdma_var_bit(bitmap, TX_WINDOW_WIDTH);
-					//printf("set tx_window_width: %u\n", tx_window_width);
+					offset_future = (uint32_t)strtoul(value, &end_ptr, 10);
+					set_tdma_var_bit(bitmap, OFFSET_FUTURE);
 				} 
-				else if (strcmp(key, "tun_width") == 0) 
+				else if (strcmp(key, "offset_relative") == 0) 
 				{
-					tun_width = (uint32_t)strtoul(value, &end_ptr, 10);
-					set_tdma_var_bit(bitmap, TUN_WIDTH);
-					//printf("set tun_width: %u\n", tun_width);
+					offset_relative = (uint32_t)strtoul(value, &end_ptr, 10);
+					set_tdma_var_bit(bitmap, OFFSET_RELATIVE);
 				} 
-				else if (strcmp(key, "offset_delay") == 0) 
-				{
-					offset_delay = (uint32_t)strtoull(value, &end_ptr, 10);
-					set_tdma_var_bit(bitmap, OFFSET_DELAY);
-					//printf("set offset_delay: %d\n", offset_delay);
-				} 
-				else if (strcmp(key, "use_tc") == 0)
-				{
-					use_tc = (bool)value;
-					set_tdma_var_bit(bitmap, USE_TC);
-					//printf("set use_tc: %d\n", use_tc);
-				}
-				else if (strcmp(key, "set-tc-limit") == 0)
-				{
-					tc_limit = (uint32_t)strtoul(value, &end_ptr, 10);
-					set_tdma_var_bit(bitmap, TC_LIMIT);
-				}
 				else if (strcmp(key, "graph") == 0)
 				{
 					graph = (bool)value;
@@ -446,44 +433,35 @@ int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info)
 			strcpy(&devname, args_info->devname_arg);
 			set_tdma_var_bit(bitmap, DEVNAME);
 		}
-		if (args_info->init_mod_given)
+		if (args_info->limit_given) 	 
 		{
-			// TODO: set variables for kernel mod path
+			limit = args_info->limit_arg;
+			set_tdma_var_bit(bitmap, LIMIT);
 		}
-		if (args_info->time_on_ns_given) 	 
+		if (args_info->offset_given) 	 
 		{
-			t_on_ns = args_info->time_on_ns_arg;
-			set_tdma_var_bit(bitmap, T_ON_NS);
+			t_offset = args_info->offset_arg;
+			set_tdma_var_bit(bitmap, OFFSET);
 		}
-		if (args_info->time_off_ns_given) 	 
-		{
-			t_off_ns = args_info->time_off_ns_arg;
-			set_tdma_var_bit(bitmap, T_OFF_NS);
-		}
-		if (args_info->tx_window_width_given)
+		if (args_info->frame_given)
 		{ 
-			tx_window_width = args_info->tx_window_width_arg;
-			set_tdma_var_bit(bitmap, TX_WINDOW_WIDTH);
+			t_frame = args_info->frame_arg;
+			set_tdma_var_bit(bitmap, FRAME);
 		}
-		if (args_info->tunnel_width_given)
+		if (args_info->slot_given)
 		{
-			tun_width = args_info->tunnel_width_given;
-			set_tdma_var_bit(bitmap, TUN_WIDTH);
+			t_slot = args_info->slot_arg;
+			set_tdma_var_bit(bitmap, SLOT);
 		}
-		if (args_info->set_tc_limit_given)
+		if (args_info->offset_future_given)
 		{
-			tc_limit = args_info->set_tc_limit_given;
-			set_tdma_var_bit(bitmap, TC_LIMIT);
+			offset_future = args_info->offset_future_arg;
+			set_tdma_var_bit(bitmap, OFFSET_FUTURE);
 		}
-		if (args_info->offset_delay_given)
+		if (args_info->offset_relative_given)
 		{
-			offset_delay = args_info->offset_delay_arg;
-			set_tdma_var_bit(bitmap, OFFSET_DELAY);
-		}
-		if (args_info->use_tc_given)
-		{
-			use_tc = true;
-			set_tdma_var_bit(bitmap, USE_TC);
+			offset_relative = args_info->offset_relative_arg;
+			set_tdma_var_bit(bitmap, OFFSET_RELATIVE);
 		}
 		if (args_info->graph_given)
 		{
@@ -531,6 +509,36 @@ int init_netlink_socket(struct nl_sock **sk, int *genl_family)
 	return 0;
 }
 
+void create_nlmsg(struct nl_msg *msg, struct tdma_vars_t *data, int *genl_family)
+{
+	// create netlink message
+	msg = nlmsg_alloc();
+	if (msg < 0)
+	{
+		perror("failed to allocate memory for nlmsg");
+		exit(EXIT_FAILURE);
+	}
+	genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, *genl_family, 0, 0, GNL_RATDMA_RECV_MSG, 1);
+
+	// save changed variables to nlmsg
+	// ensure data stored in portable way
+	nla_put_string(msg, GNL_RATDMA_DEVNAME, data->devname);
+	nla_put_u32(msg, GNL_RATDMA_LIMIT, data->limit);
+	nla_put_s64(msg, GNL_RATDMA_OFFSET, data->t_offset);
+	nla_put_s64(msg, GNL_RATDMA_FRAME, data->t_frame);
+	nla_put_s64(msg, GNL_RATDMA_SLOT, data->t_slot);
+	nla_put_u32(msg, GNL_RATDMA_OFFSET_FUTURE, data->offset_future);
+	nla_put_u32(msg, GNL_RATDMA_OFFSET_RELATIVE, data->offset_relative);
+
+	// add flag values to netlink message only if true 
+	if (graph)
+	{
+		printf("nla_put graph: %d\n", (int)data->graph);
+		nla_put_flag(msg, GNL_RATDMA_GRAPH);
+	}
+
+}
+
 int main(int argc, char *argv[])
 {
 	struct gengetopt_args_info args_info;
@@ -576,13 +584,6 @@ int main(int argc, char *argv[])
 			cmdline_parser_print_help();
 			exit(EXIT_FAILURE);
 		}
-		// ensure kernel module to load is required
-		if (!args_info.init_mod_given)
-		{
-			printf("Kernel module must be specified\n");
-			cmdline_parser_print_help();
-			exit(EXIT_FAILURE);
-		}
 		// save values
 		if (parse_params(bitmap, &args_info) != 0)
 		{
@@ -591,15 +592,17 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	/* START REFACTOR
-	 * we should separate this code to construct different types of NL messages
-	 * based on what operation we want, i.e. update_vars, use_tc, graph, etc.
-	*/
-	printf("%sSaving variables to data%s\n", magenta, reset);
-
 	// save variable changes to struct
 	data = update_vars(bitmap);
 
+	// load kernel modulles
+	printf("%sinserting kernel modules...%s\n", magenta, reset);
+	if (start_modules() != 0)
+	{
+		printf("Modules already loaded, proceeding...");
+	}
+
+	// create netlink socket to receive messages
 	printf("%sCreating netlink socket%s\n", magenta, reset);
 	if (init_netlink_socket(&sk, &genl_family) != 0)
 	{
@@ -608,48 +611,8 @@ int main(int argc, char *argv[])
 	}
 
 	// create netlink message
-	msg = nlmsg_alloc();
-	if (msg < 0)
-	{
-		perror("failed to allocate memory for nlmsg");
-		exit(EXIT_FAILURE);
-	}
-	genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, genl_family, 0, 0, GNL_RATDMA_RECV_MSG, 1);
+	create_nlmsg(msg, data, &genl_family);
 
-	// save changed variables to nlmsg
-	// ensure data stored in portable way
-	printf("nla_put devname: %s\n", data->devname);
-	nla_put_string(msg, GNL_RATDMA_DEVNAME, data->devname);
-	printf("nla_put t_on_s: %lu\n", data->t_on_s);
-	nla_put_u64(msg, GNL_RATDMA_T_ON_S, data->t_on_s);
-	printf("nla_put t_off_s: %lu\n", data->t_off_s);	
-	nla_put_u64(msg, GNL_RATDMA_T_OFF_S, data->t_off_s);
-	printf("nla_put t_on_ns: %lu\n", data->t_on_ns);	
-	nla_put_u64(msg, GNL_RATDMA_T_ON_NS, data->t_on_ns);
-	printf("nla_put t_off_ns: %lu\n", data->t_off_ns);	
-	nla_put_u64(msg, GNL_RATDMA_T_OFF_NS, data->t_off_ns);
-	printf("nla_put tx_window_width: %u\n", data->tx_window_width);	
-	nla_put_u32(msg, GNL_RATDMA_TX_WINDOW_WIDTH, data->tx_window_width);
-	printf("nla_put tun_width: %u\n", data->tun_width);	
-	nla_put_u32(msg, GNL_RATDMA_TUN_WIDTH, data->tun_width);
-	printf("nla_put tc_limit: %u\n", data->tc_limit);
-	nla_put_u32(msg, GNL_RATDMA_TC_LIMIT, data->tc_limit);
-	printf("nla_put offset_delay: %d\n", data->offset_delay);	
-	nla_put_s32(msg, GNL_RATDMA_OFFSET_DELAY, data->offset_delay);
-
-	// add flag values to netlink message only if true 
-	if (use_tc)
-	{
-		printf("nla_put use_tc: %d\n", (int)data->use_tc);
-		nla_put_flag(msg, GNL_RATDMA_USE_TC);
-	}
-	if (graph)
-	{
-		printf("nla_put graph: %d\n", (int)data->graph);
-		nla_put_flag(msg, GNL_RATDMA_GRAPH);
-	}
-
-	/* END REFACTOR */
 	// send message to kernel
 	printf("%sSending message to kernel...%s\n", magenta, reset);
 	if (nl_send_auto(sk, msg) < 0)
@@ -657,10 +620,8 @@ int main(int argc, char *argv[])
 		perror("failed to send netlink message");
 		return -errno;
 	}
-	// TODO Collect Timestamp on Receiving End
 
 	printf("%sSent netlink message!%s\n", magenta, reset);
-	// print_vars();
 
 	// cleanup
 	nlmsg_free(msg);

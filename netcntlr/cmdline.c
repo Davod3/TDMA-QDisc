@@ -38,14 +38,12 @@ const char *gengetopt_args_info_help[] = {
   "  -V, --version              Print version and exit",
   "  -f, --config-file=STRING   path to configuration file to use",
   "  -d, --devname=STRING       name of network device to use",
-  "  -i, --init-mod=STRING      path of kernel module to load",
-  "  -t, --time-on-ns=LONG      time on in nanoseconds  (default=`200000000')",
-  "  -p, --time-off-ns=LONG     time off in nanoseconds  (default=`800000000')",
-  "  -x, --tx-window-width=INT  width of transmission window",
-  "  -w, --tunnel-width=INT     width of tunnel time",
-  "  -o, --offset-delay=INT     offset delay (can be negative)",
-  "  -c, --use-tc               use Linux Traffic Control (tc) to set additional\n                               qdisc parameters",
-  "  -l, --set-tc-limit=INT     sets limit value for tc",
+  "  -l, --limit=INT            sets limit value for tc",
+  "  -o, --offset=INT           offset delay (can be negative)",
+  "  -F, --frame=INT            size of TDMA frame",
+  "  -s, --slot=INT             size of TDMA slot",
+  "  -O, --offset-future=INT    delay tranmission window longer than t_frame time",
+  "  -r, --offset-relative=INT  delay transmission window relative to current time",
   "  -g, --graph                start sending/receiving NETLINK messages to plot\n                               network activity",
     0
 };
@@ -53,7 +51,6 @@ const char *gengetopt_args_info_help[] = {
 typedef enum {ARG_NO
   , ARG_STRING
   , ARG_INT
-  , ARG_LONG
 } cmdline_parser_arg_type;
 
 static
@@ -76,14 +73,12 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->version_given = 0 ;
   args_info->config_file_given = 0 ;
   args_info->devname_given = 0 ;
-  args_info->init_mod_given = 0 ;
-  args_info->time_on_ns_given = 0 ;
-  args_info->time_off_ns_given = 0 ;
-  args_info->tx_window_width_given = 0 ;
-  args_info->tunnel_width_given = 0 ;
-  args_info->offset_delay_given = 0 ;
-  args_info->use_tc_given = 0 ;
-  args_info->set_tc_limit_given = 0 ;
+  args_info->limit_given = 0 ;
+  args_info->offset_given = 0 ;
+  args_info->frame_given = 0 ;
+  args_info->slot_given = 0 ;
+  args_info->offset_future_given = 0 ;
+  args_info->offset_relative_given = 0 ;
   args_info->graph_given = 0 ;
 }
 
@@ -95,16 +90,12 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->config_file_orig = NULL;
   args_info->devname_arg = NULL;
   args_info->devname_orig = NULL;
-  args_info->init_mod_arg = NULL;
-  args_info->init_mod_orig = NULL;
-  args_info->time_on_ns_arg = 200000000;
-  args_info->time_on_ns_orig = NULL;
-  args_info->time_off_ns_arg = 800000000;
-  args_info->time_off_ns_orig = NULL;
-  args_info->tx_window_width_orig = NULL;
-  args_info->tunnel_width_orig = NULL;
-  args_info->offset_delay_orig = NULL;
-  args_info->set_tc_limit_orig = NULL;
+  args_info->limit_orig = NULL;
+  args_info->offset_orig = NULL;
+  args_info->frame_orig = NULL;
+  args_info->slot_orig = NULL;
+  args_info->offset_future_orig = NULL;
+  args_info->offset_relative_orig = NULL;
   
 }
 
@@ -117,15 +108,13 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->version_help = gengetopt_args_info_help[1] ;
   args_info->config_file_help = gengetopt_args_info_help[2] ;
   args_info->devname_help = gengetopt_args_info_help[3] ;
-  args_info->init_mod_help = gengetopt_args_info_help[4] ;
-  args_info->time_on_ns_help = gengetopt_args_info_help[5] ;
-  args_info->time_off_ns_help = gengetopt_args_info_help[6] ;
-  args_info->tx_window_width_help = gengetopt_args_info_help[7] ;
-  args_info->tunnel_width_help = gengetopt_args_info_help[8] ;
-  args_info->offset_delay_help = gengetopt_args_info_help[9] ;
-  args_info->use_tc_help = gengetopt_args_info_help[10] ;
-  args_info->set_tc_limit_help = gengetopt_args_info_help[11] ;
-  args_info->graph_help = gengetopt_args_info_help[12] ;
+  args_info->limit_help = gengetopt_args_info_help[4] ;
+  args_info->offset_help = gengetopt_args_info_help[5] ;
+  args_info->frame_help = gengetopt_args_info_help[6] ;
+  args_info->slot_help = gengetopt_args_info_help[7] ;
+  args_info->offset_future_help = gengetopt_args_info_help[8] ;
+  args_info->offset_relative_help = gengetopt_args_info_help[9] ;
+  args_info->graph_help = gengetopt_args_info_help[10] ;
   
 }
 
@@ -219,14 +208,12 @@ cmdline_parser_release (struct gengetopt_args_info *args_info)
   free_string_field (&(args_info->config_file_orig));
   free_string_field (&(args_info->devname_arg));
   free_string_field (&(args_info->devname_orig));
-  free_string_field (&(args_info->init_mod_arg));
-  free_string_field (&(args_info->init_mod_orig));
-  free_string_field (&(args_info->time_on_ns_orig));
-  free_string_field (&(args_info->time_off_ns_orig));
-  free_string_field (&(args_info->tx_window_width_orig));
-  free_string_field (&(args_info->tunnel_width_orig));
-  free_string_field (&(args_info->offset_delay_orig));
-  free_string_field (&(args_info->set_tc_limit_orig));
+  free_string_field (&(args_info->limit_orig));
+  free_string_field (&(args_info->offset_orig));
+  free_string_field (&(args_info->frame_orig));
+  free_string_field (&(args_info->slot_orig));
+  free_string_field (&(args_info->offset_future_orig));
+  free_string_field (&(args_info->offset_relative_orig));
   
   
 
@@ -265,22 +252,18 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "config-file", args_info->config_file_orig, 0);
   if (args_info->devname_given)
     write_into_file(outfile, "devname", args_info->devname_orig, 0);
-  if (args_info->init_mod_given)
-    write_into_file(outfile, "init-mod", args_info->init_mod_orig, 0);
-  if (args_info->time_on_ns_given)
-    write_into_file(outfile, "time-on-ns", args_info->time_on_ns_orig, 0);
-  if (args_info->time_off_ns_given)
-    write_into_file(outfile, "time-off-ns", args_info->time_off_ns_orig, 0);
-  if (args_info->tx_window_width_given)
-    write_into_file(outfile, "tx-window-width", args_info->tx_window_width_orig, 0);
-  if (args_info->tunnel_width_given)
-    write_into_file(outfile, "tunnel-width", args_info->tunnel_width_orig, 0);
-  if (args_info->offset_delay_given)
-    write_into_file(outfile, "offset-delay", args_info->offset_delay_orig, 0);
-  if (args_info->use_tc_given)
-    write_into_file(outfile, "use-tc", 0, 0 );
-  if (args_info->set_tc_limit_given)
-    write_into_file(outfile, "set-tc-limit", args_info->set_tc_limit_orig, 0);
+  if (args_info->limit_given)
+    write_into_file(outfile, "limit", args_info->limit_orig, 0);
+  if (args_info->offset_given)
+    write_into_file(outfile, "offset", args_info->offset_orig, 0);
+  if (args_info->frame_given)
+    write_into_file(outfile, "frame", args_info->frame_orig, 0);
+  if (args_info->slot_given)
+    write_into_file(outfile, "slot", args_info->slot_orig, 0);
+  if (args_info->offset_future_given)
+    write_into_file(outfile, "offset-future", args_info->offset_future_orig, 0);
+  if (args_info->offset_relative_given)
+    write_into_file(outfile, "offset-relative", args_info->offset_relative_orig, 0);
   if (args_info->graph_given)
     write_into_file(outfile, "graph", 0, 0 );
   
@@ -452,9 +435,6 @@ int update_arg(void *field, char **orig_field,
   case ARG_INT:
     if (val) *((int *)field) = strtol (val, &stop_char, 0);
     break;
-  case ARG_LONG:
-    if (val) *((long *)field) = (long)strtol (val, &stop_char, 0);
-    break;
   case ARG_STRING:
     if (val) {
       string_field = (char **)field;
@@ -470,7 +450,6 @@ int update_arg(void *field, char **orig_field,
   /* check numeric conversion */
   switch(arg_type) {
   case ARG_INT:
-  case ARG_LONG:
     if (val && !(stop_char && *stop_char == '\0')) {
       fprintf(stderr, "%s: invalid numeric value: %s\n", package_name, val);
       return 1; /* failure */
@@ -547,19 +526,17 @@ cmdline_parser_internal (
         { "version",	0, NULL, 'V' },
         { "config-file",	1, NULL, 'f' },
         { "devname",	1, NULL, 'd' },
-        { "init-mod",	1, NULL, 'i' },
-        { "time-on-ns",	1, NULL, 't' },
-        { "time-off-ns",	1, NULL, 'p' },
-        { "tx-window-width",	1, NULL, 'x' },
-        { "tunnel-width",	1, NULL, 'w' },
-        { "offset-delay",	1, NULL, 'o' },
-        { "use-tc",	0, NULL, 'c' },
-        { "set-tc-limit",	1, NULL, 'l' },
+        { "limit",	1, NULL, 'l' },
+        { "offset",	1, NULL, 'o' },
+        { "frame",	1, NULL, 'F' },
+        { "slot",	1, NULL, 's' },
+        { "offset-future",	1, NULL, 'O' },
+        { "offset-relative",	1, NULL, 'r' },
         { "graph",	0, NULL, 'g' },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVf:d:i:t:p:x:w:o:cl:g", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVf:d:l:o:F:s:O:r:g", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -599,62 +576,14 @@ cmdline_parser_internal (
             goto failure;
         
           break;
-        case 'i':	/* path of kernel module to load.  */
+        case 'l':	/* sets limit value for tc.  */
         
         
-          if (update_arg( (void *)&(args_info->init_mod_arg), 
-               &(args_info->init_mod_orig), &(args_info->init_mod_given),
-              &(local_args_info.init_mod_given), optarg, 0, 0, ARG_STRING,
+          if (update_arg( (void *)&(args_info->limit_arg), 
+               &(args_info->limit_orig), &(args_info->limit_given),
+              &(local_args_info.limit_given), optarg, 0, 0, ARG_INT,
               check_ambiguity, override, 0, 0,
-              "init-mod", 'i',
-              additional_error))
-            goto failure;
-        
-          break;
-        case 't':	/* time on in nanoseconds.  */
-        
-        
-          if (update_arg( (void *)&(args_info->time_on_ns_arg), 
-               &(args_info->time_on_ns_orig), &(args_info->time_on_ns_given),
-              &(local_args_info.time_on_ns_given), optarg, 0, "200000000", ARG_LONG,
-              check_ambiguity, override, 0, 0,
-              "time-on-ns", 't',
-              additional_error))
-            goto failure;
-        
-          break;
-        case 'p':	/* time off in nanoseconds.  */
-        
-        
-          if (update_arg( (void *)&(args_info->time_off_ns_arg), 
-               &(args_info->time_off_ns_orig), &(args_info->time_off_ns_given),
-              &(local_args_info.time_off_ns_given), optarg, 0, "800000000", ARG_LONG,
-              check_ambiguity, override, 0, 0,
-              "time-off-ns", 'p',
-              additional_error))
-            goto failure;
-        
-          break;
-        case 'x':	/* width of transmission window.  */
-        
-        
-          if (update_arg( (void *)&(args_info->tx_window_width_arg), 
-               &(args_info->tx_window_width_orig), &(args_info->tx_window_width_given),
-              &(local_args_info.tx_window_width_given), optarg, 0, 0, ARG_INT,
-              check_ambiguity, override, 0, 0,
-              "tx-window-width", 'x',
-              additional_error))
-            goto failure;
-        
-          break;
-        case 'w':	/* width of tunnel time.  */
-        
-        
-          if (update_arg( (void *)&(args_info->tunnel_width_arg), 
-               &(args_info->tunnel_width_orig), &(args_info->tunnel_width_given),
-              &(local_args_info.tunnel_width_given), optarg, 0, 0, ARG_INT,
-              check_ambiguity, override, 0, 0,
-              "tunnel-width", 'w',
+              "limit", 'l',
               additional_error))
             goto failure;
         
@@ -662,35 +591,59 @@ cmdline_parser_internal (
         case 'o':	/* offset delay (can be negative).  */
         
         
-          if (update_arg( (void *)&(args_info->offset_delay_arg), 
-               &(args_info->offset_delay_orig), &(args_info->offset_delay_given),
-              &(local_args_info.offset_delay_given), optarg, 0, 0, ARG_INT,
+          if (update_arg( (void *)&(args_info->offset_arg), 
+               &(args_info->offset_orig), &(args_info->offset_given),
+              &(local_args_info.offset_given), optarg, 0, 0, ARG_INT,
               check_ambiguity, override, 0, 0,
-              "offset-delay", 'o',
+              "offset", 'o',
               additional_error))
             goto failure;
         
           break;
-        case 'c':	/* use Linux Traffic Control (tc) to set additional qdisc parameters.  */
+        case 'F':	/* size of TDMA frame.  */
         
         
-          if (update_arg( 0 , 
-               0 , &(args_info->use_tc_given),
-              &(local_args_info.use_tc_given), optarg, 0, 0, ARG_NO,
+          if (update_arg( (void *)&(args_info->frame_arg), 
+               &(args_info->frame_orig), &(args_info->frame_given),
+              &(local_args_info.frame_given), optarg, 0, 0, ARG_INT,
               check_ambiguity, override, 0, 0,
-              "use-tc", 'c',
+              "frame", 'F',
               additional_error))
             goto failure;
         
           break;
-        case 'l':	/* sets limit value for tc.  */
+        case 's':	/* size of TDMA slot.  */
         
         
-          if (update_arg( (void *)&(args_info->set_tc_limit_arg), 
-               &(args_info->set_tc_limit_orig), &(args_info->set_tc_limit_given),
-              &(local_args_info.set_tc_limit_given), optarg, 0, 0, ARG_INT,
+          if (update_arg( (void *)&(args_info->slot_arg), 
+               &(args_info->slot_orig), &(args_info->slot_given),
+              &(local_args_info.slot_given), optarg, 0, 0, ARG_INT,
               check_ambiguity, override, 0, 0,
-              "set-tc-limit", 'l',
+              "slot", 's',
+              additional_error))
+            goto failure;
+        
+          break;
+        case 'O':	/* delay tranmission window longer than t_frame time.  */
+        
+        
+          if (update_arg( (void *)&(args_info->offset_future_arg), 
+               &(args_info->offset_future_orig), &(args_info->offset_future_given),
+              &(local_args_info.offset_future_given), optarg, 0, 0, ARG_INT,
+              check_ambiguity, override, 0, 0,
+              "offset-future", 'O',
+              additional_error))
+            goto failure;
+        
+          break;
+        case 'r':	/* delay transmission window relative to current time.  */
+        
+        
+          if (update_arg( (void *)&(args_info->offset_relative_arg), 
+               &(args_info->offset_relative_orig), &(args_info->offset_relative_given),
+              &(local_args_info.offset_relative_given), optarg, 0, 0, ARG_INT,
+              check_ambiguity, override, 0, 0,
+              "offset-relative", 'r',
               additional_error))
             goto failure;
         
