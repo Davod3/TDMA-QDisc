@@ -18,13 +18,11 @@ netcntlr:
 
 # ensure correct ordering of module insertion
 install:
-	sudo insmod qdisc.ko
 	sudo insmod tdma.ko
 	sudo insmod netlink_sock.ko
 
 # remove modules in reverse order of insertion
 remove:
-	sudo rmmod qdisc.ko
 	sudo rmmod netlink_sock.ko
 	sudo rmmod tdma.ko
 

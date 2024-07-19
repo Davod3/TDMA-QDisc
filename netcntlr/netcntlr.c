@@ -181,16 +181,17 @@ static int qdisc_modify(int cmd, const char *dev, unsigned int flags, struct tc_
 
 int start_modules(void)
 {
-	if (!netlink_sock_mod_loaded && is_module_loaded("netlink_sock") == 0)
-	{
-		load_kernel_mod(NETLINK_SOCK_KMOD_PATH, NULL);
-		netlink_sock_mod_loaded = true;
-	}
 
 	if (!tdma_mod_loaded && is_module_loaded("tdma") == 0)
 	{
 		load_kernel_mod(TDMA_KMOD_PATH, NULL);
 		tdma_mod_loaded = true;
+	}
+
+	if (!netlink_sock_mod_loaded && is_module_loaded("netlink_sock") == 0)
+	{
+		load_kernel_mod(NETLINK_SOCK_KMOD_PATH, NULL);
+		netlink_sock_mod_loaded = true;
 	}
 
 	return 0;
@@ -227,9 +228,12 @@ int is_module_loaded(const char *mod_name)
 
 int load_kernel_mod(const char *mod_path, const char *params)
 {
+
+	//EDITED
 	int ret = 0;
 	char command[MAX_LINE_LEN];
-	snprintf(command, sizeof(command), "sudo insmod %s %s", mod_path, params);
+	//snprintf(command, sizeof(command), "sudo insmod %s %s", mod_path, params);
+	snprintf(command, sizeof(command), "sudo insmod %s", mod_path);
 	if (system(command) != 0)
 	{
 		perror("failed to load kernel module");
@@ -377,7 +381,7 @@ int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info)
 			{
 				if (strcmp(key, "devname") == 0) 
 				{
-					strcpy(&devname, value);
+					strcpy(devname, value);
 					set_tdma_var_bit(bitmap, DEVNAME);
 				} 
 				else if (strcmp(key, "limit") == 0) 
@@ -430,7 +434,7 @@ int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info)
 	{
 		if (args_info->devname_given)
 		{
-			strcpy(&devname, args_info->devname_arg);
+			strcpy(devname, args_info->devname_arg);
 			set_tdma_var_bit(bitmap, DEVNAME);
 		}
 		if (args_info->limit_given) 	 
@@ -518,7 +522,14 @@ void create_nlmsg(struct nl_msg *msg, struct tdma_vars_t *data, int *genl_family
 		perror("failed to allocate memory for nlmsg");
 		exit(EXIT_FAILURE);
 	}
+
+	printf("ALLOCATED MSG: %d\n", msg);
+	printf("MSG: %d\n", nlmsg_hdr(msg));
+
 	genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, *genl_family, 0, 0, GNL_RATDMA_RECV_MSG, 1);
+
+	printf("PUT HEADERS MSG: %d\n", msg);
+	printf("MSG2: %d\n", nlmsg_hdr(msg));
 
 	// save changed variables to nlmsg
 	// ensure data stored in portable way
@@ -529,6 +540,9 @@ void create_nlmsg(struct nl_msg *msg, struct tdma_vars_t *data, int *genl_family
 	nla_put_s64(msg, GNL_RATDMA_SLOT, data->t_slot);
 	nla_put_u32(msg, GNL_RATDMA_OFFSET_FUTURE, data->offset_future);
 	nla_put_u32(msg, GNL_RATDMA_OFFSET_RELATIVE, data->offset_relative);
+
+	printf("PUT DATA MSG: %d\n", msg);
+	printf("MSG3: %d\n", nlmsg_hdr(msg));
 
 	// add flag values to netlink message only if true 
 	if (graph)
@@ -611,10 +625,55 @@ int main(int argc, char *argv[])
 	}
 
 	// create netlink message
-	create_nlmsg(msg, data, &genl_family);
+	//create_nlmsg(msg, data, &genl_family);
+
+	//###################### TEST ##########################
+
+	msg = nlmsg_alloc();
+	if (msg < 0)
+	{
+		perror("failed to allocate memory for nlmsg");
+		exit(EXIT_FAILURE);
+	}
+
+	printf("ALLOCATED MSG: %d\n", msg);
+	printf("MSG: %d\n", nlmsg_hdr(msg));
+
+	genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, *&genl_family, 0, 0, GNL_RATDMA_RECV_MSG, 1);
+
+	printf("PUT HEADERS MSG: %d\n", msg);
+	printf("MSG2: %d\n", nlmsg_hdr(msg));
+
+	// save changed variables to nlmsg
+	// ensure data stored in portable way
+	nla_put_string(msg, GNL_RATDMA_DEVNAME, data->devname);
+	nla_put_u32(msg, GNL_RATDMA_LIMIT, data->limit);
+	nla_put_s64(msg, GNL_RATDMA_OFFSET, data->t_offset);
+	nla_put_s64(msg, GNL_RATDMA_FRAME, data->t_frame);
+	nla_put_s64(msg, GNL_RATDMA_SLOT, data->t_slot);
+	nla_put_u32(msg, GNL_RATDMA_OFFSET_FUTURE, data->offset_future);
+	nla_put_u32(msg, GNL_RATDMA_OFFSET_RELATIVE, data->offset_relative);
+
+	printf("PUT DATA MSG: %d\n", msg);
+	printf("MSG3: %d\n", nlmsg_hdr(msg));
+
+	// add flag values to netlink message only if true
+
+	if (graph)
+	{
+		printf("nla_put graph: %d\n", (int)data->graph);
+		nla_put_flag(msg, GNL_RATDMA_GRAPH);
+	}
+
+
+	//###################### TEST ##########################
+
+	printf("CREATED MSG: %d\n");
+	printf("MSG4: %d\n", nlmsg_hdr(msg));
 
 	// send message to kernel
 	printf("%sSending message to kernel...%s\n", magenta, reset);
+
 	if (nl_send_auto(sk, msg) < 0)
 	{
 		perror("failed to send netlink message");

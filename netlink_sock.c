@@ -15,7 +15,7 @@ struct nla_policy const ratdma_policy[__GNL_RATDMA_COUNT] = {
     [GNL_RATDMA_LIMIT]              = { .type = NLA_U32 },
     [GNL_RATDMA_OFFSET]             = { .type = NLA_S64 },
     [GNL_RATDMA_FRAME]              = { .type = NLA_S64 },
-    [GNL_RATDMA_SLOT]               = { .type = NLA_s64 },
+    [GNL_RATDMA_SLOT]               = { .type = NLA_S64 },
     [GNL_RATDMA_OFFSET_FUTURE]      = { .type = NLA_U32 },
     [GNL_RATDMA_OFFSET_RELATIVE]    = { .type = NLA_U32 },
     [GNL_RATDMA_GRAPH]              = { .type = NLA_FLAG },
