@@ -1,5 +1,4 @@
-devname=enp0s3
-tx_window_width=20
-offset_delay=-30
-t_on_ns=2000000000
-t_off_ns=9000000000
+devname=wlo1
+t_offset=0
+t_frame=1
+t_slot=1

@@ -9,3 +9,5 @@
 
 # userspace virtual environment
 netcntl/graph_env
+netcntlr/manage_qdisc
+netcntlr/lib/librtnetlink.a

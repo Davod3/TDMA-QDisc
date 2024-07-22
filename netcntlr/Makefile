@@ -22,5 +22,12 @@ build_venv:
 	source graph_env/bin/activate
 	pip3 install -r requirements.txt
 
+manage_qdisc:
+	$(CC) -I. -I./include -c -o ./manage_qdisc.o ./manage_qdisc.c;
+	$(CC) -I./include -c -o ./lib/librtnetlink.o ./lib/librtnetlink.c;
+	ar rcs ./lib/librtnetlink.a ./lib/librtnetlink.o;
+	$(CC) -o ./manage_qdisc ./manage_qdisc.o ./lib/librtnetlink.a;
+
+
 clean:
 	rm -f $(OBJ) $(EXE)
