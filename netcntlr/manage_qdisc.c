@@ -1,5 +1,5 @@
 #include <stdio.h>
-
+#include <stdlib.h>
 #include <linux/pkt_sched.h>
 #include <librtnetlink.h>
 #include <linux/netlink.h>
@@ -14,6 +14,7 @@ static int qdisc_add(int cmd, unsigned int flags, struct tc_tdma_qopt *opt) {
     
     char *k = "tdma";
     int dev_index = if_nametoindex("wlo1");
+    //int dev_index = if_nametoindex("enp0s2");
 
     struct {
         struct nlmsghdr n;
@@ -51,8 +52,9 @@ int main() {
     memset(opt, 0, sizeof(*opt));
 
     //options
-    opt->t_frame = 1;
-    opt->t_slot = 1;
+    opt->t_frame = 10000000000;
+    opt->t_slot = 5000000000;
+    opt->t_offset = 0;
 
     if(rtnl_open(&rth, 0) < 0) {
         printf("Failed to open rtnl");

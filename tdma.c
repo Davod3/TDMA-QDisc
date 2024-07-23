@@ -265,14 +265,15 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				return NULL;
 				
 			// printk(KERN_DEBUG "dequeue\t%u\t%s\n", qdisc_pkt_len(skb), qdisc_dev(sch)->name);
-			printk(KERN_DEBUG "%sdequeue\t%u\t%s%s\n", "\033[1;32m", qdisc_pkt_len(skb), qdisc_dev(sch)->name, "\033[0m");
-
+			// printk(KERN_DEBUG "%sdequeue\t%u\t%s%s\n", "\033[1;32m", qdisc_pkt_len(skb), qdisc_dev(sch)->name, "\033[0m");
+			printk(KERN_DEBUG "DEQUEUED PACKET!!!!----------%d------------%d-------------%d", q->t_offset, now, q->t_offset + q ->t_slot);
 			qdisc_qstats_backlog_dec(sch, skb);
 			sch->q.qlen--;
 			qdisc_bstats_update(sch, skb);
 			return skb;
 		}
 
+		printk(KERN_DEBUG "FAILED TO DEQUEUE PACKET!!!!----------%d------------%d-------------%d", q->t_offset, now, q->t_offset + q ->t_slot);
 		qdisc_watchdog_schedule_ns(&q->watchdog, q->t_frame - (now - q->t_offset));
 	}
 
