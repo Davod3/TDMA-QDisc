@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS=-Wall -Wextra -std=c99 -I /usr/include/libnl3
 LIBS=-lnl-3 -lnl-genl-3
 
-SRC=netcntlr.c cmdline.c
+SRC=netcntlr.c cmdline.c librtnetlink.c
 OBJ=$(SRC:.c=.o)
 EXE=netcntlr
 

@@ -22,6 +22,7 @@
 #include <libnl3/netlink/genl/genl.h>
 
 // custom imports
+#include "librtnetlink.h"
 #include "cmdline.h"
 #include "../netlink_sock.h"
 
@@ -50,15 +51,12 @@ struct tdma_vars_t
     bool graph;
 };
 
-struct tc_tdma_qopt
-{
-    struct tc_ratespec rate;
-    struct tc_ratespec peakrate;
-    uint32_t limit;
-    uint32_t buffer;
-    uint32_t mtu;
-    int64_t frame;
-    int64_t slot;
+struct tc_tdma_qopt {
+	__u32		limit;
+
+	__s64		t_frame;
+	__s64		t_slot;
+	__s64		t_offset;
 };
 
 enum tdma_vars_e
@@ -73,6 +71,7 @@ enum tdma_vars_e
     GRAPH
 };
 
+/*
 struct rtnl_handle 
 {
 	int			        fd;
@@ -87,6 +86,8 @@ struct rtnl_handle
     #define RTNL_HANDLE_F_STRICT_CHK		    0x04
 	int			flags;
 };
+*/
+
 
 struct rtnl_handle rth;
 

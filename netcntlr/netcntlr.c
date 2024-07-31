@@ -1,5 +1,11 @@
 #include "netcntlr.h"
+#include <linux/pkt_sched.h>
+#include <linux/netlink.h>
+#include <linux/rtnetlink.h>
+#include <linux/gen_stats.h>
+#include <net/if.h>
 
+//DEPRECATED
 int add_attr(struct nlmsghdr *n, int maxlen, int type, void *data, int alen) 
 {
     int len = RTA_LENGTH(alen), nlmsg_len = NLMSG_ALIGN(n->nlmsg_len) + RTA_ALIGN(len);
@@ -19,6 +25,7 @@ int add_attr(struct nlmsghdr *n, int maxlen, int type, void *data, int alen)
     return 0;
 }
 
+//DEPRECATED
 struct rtattr *add_attr_nest(struct nlmsghdr *n, int maxlen, int type) 
 {
     struct rtattr *nest = NLMSG_TAIL(n);
@@ -26,12 +33,14 @@ struct rtattr *add_attr_nest(struct nlmsghdr *n, int maxlen, int type)
     return nest;
 }
 
+//DEPRECATED
 int add_attr_nest_end(struct nlmsghdr *n, struct rtattr *nest) 
 {
     nest->rta_len = ((void *) NLMSG_TAIL(n)) - ((void *) nest);
     return n->nlmsg_len;
 }
 
+//DEPRECATED
 void cls(struct rtnl_handle *rtnl) 
 {
 	if (rtnl->fd >= 0) 
@@ -41,6 +50,7 @@ void cls(struct rtnl_handle *rtnl)
 	}
 }
 
+//DEPRECATED
 int opn(struct rtnl_handle *rtnl) 
 {
     socklen_t addr_len;
@@ -83,6 +93,7 @@ err:
     return -1;
 }
 
+//DEPRECATED
 static int talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, struct nlmsghdr **answer) 
 {
     int fd = rtnl->fd;
@@ -108,73 +119,36 @@ static int talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, struct nlmsghdr **
 
 static int qdisc_modify(int cmd, const char *dev, unsigned int flags, struct tc_tdma_qopt *opt) 
 {
-    // cmd = RTM_NEWQDISC // add | change | replace | link
-    // cmd = RTM_DELQDISC // delete
-    // flags = NLM_F_EXCL | NLM_F_CREATE // add
-    // flags = 0 // change | delete
-    // flags = NLM_F_CREATE | NLM_F_REPLACE // replace
-    // flags = NLM_F_REPLACE // link
 
-    // char d[IFNAMSIZ] = {};
-    char d[16] = {}; // device (interface) name
-    // char *d = "enp0s1";
-    // strncpy(d, "enp0s1", 16);
-    strncpy(d, dev, 16);
-    // char k[FILTER_NAMESZ] = {};
-    char k[16] = {}; // qdisc (kind) name
-    strncpy(k, "tdma", 16);
-    // char *k = "tdma";
+    char *qdisc_name = "tdma";
+	int dev_index = if_nametoindex("wlo1");
 
     struct {
         struct nlmsghdr n;
         struct tcmsg t;
-	char buf[64 * 1024];
-        // char buf[TCA_BUF_MAX];
+		char buf[64 * 1024];
     } req = {
         .n.nlmsg_len = NLMSG_LENGTH(sizeof(struct tcmsg)),
         .n.nlmsg_flags = NLM_F_REQUEST | flags,
         .n.nlmsg_type = cmd,
-
-        .t.tcm_family = AF_UNSPEC, // unsigned char
-        // .t.tcm_ifindex // int // required
-        // .t.tcm_handle = handle, // __u32 // optional
-        .t.tcm_parent = TC_H_ROOT, // __u32
-        // .t.tcm_info = 0 // __u32 // optional
+        .t.tcm_family = AF_UNSPEC,
+        .t.tcm_parent = TC_H_ROOT,
     };
 
     struct rtattr *tail;
 
-    // BEGIN hardcoding    // END hardcoding
-
-    if (k[0])
-        // addattr_l(&req.n, sizeof(req), TCA_KIND, k, strlen(k) + 1);
-        add_attr(&req.n, sizeof(req), TCA_KIND, k, strlen(k) + 1);
+    if (qdisc_name[0])
+        addattr_l(&req.n, sizeof(req), TCA_KIND, qdisc_name, strlen(qdisc_name) + 1);
 
     // Add TCA_OPTIONS
-    // tail = addattr_nest(&req.n, 1024, TCA_OPTIONS);
-    tail = add_attr_nest(&req.n, 1024, TCA_OPTIONS);
-    // addattr_l(&req.n, 2024, TCA_TBF_PARMS, opt, sizeof(*opt));
-    // addattr_l(&req.n, 2024, TCA_TDMA_PARMS, opt, sizeof(*opt));
-    add_attr(&req.n, 2024, TCA_TDMA_PARMS, opt, sizeof(*opt));
-    // addattr_nest_end(&req.n, tail);
-    add_attr_nest_end(&req.n, tail);
+    tail = addattr_nest(&req.n, 1024, TCA_OPTIONS);
+    addattr_l(&req.n, 2024, TCA_TDMA_PARMS, opt, sizeof(*opt));
+    addattr_nest_end(&req.n, tail);
 
-    // if (d[0]) {
-    //     int idx;
+    req.t.tcm_ifindex = dev_index;
 
-    //     ll_init_map(&rth);
-
-    //     idx = ll_name_to_index(d);
-    //     if (!idx)
-    //         return 1;
-    //     req.t.tcm_ifindex = idx;
-    // }
-    // HARDCODING
-    req.t.tcm_ifindex = 2;
-
-    // if (rtnl_talk(&rth, &req.n, NULL) < 0)
-    if (talk(&rth, &req.n, NULL) < 0)
-        return 1;
+    if (rtnl_talk(&rth, &req.n, NULL) < 0)
+        return -1;
         
     return 0;
 }
@@ -234,6 +208,7 @@ int load_kernel_mod(const char *mod_path, const char *params)
 	char command[MAX_LINE_LEN];
 	//snprintf(command, sizeof(command), "sudo insmod %s %s", mod_path, params);
 	snprintf(command, sizeof(command), "sudo insmod %s", mod_path);
+	printf("%s\n", command);
 	if (system(command) != 0)
 	{
 		perror("failed to load kernel module");
@@ -615,6 +590,40 @@ int main(int argc, char *argv[])
 	{
 		printf("Modules already loaded, proceeding...");
 	}
+
+	printf("Kernel modules loaded!\n");
+
+	// Add qdisc to device
+	struct tc_tdma_qopt *opt = malloc(sizeof(struct tc_tdma_qopt));
+	memset(opt, 0, sizeof(*opt));
+
+	//default options
+	opt->t_frame = 10000000000;
+	opt->t_slot = 5000000000;
+	opt->t_offset = 0;
+
+	printf("Opening rtnl socket...\n");
+
+	//communication
+	if(rtnl_open(&rth, 0) < 0) {
+		printf("Failed to open rtnl\n");
+		free(opt);
+		exit(1);
+	}
+
+	printf("Rtnl socket open! Adding qdisc...\n");
+
+
+	if(qdisc_modify(RTM_NEWQDISC, "wlo1", NLM_F_EXCL | NLM_F_CREATE, opt)) {
+		printf("Failed to add qdisc\n");
+		exit(1);
+	}
+
+	printf("Qdisc added!\n");
+
+	rtnl_close(&rth);
+
+	printf("Rtnl socket closed.\n");
 
 	// create netlink socket to receive messages
 	printf("%sCreating netlink socket%s\n", magenta, reset);
