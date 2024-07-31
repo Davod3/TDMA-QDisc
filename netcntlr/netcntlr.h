@@ -144,6 +144,6 @@ int add_attr_nest_end(struct nlmsghdr *n, struct rtattr *nest);
 void cls(struct rtnl_handle *rtnl);
 int opn(struct rtnl_handle *rtnl);
 static int talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, struct nlmsghdr **answer);
-static int qdisc_modify(int cmd, const char *dev, unsigned int flags, struct tc_tdma_qopt *opt);
+static int qdisc_modify(int cmd, const char *dev, unsigned int flags, struct tc_tdma_qopt *opt, struct tdma_vars_t *data);
 
 #endif

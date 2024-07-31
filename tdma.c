@@ -226,7 +226,8 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 	u32 offset_future, offset_relative;
 	struct Qdisc *child;
 
-	printk(KERN_DEBUG "change\t\t%s", qdisc_dev(sch)->name);
+	//printk(KERN_DEBUG "change\t\t%s", qdisc_dev(sch)->name);
+	printk(KERN_DEBUG "[RA-TDMA]######################CHANGE TDMA###############\n");
 
 	if (!opt)
 		return -EINVAL;

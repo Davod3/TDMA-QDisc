@@ -117,11 +117,11 @@ static int talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, struct nlmsghdr **
     return 0;
 }
 
-static int qdisc_modify(int cmd, const char *dev, unsigned int flags, struct tc_tdma_qopt *opt) 
+static int qdisc_modify(int cmd, const char *dev, unsigned int flags, struct tc_tdma_qopt *opt, struct tdma_vars_t *data) 
 {
 
     char *qdisc_name = "tdma";
-	int dev_index = if_nametoindex("wlo1");
+	int dev_index = if_nametoindex(dev);
 
     struct {
         struct nlmsghdr n;
@@ -143,6 +143,8 @@ static int qdisc_modify(int cmd, const char *dev, unsigned int flags, struct tc_
     // Add TCA_OPTIONS
     tail = addattr_nest(&req.n, 1024, TCA_OPTIONS);
     addattr_l(&req.n, 2024, TCA_TDMA_PARMS, opt, sizeof(*opt));
+	addattr32(&req.n, 1024, TCA_TDMA_OFFSET_FUTURE, data->offset_future);
+	addattr32(&req.n, 1024, TCA_TDMA_OFFSET_RELATIVE, data->offset_relative);
     addattr_nest_end(&req.n, tail);
 
     req.t.tcm_ifindex = dev_index;
@@ -160,12 +162,16 @@ int start_modules(void)
 	{
 		load_kernel_mod(TDMA_KMOD_PATH, NULL);
 		tdma_mod_loaded = true;
+	} else {
+		return -1;
 	}
 
 	if (!netlink_sock_mod_loaded && is_module_loaded("netlink_sock") == 0)
 	{
 		load_kernel_mod(NETLINK_SOCK_KMOD_PATH, NULL);
 		netlink_sock_mod_loaded = true;
+	} else {
+		return -1;
 	}
 
 	return 0;
@@ -173,30 +179,18 @@ int start_modules(void)
 
 int is_module_loaded(const char *mod_name)
 {
-	FILE *fp;
-	char buf[MAX_LINE_LEN];
+
+	char cmd[MAX_LINE_LEN];
 	int found = 0;
 
-	// open /proc/modules file
-	fp = fopen("/proc/modules", "r");
-	if (fp == NULL)
+	snprintf(cmd, MAX_LINE_LEN, "lsmod | grep %s", mod_name);
+
+	if (system(cmd) == 0)
 	{
-		perror("failed to open /proc/modules");
-		return -1;
+		found = 1;
+		printf("MODULE FOUND %s! \n", mod_name);
 	}
 
-	// read and check each line for module name
-	while (fgets(buf, sizeof(buf), fp) != NULL)
-	{
-		if (strncmp(buf, mod_name, strlen(mod_name)) == 0 && buf[strlen(mod_name)] == ' ')
-		{
-			found = 1;
-			break;
-		}
-	}
-
-	// close file, return result
-	fclose(fp);
 	return found;
 }
 
@@ -207,7 +201,7 @@ int load_kernel_mod(const char *mod_path, const char *params)
 	int ret = 0;
 	char command[MAX_LINE_LEN];
 	//snprintf(command, sizeof(command), "sudo insmod %s %s", mod_path, params);
-	snprintf(command, sizeof(command), "sudo insmod %s", mod_path);
+	snprintf(command, sizeof(command), "insmod %s", mod_path);
 	printf("%s\n", command);
 	if (system(command) != 0)
 	{
@@ -221,7 +215,7 @@ int offload_kernel_mod(const char *mod_path, const char *params)
 {
 	int ret = 0;
 	char command[MAX_LINE_LEN];
-	snprintf(command, sizeof(command), "sudo rmmod %s %s", mod_path, params);
+	snprintf(command, sizeof(command), "rmmod %s %s", mod_path, params);
 	if (system(command) != 0)
 	{
 		perror("failed to offload kernel module");
@@ -528,13 +522,152 @@ void create_nlmsg(struct nl_msg *msg, struct tdma_vars_t *data, int *genl_family
 
 }
 
-int main(int argc, char *argv[])
-{
-	struct gengetopt_args_info args_info;
+int add_qdisc(struct tdma_vars_t *data) {
+
+	struct tc_tdma_qopt *opt = malloc(sizeof(struct tc_tdma_qopt));
+	memset(opt, 0, sizeof(*opt));
+
+	//options
+	opt->t_frame = data->t_frame;
+	opt->t_slot = data->t_slot;
+	opt->t_offset = data->t_offset;
+
+	printf("Opening rtnl socket...\n");
+
+	//communication
+	if(rtnl_open(&rth, 0) < 0) {
+		printf("Failed to open rtnl\n");
+		free(opt);
+		return -1;
+	}
+
+	printf("Rtnl socket open! Adding qdisc...\n");
+
+
+	if(qdisc_modify(RTM_NEWQDISC, data->devname, NLM_F_EXCL | NLM_F_CREATE, opt, data)) {
+		printf("Failed to add qdisc\n");
+		return -1;
+	}
+
+	printf("Qdisc added!\n");
+
+	rtnl_close(&rth);
+	free(opt);
+
+	printf("Rtnl socket closed.\n");
+
+	return 0;
+
+}
+
+int change_qdisc(struct tdma_vars_t *data) {
+
 	struct nl_sock *sk;
 	struct nl_msg *msg;
 	int genl_family;
 
+	struct tc_tdma_qopt *opt = malloc(sizeof(struct tc_tdma_qopt));
+	memset(opt, 0, sizeof(*opt));
+
+	opt->t_frame = data->t_frame;
+	opt->t_slot = data->t_slot;
+	opt->t_offset = data->t_offset;
+
+	//communication
+	if(rtnl_open(&rth, 0) < 0) {
+		printf("Failed to open rtnl\n");
+		free(opt);
+		return -1;
+	}
+
+	printf("Rtnl socket open! Adding qdisc...\n");
+
+
+	if(qdisc_modify(RTM_NEWQDISC, data->devname, 0, opt, data)) {
+		printf("Failed to add qdisc\n");
+		return -1;
+	}
+
+	printf("Qdisc added!\n");
+
+	rtnl_close(&rth);
+	free(opt);
+
+	printf("Rtnl socket closed.\n");
+
+	/*
+	// Create netlink socket to receive messages
+	printf("%sCreating netlink socket%s\n", magenta, reset);
+	if (init_netlink_socket(&sk, &genl_family) != 0)
+	{
+		perror("failed to initialize netlink socket");
+		return -1;
+	}
+
+	// Create netlink message
+	msg = nlmsg_alloc();
+	if (msg < 0)
+	{
+		perror("failed to allocate memory for nlmsg");
+		exit(EXIT_FAILURE);
+	}
+
+	printf("ALLOCATED MSG: %d\n", msg);
+	printf("MSG: %d\n", nlmsg_hdr(msg));
+
+	genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, *&genl_family, 0, 0, GNL_RATDMA_RECV_MSG, 1);
+
+	printf("PUT HEADERS MSG: %d\n", msg);
+	printf("MSG2: %d\n", nlmsg_hdr(msg));
+
+	// save changed variables to nlmsg
+	// ensure data stored in portable way
+	nla_put_string(msg, GNL_RATDMA_DEVNAME, data->devname);
+	nla_put_u32(msg, GNL_RATDMA_LIMIT, data->limit);
+	nla_put_s64(msg, GNL_RATDMA_OFFSET, data->t_offset);
+	nla_put_s64(msg, GNL_RATDMA_FRAME, data->t_frame);
+	nla_put_s64(msg, GNL_RATDMA_SLOT, data->t_slot);
+	nla_put_u32(msg, GNL_RATDMA_OFFSET_FUTURE, data->offset_future);
+	nla_put_u32(msg, GNL_RATDMA_OFFSET_RELATIVE, data->offset_relative);
+
+	printf("PUT DATA MSG: %d\n", msg);
+	printf("MSG3: %d\n", nlmsg_hdr(msg));
+
+	// add flag values to netlink message only if true
+	if (graph)
+	{
+		printf("nla_put graph: %d\n", (int)data->graph);
+		nla_put_flag(msg, GNL_RATDMA_GRAPH);
+	}
+
+	printf("CREATED MSG: %d\n");
+	printf("MSG4: %d\n", nlmsg_hdr(msg));
+
+	// send message to kernel
+	printf("%sSending message to kernel...%s\n", magenta, reset);
+
+	if (nl_send_auto(sk, msg) < 0)
+	{
+		perror("failed to send netlink message");
+		return -errno;
+	}
+
+	printf("%sSent netlink message!%s\n", magenta, reset);
+
+	// cleanup
+	nlmsg_free(msg);
+	nl_socket_free(sk);
+
+	*/
+
+	return 0;
+
+
+}
+
+int main(int argc, char *argv[])
+{
+	struct gengetopt_args_info args_info;
 	struct tdma_vars_t *data;	// tdma var struct
 	uint32_t *bitmap; 			// tdma var bitmap
 
@@ -589,111 +722,25 @@ int main(int argc, char *argv[])
 	if (start_modules() != 0)
 	{
 		printf("Modules already loaded, proceeding...");
+
+		//Add qdisc
+		if(change_qdisc(data) < 0) {
+			printf("Failed to add qdisc!\n");
+			exit(-1);
+		}
+
+	} else {
+
+		printf("Kernel modules loaded!\n");
+
+		//Add qdisc
+		if(add_qdisc(data) < 0) {
+			printf("Failed to add qdisc!\n");
+			exit(-1);
+		}
+
 	}
 
-	printf("Kernel modules loaded!\n");
-
-	// Add qdisc to device
-	struct tc_tdma_qopt *opt = malloc(sizeof(struct tc_tdma_qopt));
-	memset(opt, 0, sizeof(*opt));
-
-	//default options
-	opt->t_frame = 10000000000;
-	opt->t_slot = 5000000000;
-	opt->t_offset = 0;
-
-	printf("Opening rtnl socket...\n");
-
-	//communication
-	if(rtnl_open(&rth, 0) < 0) {
-		printf("Failed to open rtnl\n");
-		free(opt);
-		exit(1);
-	}
-
-	printf("Rtnl socket open! Adding qdisc...\n");
-
-
-	if(qdisc_modify(RTM_NEWQDISC, "wlo1", NLM_F_EXCL | NLM_F_CREATE, opt)) {
-		printf("Failed to add qdisc\n");
-		exit(1);
-	}
-
-	printf("Qdisc added!\n");
-
-	rtnl_close(&rth);
-
-	printf("Rtnl socket closed.\n");
-
-	// create netlink socket to receive messages
-	printf("%sCreating netlink socket%s\n", magenta, reset);
-	if (init_netlink_socket(&sk, &genl_family) != 0)
-	{
-		perror("failed to initialize netlink socket");
-		exit(EXIT_FAILURE);
-	}
-
-	// create netlink message
-	//create_nlmsg(msg, data, &genl_family);
-
-	//###################### TEST ##########################
-
-	msg = nlmsg_alloc();
-	if (msg < 0)
-	{
-		perror("failed to allocate memory for nlmsg");
-		exit(EXIT_FAILURE);
-	}
-
-	printf("ALLOCATED MSG: %d\n", msg);
-	printf("MSG: %d\n", nlmsg_hdr(msg));
-
-	genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, *&genl_family, 0, 0, GNL_RATDMA_RECV_MSG, 1);
-
-	printf("PUT HEADERS MSG: %d\n", msg);
-	printf("MSG2: %d\n", nlmsg_hdr(msg));
-
-	// save changed variables to nlmsg
-	// ensure data stored in portable way
-	nla_put_string(msg, GNL_RATDMA_DEVNAME, data->devname);
-	nla_put_u32(msg, GNL_RATDMA_LIMIT, data->limit);
-	nla_put_s64(msg, GNL_RATDMA_OFFSET, data->t_offset);
-	nla_put_s64(msg, GNL_RATDMA_FRAME, data->t_frame);
-	nla_put_s64(msg, GNL_RATDMA_SLOT, data->t_slot);
-	nla_put_u32(msg, GNL_RATDMA_OFFSET_FUTURE, data->offset_future);
-	nla_put_u32(msg, GNL_RATDMA_OFFSET_RELATIVE, data->offset_relative);
-
-	printf("PUT DATA MSG: %d\n", msg);
-	printf("MSG3: %d\n", nlmsg_hdr(msg));
-
-	// add flag values to netlink message only if true
-
-	if (graph)
-	{
-		printf("nla_put graph: %d\n", (int)data->graph);
-		nla_put_flag(msg, GNL_RATDMA_GRAPH);
-	}
-
-
-	//###################### TEST ##########################
-
-	printf("CREATED MSG: %d\n");
-	printf("MSG4: %d\n", nlmsg_hdr(msg));
-
-	// send message to kernel
-	printf("%sSending message to kernel...%s\n", magenta, reset);
-
-	if (nl_send_auto(sk, msg) < 0)
-	{
-		perror("failed to send netlink message");
-		return -errno;
-	}
-
-	printf("%sSent netlink message!%s\n", magenta, reset);
-
-	// cleanup
-	nlmsg_free(msg);
-	nl_socket_free(sk);
 
 	exit(EXIT_SUCCESS);
 }
