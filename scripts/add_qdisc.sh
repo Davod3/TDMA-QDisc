@@ -1,14 +1,15 @@
-echo 'Inserting sch_netem kernel module...'
+#!/bin/bash
+
+# Enable sch_netem module
 sudo modprobe sch_netem
 
-echo 'Adding QDisc kernel modules...'
+# Compile and insert kernel modules with config values
 cd ..
 make
-make install
+cd netcntlr
+sudo ./netcntlr -f test-config
 
-echo 'Adding TDMA Qdisc...'
-sudo ./netcntlr/manage_qdisc
-
+# Print lsmod and tc to confirm changes
 echo 'Qdisc added...'
 echo '-------------------'
 lsmod | grep sch_netem
@@ -16,4 +17,6 @@ echo '-------------------'
 lsmod | grep tdma
 echo '-------------------'
 lsmod | grep netlink_sock
+echo '-------------------'
+tc qdisc show
 echo '-------------------'

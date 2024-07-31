@@ -5,118 +5,6 @@
 #include <linux/gen_stats.h>
 #include <net/if.h>
 
-//DEPRECATED
-int add_attr(struct nlmsghdr *n, int maxlen, int type, void *data, int alen) 
-{
-    int len = RTA_LENGTH(alen), nlmsg_len = NLMSG_ALIGN(n->nlmsg_len) + RTA_ALIGN(len);
-    struct rtattr *rta;
-
-    if (nlmsg_len > maxlen) 
-	{
-        fprintf(stderr, "too long message\n");
-        return -1;
-    }
-
-    rta = NLMSG_TAIL(n);
-    rta->rta_type = type;
-    rta->rta_len = len;
-    memcpy(RTA_DATA(rta), data, alen);
-    n->nlmsg_len = nlmsg_len;
-    return 0;
-}
-
-//DEPRECATED
-struct rtattr *add_attr_nest(struct nlmsghdr *n, int maxlen, int type) 
-{
-    struct rtattr *nest = NLMSG_TAIL(n);
-    add_attr(n, maxlen, type, NULL, 0);
-    return nest;
-}
-
-//DEPRECATED
-int add_attr_nest_end(struct nlmsghdr *n, struct rtattr *nest) 
-{
-    nest->rta_len = ((void *) NLMSG_TAIL(n)) - ((void *) nest);
-    return n->nlmsg_len;
-}
-
-//DEPRECATED
-void cls(struct rtnl_handle *rtnl) 
-{
-	if (rtnl->fd >= 0) 
-	{
-		close(rtnl->fd);
-		rtnl->fd = -1;
-	}
-}
-
-//DEPRECATED
-int opn(struct rtnl_handle *rtnl) 
-{
-    socklen_t addr_len;
-    int sndbuf = 32768;
-    int rcvbuf = 1024 * 1024;
-    int one = 1;
-
-    memset(rtnl, 0, sizeof(*rtnl));
-    rtnl->proto = NETLINK_ROUTE;
-    rtnl->fd = socket(AF_NETLINK, SOCK_RAW | SOCK_CLOEXEC, NETLINK_ROUTE);
-    if (rtnl->fd < 0) 
-	{
-        return -1;
-    }
-    
-    if (setsockopt(rtnl->fd, SOL_SOCKET, SO_SNDBUF, &sndbuf, sizeof(sndbuf)) < 0 || setsockopt(rtnl->fd, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof(rcvbuf)) < 0)
-        goto err;
-
-    setsockopt(rtnl->fd, SOL_NETLINK, NETLINK_EXT_ACK, &one, sizeof(one));
-    
-    memset(&rtnl->local, 0, sizeof(rtnl->local));
-    rtnl->local.nl_family = AF_NETLINK;
-    rtnl->local.nl_groups = 0;
-
-    if (bind(rtnl->fd, (struct sockaddr *)(&rtnl->local), sizeof(rtnl->local)) < 0)
-        goto err;
-    addr_len = sizeof(rtnl->local);
-    if (getsockname(rtnl->fd, (struct sockaddr *)&rtnl->local, &addr_len) < 0)
-        goto err;
-    if (addr_len != sizeof(rtnl->local))
-        goto err;
-    if (rtnl->local.nl_family != AF_NETLINK)
-        goto err;
-    rtnl->seq = time(NULL);
-    return 0;
-
-err:
-    fprintf(stderr, "err\n");
-    cls(rtnl);
-    return -1;
-}
-
-//DEPRECATED
-static int talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, struct nlmsghdr **answer) 
-{
-    int fd = rtnl->fd;
-    struct sockaddr_nl nladdr = { .nl_family = AF_NETLINK, };
-    struct iovec iov = {
-        .iov_base = n,
-        .iov_len = n->nlmsg_len,
-    };
-    struct msghdr msg = {
-        .msg_name = &nladdr,
-        .msg_namelen = sizeof(nladdr),
-        .msg_iov = &iov,
-        .msg_iovlen = 1,
-    };
-
-    n->nlmsg_seq = ++rtnl->seq;
-    n->nlmsg_flags |= NLM_F_ACK;
-
-    if (sendmsg(fd, &msg, 0) < 0)
-        return -1;
-    return 0;
-}
-
 static int qdisc_modify(int cmd, const char *dev, unsigned int flags, struct tc_tdma_qopt *opt, struct tdma_vars_t *data) 
 {
 
@@ -482,46 +370,6 @@ int init_netlink_socket(struct nl_sock **sk, int *genl_family)
 	return 0;
 }
 
-void create_nlmsg(struct nl_msg *msg, struct tdma_vars_t *data, int *genl_family)
-{
-	// create netlink message
-	msg = nlmsg_alloc();
-	if (msg < 0)
-	{
-		perror("failed to allocate memory for nlmsg");
-		exit(EXIT_FAILURE);
-	}
-
-	printf("ALLOCATED MSG: %d\n", msg);
-	printf("MSG: %d\n", nlmsg_hdr(msg));
-
-	genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, *genl_family, 0, 0, GNL_RATDMA_RECV_MSG, 1);
-
-	printf("PUT HEADERS MSG: %d\n", msg);
-	printf("MSG2: %d\n", nlmsg_hdr(msg));
-
-	// save changed variables to nlmsg
-	// ensure data stored in portable way
-	nla_put_string(msg, GNL_RATDMA_DEVNAME, data->devname);
-	nla_put_u32(msg, GNL_RATDMA_LIMIT, data->limit);
-	nla_put_s64(msg, GNL_RATDMA_OFFSET, data->t_offset);
-	nla_put_s64(msg, GNL_RATDMA_FRAME, data->t_frame);
-	nla_put_s64(msg, GNL_RATDMA_SLOT, data->t_slot);
-	nla_put_u32(msg, GNL_RATDMA_OFFSET_FUTURE, data->offset_future);
-	nla_put_u32(msg, GNL_RATDMA_OFFSET_RELATIVE, data->offset_relative);
-
-	printf("PUT DATA MSG: %d\n", msg);
-	printf("MSG3: %d\n", nlmsg_hdr(msg));
-
-	// add flag values to netlink message only if true 
-	if (graph)
-	{
-		printf("nla_put graph: %d\n", (int)data->graph);
-		nla_put_flag(msg, GNL_RATDMA_GRAPH);
-	}
-
-}
-
 int add_qdisc(struct tdma_vars_t *data) {
 
 	struct tc_tdma_qopt *opt = malloc(sizeof(struct tc_tdma_qopt));
@@ -562,10 +410,6 @@ int add_qdisc(struct tdma_vars_t *data) {
 
 int change_qdisc(struct tdma_vars_t *data) {
 
-	struct nl_sock *sk;
-	struct nl_msg *msg;
-	int genl_family;
-
 	struct tc_tdma_qopt *opt = malloc(sizeof(struct tc_tdma_qopt));
 	memset(opt, 0, sizeof(*opt));
 
@@ -595,7 +439,17 @@ int change_qdisc(struct tdma_vars_t *data) {
 
 	printf("Rtnl socket closed.\n");
 
-	/*
+	return 0;
+
+
+}
+
+int enable_graph() {
+
+	struct nl_sock *sk;
+	struct nl_msg *msg;
+	int genl_family;
+
 	// Create netlink socket to receive messages
 	printf("%sCreating netlink socket%s\n", magenta, reset);
 	if (init_netlink_socket(&sk, &genl_family) != 0)
@@ -612,38 +466,10 @@ int change_qdisc(struct tdma_vars_t *data) {
 		exit(EXIT_FAILURE);
 	}
 
-	printf("ALLOCATED MSG: %d\n", msg);
-	printf("MSG: %d\n", nlmsg_hdr(msg));
-
 	genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, *&genl_family, 0, 0, GNL_RATDMA_RECV_MSG, 1);
 
-	printf("PUT HEADERS MSG: %d\n", msg);
-	printf("MSG2: %d\n", nlmsg_hdr(msg));
+	nla_put_flag(msg, GNL_RATDMA_GRAPH);
 
-	// save changed variables to nlmsg
-	// ensure data stored in portable way
-	nla_put_string(msg, GNL_RATDMA_DEVNAME, data->devname);
-	nla_put_u32(msg, GNL_RATDMA_LIMIT, data->limit);
-	nla_put_s64(msg, GNL_RATDMA_OFFSET, data->t_offset);
-	nla_put_s64(msg, GNL_RATDMA_FRAME, data->t_frame);
-	nla_put_s64(msg, GNL_RATDMA_SLOT, data->t_slot);
-	nla_put_u32(msg, GNL_RATDMA_OFFSET_FUTURE, data->offset_future);
-	nla_put_u32(msg, GNL_RATDMA_OFFSET_RELATIVE, data->offset_relative);
-
-	printf("PUT DATA MSG: %d\n", msg);
-	printf("MSG3: %d\n", nlmsg_hdr(msg));
-
-	// add flag values to netlink message only if true
-	if (graph)
-	{
-		printf("nla_put graph: %d\n", (int)data->graph);
-		nla_put_flag(msg, GNL_RATDMA_GRAPH);
-	}
-
-	printf("CREATED MSG: %d\n");
-	printf("MSG4: %d\n", nlmsg_hdr(msg));
-
-	// send message to kernel
 	printf("%sSending message to kernel...%s\n", magenta, reset);
 
 	if (nl_send_auto(sk, msg) < 0)
@@ -657,10 +483,6 @@ int change_qdisc(struct tdma_vars_t *data) {
 	// cleanup
 	nlmsg_free(msg);
 	nl_socket_free(sk);
-
-	*/
-
-	return 0;
 
 
 }
@@ -737,6 +559,14 @@ int main(int argc, char *argv[])
 		if(add_qdisc(data) < 0) {
 			printf("Failed to add qdisc!\n");
 			exit(-1);
+		}
+
+	}
+
+	if(graph) {
+
+		if(enable_graph() < 0 ) {
+			printf("Failed to enable metrics graph.\n");
 		}
 
 	}
