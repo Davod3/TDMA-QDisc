@@ -29,7 +29,7 @@
 #include <net/sch_generic.h>
 #include <net/pkt_cls.h>
 #include <net/pkt_sched.h>
-//#include <net/gso.h>
+#include <net/gso.h>
 
 #include "netlink_sock.h"
 
@@ -166,38 +166,29 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 	s64 now = ktime_get_ns();
 	s64 offset = q->t_offset + (intdiv(now - q->t_offset, q->t_frame) * q->t_frame);
 
-	// if (!((q->t_offset <= now) || (now < (q->t_offset + q->t_frame)) || (((offset - q->t_offset) % q->t_frame) == 0)))
-	// 	printk(KERN_DEBUG "TDMA: bad offsets (%lld -> %lld)\n", q->t_offset, offset);
-	// if (!((offset <= now) && (now < (offset + q->t_frame)) && ((offset - q->t_offset) % q->t_frame)))
-	// 	printk(KERN_DEBUG "TDMA: bad offsets (%lld -> %lld @ %lld)\n", q->t_offset, offset, now);
 	if (!((offset <= now) && (now < (offset + q->t_frame)) && (((offset - q->t_offset) % q->t_frame) == 0)))
 		printk(KERN_DEBUG "TDMA: bad offsets (%lld -> %lld @ %lld)\n", q->t_offset, offset, now);
-		// printk(KERN_DEBUG "%d, %d, %d\n", offset <= now, now < (offset + q->t_frame), ((offset - q->t_offset) % q->t_frame) == 0);
 
 	// // TODO: make choice of offset configurable
-	// q->t_offset = offset; // q->t_offset <= now < q->t_offset + frame
-	// // q->t_offset = now >= offset ? q->t_offset : offset; // now < q->t_offset + frame
-	if (!(q->offset_future && now < q->t_offset))
+	if (!(q->offset_future)) {
 		q->t_offset = offset;
+	}
 
 	if (q->qdisc->ops->peek(q->qdisc)) {
-		// if (!(now >= q->t_offset + q->t_slot)) {
-		if ((q->t_offset <= now) && (now < (q->t_offset + q->t_slot))) {
+
+		if ((offset <= now) && (now < (offset + q->t_slot))) {
 			skb = qdisc_dequeue_peeked(q->qdisc);
 			if (unlikely(!skb))
 				return NULL;
 				
-			// printk(KERN_DEBUG "dequeue\t%u\t%s\n", qdisc_pkt_len(skb), qdisc_dev(sch)->name);
-			// printk(KERN_DEBUG "%sdequeue\t%u\t%s%s\n", "\033[1;32m", qdisc_pkt_len(skb), qdisc_dev(sch)->name, "\033[0m");
-			printk(KERN_DEBUG "DEQUEUED PACKET!!!!----------%d------------%d-------------%d", q->t_offset, now, q->t_offset + q ->t_slot);
+			printk(KERN_DEBUG "DEQUEUED PACKET!!!!----------%lld------------%lld-------------%lld\n", offset, now, offset + q->t_slot);
 			qdisc_qstats_backlog_dec(sch, skb);
 			sch->q.qlen--;
 			qdisc_bstats_update(sch, skb);
 			return skb;
 		}
 
-		printk(KERN_DEBUG "FAILED TO DEQUEUE PACKET!!!!----------%d------------%d-------------%d", q->t_offset, now, q->t_offset + q ->t_slot);
-		qdisc_watchdog_schedule_ns(&q->watchdog, q->t_frame - (now - q->t_offset));
+		qdisc_watchdog_schedule_ns(&q->watchdog, q->t_frame - (now - offset));
 	}
 
 	return NULL;
