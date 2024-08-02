@@ -164,7 +164,15 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 	struct sk_buff *skb;
 
 	s64 now = ktime_get_ns();
-	s64 offset = q->t_offset + (intdiv(now - q->t_offset, q->t_frame) * q->t_frame);
+	s64 div_result = intdiv(now - q->t_offset, q->t_frame);
+	s64 offset = q->t_offset + (div_result * q->t_frame);
+
+	printk( KERN_DEBUG "NOW: %lld\n", now);
+	printk( KERN_DEBUG "OFFSET: %lld\n", offset);
+	printk( KERN_DEBUG "t_offset: %lld\n", q->t_offset);
+	printk( KERN_DEBUG "INTDIV: %lld\n", div_result);
+
+
 
 	if (!((offset <= now) && (now < (offset + q->t_frame)) && (((offset - q->t_offset) % q->t_frame) == 0)))
 		printk(KERN_DEBUG "TDMA: bad offsets (%lld -> %lld @ %lld)\n", q->t_offset, offset, now);

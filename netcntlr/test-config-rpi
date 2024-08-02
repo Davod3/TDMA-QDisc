@@ -1,4 +1,4 @@
-devname=wlo1
+devname=wlan0
 t_offset=5000000000
 t_frame=10000000000
 t_slot=5000000000

@@ -7,7 +7,7 @@ sudo modprobe sch_netem
 cd ..
 make
 cd netcntlr
-sudo ./netcntlr -f test-config
+sudo ./netcntlr -f $1
 
 # Print lsmod and tc to confirm changes
 echo 'Qdisc added...'
