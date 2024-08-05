@@ -167,10 +167,10 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 	s64 div_result = intdiv(now - q->t_offset, q->t_frame);
 	s64 offset = q->t_offset + (div_result * q->t_frame);
 
-	printk( KERN_DEBUG "NOW: %lld\n", now);
-	printk( KERN_DEBUG "OFFSET: %lld\n", offset);
-	printk( KERN_DEBUG "t_offset: %lld\n", q->t_offset);
-	printk( KERN_DEBUG "INTDIV: %lld\n", div_result);
+	//printk( KERN_DEBUG "NOW: %lld\n", now);
+	//printk( KERN_DEBUG "OFFSET: %lld\n", offset);
+	//printk( KERN_DEBUG "t_offset: %lld\n", q->t_offset);
+	//printk( KERN_DEBUG "INTDIV: %lld\n", div_result);
 
 
 
