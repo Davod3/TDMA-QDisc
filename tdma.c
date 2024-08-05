@@ -165,7 +165,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
 	s64 now = ktime_get_ns();
 	s64 div_result = intdiv(now - q->t_offset, q->t_frame);
-	s64 offset = 2*q->t_offset + (div_result * q->t_frame);
+	s64 offset = q->t_offset + (div_result * q->t_frame);
 
 	printk( KERN_DEBUG "NOW: %lld\n", now);
 	printk( KERN_DEBUG "OFFSET: %lld\n", offset);
