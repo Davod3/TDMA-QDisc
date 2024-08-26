@@ -87,7 +87,7 @@ static int tdma_segment(struct sk_buff *skb, struct Qdisc *sch,
 
 	if (IS_ERR_OR_NULL(segs)) {
 		// printk(KERN_DEBUG "drop\t%u\t%s\t(gso)\n", len, qdisc_dev(sch)->name);
-		printk(KERN_DEBUG "\e[0;31mdrop\t%u\t%s\t(gso)\e[0m\n", len, qdisc_dev(sch)->name);
+		//printk(KERN_DEBUG "\e[0;31mdrop\t%u\t%s\t(gso)\e[0m\n", len, qdisc_dev(sch)->name);
 		return qdisc_drop(skb, sch, to_free);
 	}
 
@@ -103,10 +103,10 @@ static int tdma_segment(struct sk_buff *skb, struct Qdisc *sch,
 			if (net_xmit_drop_count(ret))
 				qdisc_qstats_drop(sch);
 			// printk(KERN_DEBUG "drop\t%u\t%s\t(gso %d)\n", len, qdisc_dev(sch)->name, nt + 1);
-			printk(KERN_DEBUG "\e[0;31mdrop\t%u\t%s\t(gso %d)\e[0m\n", len, qdisc_dev(sch)->name, nt + 1);
+			//printk(KERN_DEBUG "\e[0;31mdrop\t%u\t%s\t(gso %d)\e[0m\n", len, qdisc_dev(sch)->name, nt + 1);
 		} else {
 			// printk(KERN_DEBUG "enqueue\t%u\t%s\t(gso %d)\n", len, qdisc_dev(sch)->name, nt + 1);
-			printk(KERN_DEBUG "\e[0;34menqueue\t%u\t%s\t(gso %d)\e[0m\n", len, qdisc_dev(sch)->name, nt + 1);
+			//printk(KERN_DEBUG "\e[0;34menqueue\t%u\t%s\t(gso %d)\e[0m\n", len, qdisc_dev(sch)->name, nt + 1);
 
 			sch->qstats.backlog += len;
 			sch->q.qlen++;
@@ -134,7 +134,7 @@ static int tdma_enqueue(struct sk_buff *skb, struct Qdisc *sch,
 			return tdma_segment(skb, sch, to_free);
 
 		// printk(KERN_DEBUG "drop\t%u\t%s\t(gso)\n", len, qdisc_dev(sch)->name);
-		printk(KERN_DEBUG "\e[0;31mdrop\t%u\t%s\t(gso)\e[0m\n", len, qdisc_dev(sch)->name);
+		//printk(KERN_DEBUG "\e[0;31mdrop\t%u\t%s\t(gso)\e[0m\n", len, qdisc_dev(sch)->name);
 
 		return qdisc_drop(skb, sch, to_free);
 	}
@@ -145,13 +145,13 @@ static int tdma_enqueue(struct sk_buff *skb, struct Qdisc *sch,
 			qdisc_qstats_drop(sch);
 
 		// printk(KERN_DEBUG "drop\t%u\t%s\n", len, qdisc_dev(sch)->name);
-		printk(KERN_DEBUG "\e[0;31mdrop\t%u\t%s\e[0m\n", len, qdisc_dev(sch)->name);
+		//printk(KERN_DEBUG "\e[0;31mdrop\t%u\t%s\e[0m\n", len, qdisc_dev(sch)->name);
 
 		return ret;
 	}
 
 	// printk(KERN_DEBUG "enqueue\t%u\t%s\n", len, qdisc_dev(sch)->name);
-	printk(KERN_DEBUG "\e[0;34menqueue\t%u\t%s\e[0m\n", len, qdisc_dev(sch)->name);
+	//printk(KERN_DEBUG "\e[0;34menqueue\t%u\t%s\e[0m\n", len, qdisc_dev(sch)->name);
 
 	sch->qstats.backlog += len;
 	sch->q.qlen++;
@@ -189,7 +189,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 			if (unlikely(!skb))
 				return NULL;
 				
-			printk(KERN_DEBUG "DEQUEUED PACKET!!!!----------%lld------------%lld-------------%lld\n", offset, now, offset + q->t_slot);
+			//printk(KERN_DEBUG "DEQUEUED PACKET!!!!----------%lld------------%lld-------------%lld\n", offset, now, offset + q->t_slot);
 			qdisc_qstats_backlog_dec(sch, skb);
 			sch->q.qlen--;
 			qdisc_bstats_update(sch, skb);
@@ -226,7 +226,7 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 	struct Qdisc *child;
 
 	//printk(KERN_DEBUG "change\t\t%s", qdisc_dev(sch)->name);
-	printk(KERN_DEBUG "[RA-TDMA]######################CHANGE TDMA###############\n");
+	//printk(KERN_DEBUG "[RA-TDMA]######################CHANGE TDMA###############\n");
 
 	if (!opt)
 		return -EINVAL;
@@ -286,7 +286,7 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 
 	qdisc_watchdog_schedule_ns(&q->watchdog, 0);
 
-	printk(KERN_DEBUG "change\tflags=%u%u\t%s", q->offset_future, q->offset_relative, qdisc_dev(sch)->name);
+	//printk(KERN_DEBUG "change\tflags=%u%u\t%s", q->offset_future, q->offset_relative, qdisc_dev(sch)->name);
 
 	return 0;
 }
