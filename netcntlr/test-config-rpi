@@ -1,6 +1,6 @@
 devname=wlan0
 t_offset=5000000000
-t_frame=10000000000
+t_frame=15000000000
 t_slot=5000000000
 limit=0
 offset_future=1
