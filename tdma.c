@@ -31,7 +31,23 @@
 #include <net/pkt_sched.h>
 #include <net/gso.h>
 
+#include <linux/init.h>
+#include <linux/sched.h>
+#include <linux/mm.h>
+#include <linux/fcntl.h>
+#include <linux/socket.h>
+#include <linux/in.h>
+#include <linux/inet.h>
+#include <linux/if_arp.h>
+#include <linux/netdevice.h>
+#include <linux/etherdevice.h>
+#include <linux/ip.h> 
+#include <linux/udp.h>
+
 #include "netlink_sock.h"
+
+#define IP_Header_RM 20
+#define UDP_Header_RM 8
 
 char devname[] = "wlo1"; //Change to interface that will be used
 u32 limit = 0;
@@ -40,6 +56,7 @@ s64 t_slot = 0;
 s64 t_offset = 0;
 u32 offset_future = 0;
 u32 offset_relative = 0;
+int slot_start = 0;
 
 EXPORT_SYMBOL(devname);
 EXPORT_SYMBOL(limit);
@@ -158,6 +175,140 @@ static int tdma_enqueue(struct sk_buff *skb, struct Qdisc *sch,
 	return NET_XMIT_SUCCESS;
 }
 
+/*JUST FOR TESTING. TODO: REMOVE*/
+void pkt_dump(struct sk_buff* skb) {
+
+	size_t len;
+    int rowsize = 16;
+    int i, l, linelen, remaining;
+    int li = 0;
+    uint8_t *data, ch;
+
+	printk("Packet hex dump:\n");
+    data = (uint8_t *) skb_mac_header(skb);
+
+	if (skb_is_nonlinear(skb)) {
+        len = skb->data_len;
+    } else {
+        len = skb->len;
+    }
+
+	remaining = len;
+    for (i = 0; i < len; i += rowsize) {
+        printk("%06d\t", li);
+
+        linelen = min(remaining, rowsize);
+        remaining -= rowsize;
+
+        for (l = 0; l < linelen; l++) {
+            ch = data[l];
+            printk(KERN_CONT "%02X ", (uint32_t) ch);
+        }
+
+        data += linelen;
+        li += 10; 
+
+        printk(KERN_CONT "\n");
+    }
+
+}
+
+unsigned int inet_addr(char *str) {
+    int a, b, c, d;
+    char arr[4];
+    sscanf(str, "%d.%d.%d.%d", &a, &b, &c, &d);
+    arr[0] = a; arr[1] = b; arr[2] = c; arr[3] = d;
+    return *(unsigned int *)arr;
+}
+
+static struct sk_buff *generate_topology_packet(char* dev_name) {
+
+	printk(KERN_INFO "generate_topology_packet: Starting generation...\n");
+
+	//Get network device struct from name
+	struct net_device* device = dev_get_by_name(&init_net, dev_name);
+	if(device == NULL) {
+		printk(KERN_INFO "generate_topology_packet: No such device %s\n", dev_name);
+		return NULL;
+	}
+
+	//Setup variables
+	u_int16_t proto;
+	static char addr[ETH_ALEN] = {0xff,0xff,0xff,0xff,0xff,0xff};
+	u_int8_t dest_addr[ETH_ALEN];
+	memcpy(dest_addr, addr, ETH_ALEN);
+	proto = ETH_P_IP;
+	unsigned char* data;
+	char* srcIP = "192.168.0.138";
+	char* dstIP = "255.255.255.255";
+	char* message = "THIS IS A BROADCAST!!!";
+	int data_len = strlen(message);
+
+	printk(KERN_INFO "generate_topology_packet: Defined variables...\n");
+
+	//Setup UDP dimensions
+	int udp_header_len = 8;
+	int udp_payload_len = data_len;
+	int udp_total_len = udp_header_len + udp_payload_len;
+
+	//Setup IP dimensions
+	int ip_header_len = 20;
+	int ip_payload_len = udp_total_len;
+	int ip_total_len = ip_header_len + ip_payload_len;
+
+	//Setup skb
+	struct sk_buff* skb = alloc_skb(ETH_HLEN + ip_total_len, GFP_ATOMIC);
+	skb->dev = device;
+	skb->pkt_type = PACKET_OUTGOING;
+	skb_reserve(skb, ETH_HLEN + ip_header_len + udp_header_len);
+
+	printk(KERN_INFO "generate_topology_packet: Reserved packet space...\n");
+
+	//Setup data
+	data = skb_put(skb, udp_payload_len);
+	memcpy(data, message, data_len);
+
+	printk(KERN_INFO "generate_topology_packet: Added data...\n");
+
+	//Setup UDP header
+	struct udphdr* uh = (struct udphdr*)skb_push(skb,udp_header_len);
+	uh->len = htons(udp_total_len);
+	uh->source = htons(15934);
+	uh->dest = htons(15904);
+
+	printk(KERN_INFO "generate_topology_packet: Setup udp header...\n");
+
+	//Setup IP header
+	struct iphdr* iph = (struct iphdr*)skb_push(skb, ip_header_len);
+	iph->ihl = ip_header_len/4;
+	iph->version = 4;
+	iph->tos = 0;
+	iph->tot_len = htons(ip_total_len);
+	iph->frag_off = 0;
+	iph->ttl = 64;
+	iph->protocol = IPPROTO_UDP;
+	iph->check = 0;
+	iph->saddr = inet_addr(srcIP);
+	iph->daddr = inet_addr(dstIP);
+
+	printk(KERN_INFO "generate_topology_packet: Setup ip header...\n");
+
+	//Setup Ethernet header
+	struct ethhdr* eth = (struct ethhdr*)skb_push(skb, sizeof (struct ethhdr));
+	skb->protocol = eth->h_proto = htons(proto);
+	skb->no_fcs = 1;
+	memcpy(eth->h_source, device->dev_addr, ETH_ALEN);
+	memcpy(eth->h_dest, dest_addr, ETH_ALEN);
+
+	printk(KERN_INFO "generate_topology_packet: Setup ethernet header...\n");
+
+	//Dispatch packet
+	//dev_queue_xmit(skb);
+
+	return skb;
+
+}
+
 static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 {
 	struct tdma_sched_data *q = qdisc_priv(sch);
@@ -173,11 +324,11 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 	//printk( KERN_DEBUG "INTDIV: %lld\n", div_result);
 
 
-
+	//TODO: Check if this can be removed
 	if (!((offset <= now) && (now < (offset + q->t_frame)) && (((offset - q->t_offset) % q->t_frame) == 0)))
 		printk(KERN_DEBUG "TDMA: bad offsets (%lld -> %lld @ %lld)\n", q->t_offset, offset, now);
 
-	// // TODO: make choice of offset configurable
+	// // TODO: Check if this can be removed
 	if (!(q->offset_future)) {
 		q->t_offset = offset;
 	}
@@ -185,15 +336,42 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 	if (q->qdisc->ops->peek(q->qdisc)) {
 
 		if ((offset <= now) && (now < (offset + q->t_slot))) {
-			skb = qdisc_dequeue_peeked(q->qdisc);
-			if (unlikely(!skb))
-				return NULL;
-				
-			//printk(KERN_DEBUG "DEQUEUED PACKET!!!!----------%lld------------%lld-------------%lld\n", offset, now, offset + q->t_slot);
-			qdisc_qstats_backlog_dec(sch, skb);
-			sch->q.qlen--;
-			qdisc_bstats_update(sch, skb);
-			return skb;
+
+			if(slot_start) {
+				//Code runs at the start of a transmission slot
+				slot_start = 0;
+				struct sk_buff* skb = generate_topology_packet(qdisc_dev(sch)->name);
+
+				printk(KERN_INFO "generate_topology_packet: Generated skb!\n");
+
+				if (unlikely(!skb)) {
+					printk(KERN_INFO "generate_topology_packet: Broken packet!\n");
+					return NULL;
+				}
+
+				//Testing: Dump skb contents
+				//pkt_dump(skb);
+
+				return skb;
+
+			} else {
+				//Code runs elsewhere in the slot
+				skb = qdisc_dequeue_peeked(q->qdisc);
+				if (unlikely(!skb))
+					return NULL;
+					
+				//printk(KERN_DEBUG "DEQUEUED PACKET!!!!----------%lld------------%lld-------------%lld\n", offset, now, offset + q->t_slot);
+				qdisc_qstats_backlog_dec(sch, skb);
+				sch->q.qlen--;
+				qdisc_bstats_update(sch, skb);
+				return skb;
+			}
+
+		} else {
+
+			//Slot has ended. Prepare to run at slot start again.
+			slot_start = 1;
+
 		}
 
 		qdisc_watchdog_schedule_ns(&q->watchdog, q->t_frame - (now - offset));
