@@ -221,6 +221,30 @@ unsigned int inet_addr(char *str) {
     return *(unsigned int *)arr;
 }
 
+static int iph_checksum(u_short *header, int len) {
+
+	int nleft = len;
+	u_short *w = header;
+	int sum = 0;
+	u_short result = 0;
+
+	while (nleft > 1) {
+		sum+= *w++;
+		nleft -= 2;
+	}
+
+	if(nleft == 1) {
+		*(u_char * )(&result) = *(u_char *)w;
+		sum += result;
+	}
+
+	sum = (sum >> 16) + (sum & 0xffff);
+	sum += (sum >> 16);
+	result = ~sum;
+	return result;
+
+}
+
 static struct sk_buff *generate_topology_packet(char* dev_name) {
 
 	printk(KERN_INFO "generate_topology_packet: Starting generation...\n");
@@ -302,8 +326,8 @@ static struct sk_buff *generate_topology_packet(char* dev_name) {
 
 	printk(KERN_INFO "generate_topology_packet: Setup ethernet header...\n");
 
-	//Dispatch packet
-	//dev_queue_xmit(skb);
+	//Calculate IP checksum
+	iph->check = iph_checksum((unsigned short*) iph , ip_header_len);
 
 	return skb;
 
