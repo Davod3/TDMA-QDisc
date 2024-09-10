@@ -41,6 +41,7 @@
 #include <linux/if_arp.h>
 #include <linux/netdevice.h>
 #include <linux/etherdevice.h>
+#include <linux/inetdevice.h>
 #include <linux/ip.h> 
 #include <linux/udp.h>
 
@@ -213,14 +214,37 @@ void pkt_dump(struct sk_buff* skb) {
 
 }
 
-unsigned int inet_addr(char *str) {
+/*Code adapted from https://stackoverflow.com/questions/59382141/obtain-interface-netmask-in-linux-kernel-module*/
+unsigned int inet_addr(struct net_device* dev, int broadcast) {
+
+	//broadcast == 1 -> IPv4 Broadcast Address
+
+	struct in_ifaddr *ifa;
+	char addr[16];
+
+	// roughly
+	rcu_read_lock();
+
+	for(ifa = rcu_dereference(dev->ip_ptr->ifa_list);
+			ifa;
+			ifa = rcu_dereference(ifa->ifa_next))
+
+		if(broadcast == 1) {
+			snprintf(addr, sizeof(addr), "%pI4", &ifa->ifa_broadcast);
+		} else {
+			snprintf(addr, sizeof(addr), "%pI4", &ifa->ifa_address);
+		}
+
+	rcu_read_unlock();
+
     int a, b, c, d;
     char arr[4];
-    sscanf(str, "%d.%d.%d.%d", &a, &b, &c, &d);
+    sscanf(addr, "%d.%d.%d.%d", &a, &b, &c, &d);
     arr[0] = a; arr[1] = b; arr[2] = c; arr[3] = d;
     return *(unsigned int *)arr;
 }
 
+/*Code adapted from https://stackoverflow.com/questions/26774761/ip-and-tcp-header-checksum-calculate-in-c*/
 static int iph_checksum(u_short *header, int len) {
 
 	int nleft = len;
@@ -245,6 +269,7 @@ static int iph_checksum(u_short *header, int len) {
 
 }
 
+/*Code adapted from https://github.com/dmytroshytyi-6WIND/KERNEL-sk_buff-helloWorld*/
 static struct sk_buff *generate_topology_packet(char* dev_name) {
 
 	printk(KERN_INFO "generate_topology_packet: Starting generation...\n");
@@ -263,8 +288,6 @@ static struct sk_buff *generate_topology_packet(char* dev_name) {
 	memcpy(dest_addr, addr, ETH_ALEN);
 	proto = ETH_P_IP;
 	unsigned char* data;
-	char* srcIP = "192.168.0.138";
-	char* dstIP = "255.255.255.255";
 	char* message = "THIS IS A BROADCAST!!!";
 	int data_len = strlen(message);
 
@@ -312,8 +335,8 @@ static struct sk_buff *generate_topology_packet(char* dev_name) {
 	iph->ttl = 64;
 	iph->protocol = IPPROTO_UDP;
 	iph->check = 0;
-	iph->saddr = inet_addr(srcIP);
-	iph->daddr = inet_addr(dstIP);
+	iph->saddr = inet_addr(device, 0);
+	iph->daddr = inet_addr(device, 1);
 
 	printk(KERN_INFO "generate_topology_packet: Setup ip header...\n");
 
