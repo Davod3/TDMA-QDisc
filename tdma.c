@@ -50,32 +50,23 @@
 #define UDP_Header_RM 8
 
 char devname[] = "wlo1"; //Change to interface that will be used
-u32 limit = 0;
-s64 t_frame = 0;
-s64 t_slot = 0;
-s64 t_offset = 0;
-u32 offset_future = 0;
-u32 offset_relative = 0;
-int slot_start = 0;
+s64 node_id = 0;
+s64 n_nodes = 0;
+s64 slot_size= 0;
+//int slot_start = 0;
 
 EXPORT_SYMBOL(devname);
-EXPORT_SYMBOL(limit);
-EXPORT_SYMBOL(t_frame);
-EXPORT_SYMBOL(t_slot);
-EXPORT_SYMBOL(t_offset);
-EXPORT_SYMBOL(offset_future);
-EXPORT_SYMBOL(offset_relative);
+EXPORT_SYMBOL(node_id);
+EXPORT_SYMBOL(n_nodes);
+EXPORT_SYMBOL(slot_size);
 
 struct tdma_sched_data {
 /* Parameters */
 	u32		limit;		/* Maximal length of backlog: bytes */
 
-	s64 t_frame;
-	s64 t_slot;
-	s64	t_offset;			/* Time check-point */
-
-	u32 offset_future;
-	u32 offset_relative;
+	s64 frame_len;
+	s64 slot_len;
+	s64	slot_offset;			/* Time check-point */
 
 	struct Qdisc	*qdisc;		/* Inner qdisc, default - bfifo queue */
 	struct qdisc_watchdog watchdog;	/* Watchdog timer */
@@ -141,6 +132,7 @@ static int tdma_segment(struct sk_buff *skb, struct Qdisc *sch,
 static int tdma_enqueue(struct sk_buff *skb, struct Qdisc *sch,
 		       struct sk_buff **to_free)
 {
+
 	struct tdma_sched_data *q = qdisc_priv(sch);
 	unsigned int len = qdisc_pkt_len(skb), max_len = psched_mtu(qdisc_dev(sch));
 	int ret;
@@ -150,8 +142,7 @@ static int tdma_enqueue(struct sk_buff *skb, struct Qdisc *sch,
 		if (skb_is_gso(skb) && skb_gso_validate_mac_len(skb, max_len))
 			return tdma_segment(skb, sch, to_free);
 
-		// printk(KERN_DEBUG "drop\t%u\t%s\t(gso)\n", len, qdisc_dev(sch)->name);
-		//printk(KERN_DEBUG "\e[0;31mdrop\t%u\t%s\t(gso)\e[0m\n", len, qdisc_dev(sch)->name);
+		//printk(KERN_DEBUG "\eDROP:\t%u\t%s\e---A---\n", len, qdisc_dev(sch)->name);
 
 		return qdisc_drop(skb, sch, to_free);
 	}
@@ -161,56 +152,17 @@ static int tdma_enqueue(struct sk_buff *skb, struct Qdisc *sch,
 		if (net_xmit_drop_count(ret))
 			qdisc_qstats_drop(sch);
 
-		// printk(KERN_DEBUG "drop\t%u\t%s\n", len, qdisc_dev(sch)->name);
-		//printk(KERN_DEBUG "\e[0;31mdrop\t%u\t%s\e[0m\n", len, qdisc_dev(sch)->name);
+		//printk(KERN_DEBUG "DROP:\t%d\t%s\t---B---\n", ret, qdisc_dev(sch)->name);
 
 		return ret;
 	}
 
-	// printk(KERN_DEBUG "enqueue\t%u\t%s\n", len, qdisc_dev(sch)->name);
+	printk(KERN_DEBUG "enqueue\t%u\t%s\n", len, qdisc_dev(sch)->name);
 	//printk(KERN_DEBUG "\e[0;34menqueue\t%u\t%s\e[0m\n", len, qdisc_dev(sch)->name);
 
 	sch->qstats.backlog += len;
 	sch->q.qlen++;
 	return NET_XMIT_SUCCESS;
-}
-
-/*JUST FOR TESTING. TODO: REMOVE*/
-void pkt_dump(struct sk_buff* skb) {
-
-	size_t len;
-    int rowsize = 16;
-    int i, l, linelen, remaining;
-    int li = 0;
-    uint8_t *data, ch;
-
-	printk("Packet hex dump:\n");
-    data = (uint8_t *) skb_mac_header(skb);
-
-	if (skb_is_nonlinear(skb)) {
-        len = skb->data_len;
-    } else {
-        len = skb->len;
-    }
-
-	remaining = len;
-    for (i = 0; i < len; i += rowsize) {
-        printk("%06d\t", li);
-
-        linelen = min(remaining, rowsize);
-        remaining -= rowsize;
-
-        for (l = 0; l < linelen; l++) {
-            ch = data[l];
-            printk(KERN_CONT "%02X ", (uint32_t) ch);
-        }
-
-        data += linelen;
-        li += 10; 
-
-        printk(KERN_CONT "\n");
-    }
-
 }
 
 unsigned int inet_addr(char *str) {
@@ -311,70 +263,47 @@ static struct sk_buff *generate_topology_packet(char* dev_name) {
 
 static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 {
+
 	struct tdma_sched_data *q = qdisc_priv(sch);
 	struct sk_buff *skb;
 
 	s64 now = ktime_get_ns();
-	s64 div_result = intdiv(now - q->t_offset, q->t_frame);
-	s64 offset = q->t_offset + (div_result * q->t_frame);
-
-	//printk( KERN_DEBUG "NOW: %lld\n", now);
-	//printk( KERN_DEBUG "OFFSET: %lld\n", offset);
-	//printk( KERN_DEBUG "t_offset: %lld\n", q->t_offset);
-	//printk( KERN_DEBUG "INTDIV: %lld\n", div_result);
+	s64 div_result = intdiv(now - q->slot_offset, q->frame_len);
+	s64 offset = q->slot_offset + (div_result * q->frame_len);
 
 
 	//TODO: Check if this can be removed
-	if (!((offset <= now) && (now < (offset + q->t_frame)) && (((offset - q->t_offset) % q->t_frame) == 0)))
-		printk(KERN_DEBUG "TDMA: bad offsets (%lld -> %lld @ %lld)\n", q->t_offset, offset, now);
+	if (!((offset <= now) && (now < (offset + q->frame_len)) && (((offset - q->slot_offset) % q->frame_len) == 0)))
+		printk(KERN_DEBUG "TDMA: bad offsets (%lld -> %lld @ %lld)\n", q->slot_offset, offset, now);
 
 	// // TODO: Check if this can be removed
+	/*
 	if (!(q->offset_future)) {
-		q->t_offset = offset;
+		q->slot_offset = offset;
 	}
+	*/
 
 	if (q->qdisc->ops->peek(q->qdisc)) {
 
-		if ((offset <= now) && (now < (offset + q->t_slot))) {
+		//printk(KERN_DEBUG "CHECKING IF DEQUEUE!!----------%lld------------%lld-------------%lld\n", offset, now, offset + q->slot_len);
 
-			if(slot_start) {
-				//Code runs at the start of a transmission slot
-				slot_start = 0;
-				struct sk_buff* skb = generate_topology_packet(qdisc_dev(sch)->name);
+		if ((offset <= now) && (now < (offset + q->slot_len))) {
 
-				printk(KERN_INFO "generate_topology_packet: Generated skb!\n");
+			//printk(KERN_DEBUG "ATTEMPTING TO DEQUEUE!!----------%lld------------%lld-------------%lld\n", offset, now, offset + q->slot_len);
 
-				if (unlikely(!skb)) {
-					printk(KERN_INFO "generate_topology_packet: Broken packet!\n");
-					return NULL;
-				}
-
-				//Testing: Dump skb contents
-				//pkt_dump(skb);
-
-				return skb;
-
-			} else {
-				//Code runs elsewhere in the slot
-				skb = qdisc_dequeue_peeked(q->qdisc);
-				if (unlikely(!skb))
-					return NULL;
+			skb = qdisc_dequeue_peeked(q->qdisc);
+			if (unlikely(!skb))
+				return NULL;
 					
-				//printk(KERN_DEBUG "DEQUEUED PACKET!!!!----------%lld------------%lld-------------%lld\n", offset, now, offset + q->t_slot);
-				qdisc_qstats_backlog_dec(sch, skb);
-				sch->q.qlen--;
-				qdisc_bstats_update(sch, skb);
-				return skb;
-			}
-
-		} else {
-
-			//Slot has ended. Prepare to run at slot start again.
-			slot_start = 1;
+			printk(KERN_DEBUG "DEQUEUED PACKET!!!!----------%lld------------%lld-------------%lld\n", offset, now, offset + q->slot_len);
+			qdisc_qstats_backlog_dec(sch, skb);
+			sch->q.qlen--;
+			qdisc_bstats_update(sch, skb);
+			return skb;
 
 		}
 
-		qdisc_watchdog_schedule_ns(&q->watchdog, q->t_frame - (now - offset));
+		qdisc_watchdog_schedule_ns(&q->watchdog, q->frame_len - (now - offset));
 	}
 
 	return NULL;
@@ -390,8 +319,6 @@ static void tdma_reset(struct Qdisc *sch)
 
 static const struct nla_policy tdma_policy[TCA_TDMA_MAX + 1] = {
 	[TCA_TDMA_PARMS] = { .len = sizeof(struct tc_tdma_qopt) },
-	[TCA_TDMA_OFFSET_FUTURE] = { .type = NLA_U32 },
-	[TCA_TDMA_OFFSET_RELATIVE] = { .type = NLA_U32 },
 };
 
 static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext_ack *extack)
@@ -400,10 +327,8 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 	struct tdma_sched_data *q = qdisc_priv(sch);
 	struct nlattr *tb[TCA_TDMA_MAX + 1];
 	struct tc_tdma_qopt *qopt;
-	u32 offset_future, offset_relative;
 	struct Qdisc *child;
 
-	//printk(KERN_DEBUG "change\t\t%s", qdisc_dev(sch)->name);
 	//printk(KERN_DEBUG "[RA-TDMA]######################CHANGE TDMA###############\n");
 
 	if (!opt)
@@ -415,14 +340,6 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 	if (!tb[TCA_TDMA_PARMS])
 		return -EINVAL;
 
-	offset_future = 0;
-	if (tb[TCA_TDMA_OFFSET_FUTURE])
-		offset_future = nla_get_u32(tb[TCA_TDMA_OFFSET_FUTURE]);
-	
-	offset_relative = 0;
-	if (tb[TCA_TDMA_OFFSET_RELATIVE])
-		offset_relative = nla_get_u32(tb[TCA_TDMA_OFFSET_RELATIVE]);
-
 	qopt = nla_data(tb[TCA_TDMA_PARMS]);
 
 	if ((child = q->qdisc) == &noop_qdisc) {
@@ -431,10 +348,18 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 		qdisc_hash_add(child, true);
 	}
 
+	//Limit for backlog packets. TODO: May need to be made configurable. If so use commented code block to set
+	u32 limit = 2048;
+
+	if((err = fifo_set_limit(child, limit)) < 0) {
+
+		return err;
+	}
+	
+	/*
 	if (qopt->limit && (err = fifo_set_limit(child, qopt->limit)) < 0)
 		return err;
-
-	// printk(KERN_DEBUG "%lld, %lld\n", q->t_offset, qopt->t_offset);
+	*/
 
 	sch_tree_lock(sch);
 
@@ -442,25 +367,16 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 
 	q->limit = child->limit;
 
-	q->offset_future = offset_future;
-	q->offset_relative = offset_relative;
-	if (q->offset_relative)
-		q->t_offset = ktime_get_ns();
+	if (qopt->n_nodes > 0 && qopt->slot_size > 0 && qopt->node_id >= 0) {
 
-	if (qopt->t_frame > 0)
-		q->t_frame = qopt->t_frame;
-	if (qopt->t_slot > 0)
-		q->t_slot = qopt->t_slot;
-	if (qopt->t_offset)
-		q->t_offset += qopt->t_offset;
+		//Compute TDMA parameters
+		q->slot_len = qopt->slot_size;
+		q->frame_len = qopt->slot_size * qopt->n_nodes;
+		q->slot_offset = qopt->slot_size * qopt->node_id;
+
+	}
 
 	sch_tree_unlock(sch);
-
-	// if ((qopt->t_frame > 0) || (qopt->t_slot > 0) || qopt->t_offset || offset_relative) {
-	// 	// printk(KERN_DEBUG "change\t%u\t%s", offset_relative, qdisc_dev(sch)->name);
-	// 	qdisc_watchdog_schedule_ns(&q->watchdog, 0);
-	// 	// printk(KERN_DEBUG "change\t%u\t%s", offset_relative, qdisc_dev(sch)->name);
-	// }
 
 	qdisc_watchdog_schedule_ns(&q->watchdog, 0);
 
@@ -474,23 +390,10 @@ static int tdma_init(struct Qdisc *sch, struct nlattr *opt,
 {
 	struct tdma_sched_data *q = qdisc_priv(sch);
 
-	// // // q->qdisc = &noop_qdisc;
-	// // q->qdisc = fifo_create_dflt(sch, &bfifo_qdisc_ops, qdisc_dev(sch)->tx_queue_len * psched_mtu(qdisc_dev(sch)), extack);
-	// // if (IS_ERR(q->qdisc))
-	// // 	return PTR_ERR(q->qdisc);
-	// // qdisc_hash_add(q->qdisc, true);
-
-	// // if (!(q->qdisc = qdisc_create_dflt(sch->dev_queue, &bfifo_qdisc_ops, TC_H_MAKE(sch->handle, 1), extack)))
-	// if (!(q->qdisc = qdisc_create_dflt(sch->dev_queue, &bfifo_qdisc_ops, sch->handle, extack)))
-	// 	return -ENOMEM;
-	// qdisc_hash_add(q->qdisc, true);
-
 	q->limit = 0;
 
-	q->t_frame = q->t_slot = 1;
-	q->t_offset = 0;
-
-	q->offset_future = q->offset_relative = 0;
+	q->frame_len = q->slot_len = 1;
+	q->slot_offset = 0;
 
 	q->qdisc = &noop_qdisc;
 
@@ -518,19 +421,19 @@ static int tdma_dump(struct Qdisc *sch, struct sk_buff *skb)
 		goto nla_put_failure;
 
 
-	opt.limit = q->limit;
+	//opt.limit = q->limit;
 
-	opt.t_frame = q->t_frame;
-	opt.t_slot = q->t_slot;
-	opt.t_offset = q->t_offset;
+	//opt.t_frame = q->t_frame;
+	//opt.t_slot = q->t_slot;
+	//opt.t_offset = q->t_offset;
 
 	printk(KERN_DEBUG "(dump %08x) dev: (name, tx_queue_len, psched_mtu) = (%s, %d, %d)\n", sch->handle, qdisc_dev(sch)->name, qdisc_dev(sch)->tx_queue_len, psched_mtu(qdisc_dev(sch)));
 	printk(KERN_DEBUG "(dump %08x) bfifo: (limit, qlen, backlog, drops) = (%d, %d, %d, %d)\n", sch->handle, q->qdisc->limit, q->qdisc->q.qlen, q->qdisc->qstats.backlog, q->qdisc->qstats.drops);
 	printk(KERN_DEBUG "(dump %08x) tdma: (limit, qlen, backlog, drops) = (%d, %d, %d, %d)\n", sch->handle, q->limit, sch->q.qlen, sch->qstats.backlog, sch->qstats.drops);
-	printk(KERN_DEBUG "(dump %08x) limit: (kernel, user) = (%d, %d)\n", sch->handle, q->limit, opt.limit);
-	printk(KERN_DEBUG "(dump %08x) t_frame: (kernel, user) = (%lld, %lld)\n", sch->handle, q->t_frame, opt.t_frame);
-	printk(KERN_DEBUG "(dump %08x) t_slot: (kernel, user) = (%lld, %lld)\n", sch->handle, q->t_slot, opt.t_slot);
-	printk(KERN_DEBUG "(dump %08x) t_offset: (kernel, user) = (%lld, %lld)\n", sch->handle, q->t_offset, opt.t_offset);
+	//printk(KERN_DEBUG "(dump %08x) limit: (kernel, user) = (%d, %d)\n", sch->handle, q->limit, opt.limit);
+	printk(KERN_DEBUG "(dump %08x) frame_len: %lld\n", sch->handle, q->frame_len);
+	printk(KERN_DEBUG "(dump %08x) slot_len: %lld\n", sch->handle, q->slot_len);
+	printk(KERN_DEBUG "(dump %08x) slot_offset: %lld\n", sch->handle, q->slot_offset);
 
 	if (nla_put(skb, TCA_TDMA_PARMS, sizeof(opt), &opt))
 		goto nla_put_failure;
@@ -560,11 +463,14 @@ static struct Qdisc_ops tdma_qdisc_ops __read_mostly = {
 
 static int __init tdma_module_init(void)
 {
+
+	printk(KERN_DEBUG "Qdisc registered!\n");
 	return register_qdisc(&tdma_qdisc_ops);
 }
 
 static void __exit tdma_module_exit(void)
-{
+{	
+	printk(KERN_DEBUG "Qdisc unregistered!\n");
 	unregister_qdisc(&tdma_qdisc_ops);
 }
 

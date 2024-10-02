@@ -31,8 +31,6 @@ static int qdisc_modify(int cmd, const char *dev, unsigned int flags, struct tc_
     // Add TCA_OPTIONS
     tail = addattr_nest(&req.n, 1024, TCA_OPTIONS);
     addattr_l(&req.n, 2024, TCA_TDMA_PARMS, opt, sizeof(*opt));
-	addattr32(&req.n, 1024, TCA_TDMA_OFFSET_FUTURE, data->offset_future);
-	addattr32(&req.n, 1024, TCA_TDMA_OFFSET_RELATIVE, data->offset_relative);
     addattr_nest_end(&req.n, tail);
 
     req.t.tcm_ifindex = dev_index;
@@ -85,10 +83,8 @@ int is_module_loaded(const char *mod_name)
 int load_kernel_mod(const char *mod_path, const char *params)
 {
 
-	//EDITED
 	int ret = 0;
 	char command[MAX_LINE_LEN];
-	//snprintf(command, sizeof(command), "sudo insmod %s %s", mod_path, params);
 	snprintf(command, sizeof(command), "insmod %s", mod_path);
 	printf("%s\n", command);
 	if (system(command) != 0)
@@ -146,53 +142,25 @@ struct tdma_vars_t *update_vars(uint32_t *bitmap)
 		clear_tdma_var_bit(bitmap, DEVNAME);
 	}
 
-	if (get_tdma_var_bit(bitmap, LIMIT))
-	{
-		printf("%sattr: %s is set!%s\n", yellow, "LIMIT", reset);
-		data->limit = limit;
-		clear_tdma_var_bit(bitmap, LIMIT);
-	}
-
-	if (get_tdma_var_bit(bitmap, OFFSET))
+	if (get_tdma_var_bit(bitmap, NODE_ID))
 	{
 		printf("%sattr: %s is set!%s\n", yellow, "OFFSET", reset);
-		data->t_offset = t_offset;
-		clear_tdma_var_bit(bitmap, OFFSET);
+		data->node_id = node_id;
+		clear_tdma_var_bit(bitmap, NODE_ID);
 	}
 
-	if (get_tdma_var_bit(bitmap, FRAME))
+	if (get_tdma_var_bit(bitmap, N_NODES))
 	{
 		printf("%sattr: %s is set!%s\n", yellow, "FRAME", reset);
-		data->t_frame = t_frame;
-		clear_tdma_var_bit(bitmap, FRAME);
+		data->n_nodes = n_nodes;
+		clear_tdma_var_bit(bitmap, N_NODES);
 	}
 
-	if (get_tdma_var_bit(bitmap, SLOT))
+	if (get_tdma_var_bit(bitmap, SLOT_SIZE))
 	{
 		printf("%sattr: %s is set!%s\n", yellow, "SLOT", reset);
-		data->t_slot = t_slot;
-		clear_tdma_var_bit(bitmap, SLOT);
-	}
-
-	if (get_tdma_var_bit(bitmap, OFFSET_FUTURE))
-	{
-		printf("%sattr: %s is set!%s\n", yellow, "OFFSET_FUTURE", reset);
-		data->offset_future = offset_future;
-		clear_tdma_var_bit(bitmap, OFFSET_FUTURE);
-	}
-
-	if (get_tdma_var_bit(bitmap, OFFSET_RELATIVE))
-	{
-		printf("%sattr: %s is set!%s\n", yellow, "OFFSET_RELATIVE", reset);
-		data->offset_relative = offset_relative;
-		clear_tdma_var_bit(bitmap, OFFSET_RELATIVE);
-	}
-
-	if (get_tdma_var_bit(bitmap, GRAPH))
-	{
-		printf("%sattr: %s is set!%s\n", yellow, "GRAPH", reset);
-		data->graph = graph;
-		clear_tdma_var_bit(bitmap, GRAPH);
+		data->slot_size = slot_size;
+		clear_tdma_var_bit(bitmap, SLOT_SIZE);
 	}
 
 	// return pointer to data struct
@@ -202,13 +170,9 @@ struct tdma_vars_t *update_vars(uint32_t *bitmap)
 void print_vars(void)
 {
 	printf("devname: %s\n", devname);
-	printf("limit: %u\n", limit);
-	printf("t_frame: %ld\n", t_frame);
-	printf("t_slot: %ld\n", t_slot);
-	printf("t_offset: %ld\n", t_offset);
-	printf("offset_future: %u\n", offset_future);
-	printf("offset_relative: %u\n", offset_relative);
-	printf("graph: %d\n", (int)graph);
+	printf("n_nodes: %ld\n", n_nodes);
+	printf("slot_size: %ld\n", slot_size);
+	printf("node_id: %ld\n", node_id);
 }
 
 int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info)
@@ -241,41 +205,21 @@ int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info)
 					strcpy(devname, value);
 					set_tdma_var_bit(bitmap, DEVNAME);
 				} 
-				else if (strcmp(key, "limit") == 0) 
+				else if (strcmp(key, "node_id") == 0) 
 				{
-					limit = (uint32_t)strtoul(value, &end_ptr, 10);
-					set_tdma_var_bit(bitmap, LIMIT);
+					node_id = (int64_t)strtoull(value, &end_ptr, 10);
+					set_tdma_var_bit(bitmap, NODE_ID);
 				} 
-				else if (strcmp(key, "t_offset") == 0) 
+				else if (strcmp(key, "n_nodes") == 0) 
 				{
-					t_offset = (int64_t)strtoull(value, &end_ptr, 10);
-					set_tdma_var_bit(bitmap, OFFSET);
+					n_nodes = (int64_t)strtoull(value, &end_ptr, 10);
+					set_tdma_var_bit(bitmap, N_NODES);
 				} 
-				else if (strcmp(key, "t_frame") == 0) 
+				else if (strcmp(key, "slot_size") == 0) 
 				{
-					t_frame = (int64_t)strtoull(value, &end_ptr, 10);
-					set_tdma_var_bit(bitmap, FRAME);
+					slot_size = (int64_t)strtoull(value, &end_ptr, 10);
+					set_tdma_var_bit(bitmap, SLOT_SIZE);
 				} 
-				else if (strcmp(key, "t_slot") == 0) 
-				{
-					t_slot = (int64_t)strtoull(value, &end_ptr, 10);
-					set_tdma_var_bit(bitmap, SLOT);
-				} 
-				else if (strcmp(key, "offset_future") == 0) 
-				{
-					offset_future = (uint32_t)strtoul(value, &end_ptr, 10);
-					set_tdma_var_bit(bitmap, OFFSET_FUTURE);
-				} 
-				else if (strcmp(key, "offset_relative") == 0) 
-				{
-					offset_relative = (uint32_t)strtoul(value, &end_ptr, 10);
-					set_tdma_var_bit(bitmap, OFFSET_RELATIVE);
-				} 
-				else if (strcmp(key, "graph") == 0)
-				{
-					graph = (bool)value;
-					set_tdma_var_bit(bitmap, GRAPH);
-				}
 				else 
 				{
 					printf("Invalid key: %s specified\n", key);
@@ -294,40 +238,20 @@ int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info)
 			strcpy(devname, args_info->devname_arg);
 			set_tdma_var_bit(bitmap, DEVNAME);
 		}
-		if (args_info->limit_given) 	 
-		{
-			limit = args_info->limit_arg;
-			set_tdma_var_bit(bitmap, LIMIT);
-		}
 		if (args_info->offset_given) 	 
 		{
-			t_offset = args_info->offset_arg;
-			set_tdma_var_bit(bitmap, OFFSET);
+			node_id = args_info->offset_arg;
+			set_tdma_var_bit(bitmap, NODE_ID);
 		}
 		if (args_info->frame_given)
 		{ 
-			t_frame = args_info->frame_arg;
-			set_tdma_var_bit(bitmap, FRAME);
+			n_nodes = args_info->frame_arg;
+			set_tdma_var_bit(bitmap, N_NODES);
 		}
 		if (args_info->slot_given)
 		{
-			t_slot = args_info->slot_arg;
-			set_tdma_var_bit(bitmap, SLOT);
-		}
-		if (args_info->offset_future_given)
-		{
-			offset_future = args_info->offset_future_arg;
-			set_tdma_var_bit(bitmap, OFFSET_FUTURE);
-		}
-		if (args_info->offset_relative_given)
-		{
-			offset_relative = args_info->offset_relative_arg;
-			set_tdma_var_bit(bitmap, OFFSET_RELATIVE);
-		}
-		if (args_info->graph_given)
-		{
-			graph = true;
-			set_tdma_var_bit(bitmap, GRAPH);
+			slot_size = args_info->slot_arg;
+			set_tdma_var_bit(bitmap, SLOT_SIZE);
 		}
 	}
 	
@@ -376,9 +300,9 @@ int add_qdisc(struct tdma_vars_t *data) {
 	memset(opt, 0, sizeof(*opt));
 
 	//options
-	opt->t_frame = data->t_frame;
-	opt->t_slot = data->t_slot;
-	opt->t_offset = data->t_offset;
+	opt->n_nodes = data->n_nodes;
+	opt->slot_size = data->slot_size;
+	opt->node_id = data->node_id;
 
 	printf("Opening rtnl socket...\n");
 
@@ -413,9 +337,10 @@ int change_qdisc(struct tdma_vars_t *data) {
 	struct tc_tdma_qopt *opt = malloc(sizeof(struct tc_tdma_qopt));
 	memset(opt, 0, sizeof(*opt));
 
-	opt->t_frame = data->t_frame;
-	opt->t_slot = data->t_slot;
-	opt->t_offset = data->t_offset;
+	//options
+	opt->n_nodes = data->n_nodes;
+	opt->slot_size = data->slot_size;
+	opt->node_id = data->node_id;
 
 	//communication
 	if(rtnl_open(&rth, 0) < 0) {
@@ -467,8 +392,6 @@ int enable_graph() {
 	}
 
 	genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, *&genl_family, 0, 0, GNL_RATDMA_RECV_MSG, 1);
-
-	nla_put_flag(msg, GNL_RATDMA_GRAPH);
 
 	printf("%sSending message to kernel...%s\n", magenta, reset);
 
@@ -562,15 +485,6 @@ int main(int argc, char *argv[])
 		}
 
 	}
-
-	if(graph) {
-
-		if(enable_graph() < 0 ) {
-			printf("Failed to enable metrics graph.\n");
-		}
-
-	}
-
 
 	exit(EXIT_SUCCESS);
 }

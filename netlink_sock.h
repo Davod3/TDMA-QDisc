@@ -18,13 +18,9 @@ enum genl_ratdma_ops
 enum genl_ratdma_attr_ids
 {
     GNL_RATDMA_DEVNAME = 1,
-    GNL_RATDMA_LIMIT,
-    GNL_RATDMA_OFFSET,
-    GNL_RATDMA_FRAME,
-    GNL_RATDMA_SLOT,
-    GNL_RATDMA_OFFSET_FUTURE,
-    GNL_RATDMA_OFFSET_RELATIVE,
-    GNL_RATDMA_GRAPH,
+    GNL_RATDMA_NODE_ID,
+    GNL_RATDMA_N_NODES,
+    GNL_RATDMA_SLOT_SIZE,
     /* include additional variables here */
     __GNL_RATDMA_COUNT
 };
@@ -33,8 +29,6 @@ enum
 {
     TCA_TDMA_UNSPEC,
 	TCA_TDMA_PARMS,
-    TCA_TDMA_OFFSET_FUTURE,
-    TCA_TDMA_OFFSET_RELATIVE,
 	__TCA_TDMA_MAX,
 };
 
@@ -44,12 +38,9 @@ enum
 #ifdef NETLINK_SOCK
 
 extern char devname[64];
-extern u32 limit;
-extern s64 t_frame;
-extern s64 t_slot;
-extern s64 t_offset;
-extern u32 offset_future;
-extern u32 offset_relative;
+extern s64 n_nodes;
+extern s64 slot_size;
+extern s64 node_id;
 
 #endif
 
@@ -58,10 +49,9 @@ extern u32 offset_relative;
 
 struct tc_tdma_qopt
 {
-    u32 limit;
-    s64 t_frame;
-    s64 t_slot;
-    s64 t_offset;
+    s64 n_nodes;
+    s64 slot_size;
+    s64 node_id;
 };
 
 #endif 

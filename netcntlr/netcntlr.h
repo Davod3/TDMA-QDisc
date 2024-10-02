@@ -42,52 +42,24 @@
 struct tdma_vars_t
 {
     char *devname;
-    uint32_t limit;
-    int64_t t_frame;
-    int64_t t_slot;
-    int64_t t_offset;
-    uint32_t offset_future;
-    uint32_t offset_relative;
-    bool graph;
+    int64_t n_nodes;
+    int64_t slot_size;
+    int64_t node_id;
 };
 
 struct tc_tdma_qopt {
-	__u32		limit;
-
-	__s64		t_frame;
-	__s64		t_slot;
-	__s64		t_offset;
+	__s64		n_nodes;
+	__s64		slot_size;
+	__s64		node_id;
 };
 
 enum tdma_vars_e
 {
     DEVNAME = 0,
-    LIMIT,
-    OFFSET,
-    FRAME,
-    SLOT,
-    OFFSET_FUTURE,
-    OFFSET_RELATIVE,
-    GRAPH
+    NODE_ID,
+    N_NODES,
+    SLOT_SIZE,
 };
-
-/*
-struct rtnl_handle 
-{
-	int			        fd;
-	struct sockaddr_nl	local;
-	struct sockaddr_nl	peer;
-	uint32_t			seq;
-	uint32_t			dump;
-	int			        proto;
-	FILE		       *dump_fp;
-    #define RTNL_HANDLE_F_LISTEN_ALL_NSID		0x01
-    #define RTNL_HANDLE_F_SUPPRESS_NLERR		0x02
-    #define RTNL_HANDLE_F_STRICT_CHK		    0x04
-	int			flags;
-};
-*/
-
 
 struct rtnl_handle rth;
 
@@ -97,13 +69,9 @@ struct rtnl_handle rth;
 
 // config variables
 char devname[MAX_LINE_LEN];
-uint32_t limit = 0;
-int64_t t_frame = 0;
-int64_t t_slot = 0;
-int64_t t_offset = 0;
-uint32_t offset_future = 0;
-uint32_t offset_relative = 0;
-bool graph = false;
+int64_t n_nodes = 2;
+int64_t slot_size = 0;
+int64_t node_id = 0;
 bool tdma_mod_loaded = false;
 bool netlink_sock_mod_loaded = false;
 

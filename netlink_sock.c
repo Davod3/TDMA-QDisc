@@ -12,13 +12,9 @@
 
 struct nla_policy const ratdma_policy[__GNL_RATDMA_COUNT] = {
     [GNL_RATDMA_DEVNAME]            = { .type = NLA_STRING },
-    [GNL_RATDMA_LIMIT]              = { .type = NLA_U32 },
-    [GNL_RATDMA_OFFSET]             = { .type = NLA_S64 },
-    [GNL_RATDMA_FRAME]              = { .type = NLA_S64 },
-    [GNL_RATDMA_SLOT]               = { .type = NLA_S64 },
-    [GNL_RATDMA_OFFSET_FUTURE]      = { .type = NLA_U32 },
-    [GNL_RATDMA_OFFSET_RELATIVE]    = { .type = NLA_U32 },
-    [GNL_RATDMA_GRAPH]              = { .type = NLA_FLAG },
+    [GNL_RATDMA_NODE_ID]             = { .type = NLA_S64 },
+    [GNL_RATDMA_N_NODES]              = { .type = NLA_S64 },
+    [GNL_RATDMA_SLOT_SIZE]               = { .type = NLA_S64 },
 };
 
 static const struct genl_ops ops[] = {
@@ -59,46 +55,22 @@ int handle_nl_recv_msg(struct sk_buff *skb, struct genl_info *info)
         printk(KERN_INFO "[raTDMA]: devname set to %s\n", devname);
     }
 
-    if (info->attrs[GNL_RATDMA_LIMIT])
+    if (info->attrs[GNL_RATDMA_NODE_ID])
     {
-        limit = nla_get_u32(info->attrs[GNL_RATDMA_LIMIT]);
-        printk(KERN_INFO "[raTDMA]: limit set to %ld\n", limit);
+        node_id = nla_get_s64(info->attrs[GNL_RATDMA_NODE_ID]);
+        printk(KERN_INFO "[raTDMA]: t_offset set to %ld\n", node_id);
     }
 
-    if (info->attrs[GNL_RATDMA_OFFSET])
+    if (info->attrs[GNL_RATDMA_N_NODES])
     {
-        t_offset = nla_get_s64(info->attrs[GNL_RATDMA_OFFSET]);
-        printk(KERN_INFO "[raTDMA]: t_offset set to %ld\n", t_offset);
+        n_nodes = nla_get_s64(info->attrs[GNL_RATDMA_N_NODES]);
+        printk(KERN_INFO "[raTDMA]: t_frame set to %ld\n", n_nodes);
     }
 
-    if (info->attrs[GNL_RATDMA_FRAME])
+    if (info->attrs[GNL_RATDMA_SLOT_SIZE])
     {
-        t_frame = nla_get_s64(info->attrs[GNL_RATDMA_FRAME]);
-        printk(KERN_INFO "[raTDMA]: t_frame set to %ld\n", t_frame);
-    }
-
-    if (info->attrs[GNL_RATDMA_SLOT])
-    {
-        t_slot = nla_get_s64(info->attrs[GNL_RATDMA_SLOT]);
-        printk(KERN_INFO "[raTDMA]: t_slot set to %ld\n", t_slot);
-    }
-
-    if (info->attrs[GNL_RATDMA_OFFSET_FUTURE])
-    {
-        offset_future = nla_get_u32(info->attrs[GNL_RATDMA_OFFSET_FUTURE]);
-        printk(KERN_INFO "[raTDMA]: offset_future set to %u\n", offset_future);
-    }
-
-    if (info->attrs[GNL_RATDMA_OFFSET_RELATIVE])
-    {
-        offset_relative = nla_get_u32(info->attrs[GNL_RATDMA_OFFSET_RELATIVE]);
-        printk(KERN_INFO "[raTDMA]: offset_relative set to %u\n", offset_relative);
-    }
-
-    if (info->attrs[GNL_RATDMA_GRAPH])
-    {
-        printk(KERN_INFO "[raTDMA]: starting plot capture...\n");
-        handle_nl_send_msg(skb,info);
+        slot_size = nla_get_s64(info->attrs[GNL_RATDMA_SLOT_SIZE]);
+        printk(KERN_INFO "[raTDMA]: t_slot set to %ld\n", slot_size);
     }
 
     return 0;
@@ -109,33 +81,6 @@ int handle_nl_send_msg(struct sk_buff *skb, struct genl_info *info)
     void *hdr;
     int ret = 0;
     struct sk_buff *msg;
-
-    // msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
-    // if (!msg)
-    // {
-    //     printk(KERN_ALERT "[raTDMA]: failed to allocate message buffer\n");
-    //     return -ENOMEM;
-    // }
-
-    // hdr = genlmsg_put(msg, info->snd_portid, info->snd_seq, &raTDMA_family, 0, GNL_RATDMA_REPLY_MSG);
-    // if (!hdr)
-    // {
-    //     printk(KERN_ALERT "[raTDMA]: failed to create netlink header\n");
-    //     nlmsg_free(msg);
-    //     return -EMSGSIZE;
-    // }
-
-    // if ((ret = nla_put_string(msg, GNL_RATDMA_DEVNAME, devname)))
-    // {
-    //     printk(KERN_ALERT "[raTDMA]: failed to create test message\n");
-    //     genlmsg_cancel(msg, hdr);
-    //     nlmsg_free(msg);
-    //     goto out;
-    // }
-
-    // genlmsg_end(msg, hdr);
-    // ret = genlmsg_reply(msg, info);
-    // printk(KERN_INFO "[raTDMA]: message sent %s", __FUNCTION__);
 
 out:
     return ret;

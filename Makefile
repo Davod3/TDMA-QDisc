@@ -1,7 +1,6 @@
 # build modules
 obj-m += tdma.o 
 obj-m += netlink_sock.o
-# obj-m += qdisc.o
 
 # Kernel src directory
 KDIR = /lib/modules/$(shell uname -r)/build
