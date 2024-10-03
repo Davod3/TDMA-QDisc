@@ -1,6 +1,5 @@
 # build modules
 obj-m += tdma.o 
-obj-m += netlink_sock.o
 
 # Kernel src directory
 KDIR = /lib/modules/$(shell uname -r)/build
@@ -18,11 +17,9 @@ netcntlr:
 # ensure correct ordering of module insertion
 install:
 	sudo insmod tdma.ko
-	sudo insmod netlink_sock.ko
 
 # remove modules in reverse order of insertion
 remove:
-	sudo rmmod netlink_sock.ko
 	sudo rmmod tdma.ko
 
 clean:

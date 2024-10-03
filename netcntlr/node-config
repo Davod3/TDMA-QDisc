@@ -1,5 +1,5 @@
 devname=wlo1
 node_id=0
 n_nodes=2
-slot_size=5000000000
+slot_size=3000000000
 limit=1514000

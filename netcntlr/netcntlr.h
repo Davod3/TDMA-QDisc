@@ -101,7 +101,6 @@ void clear_tdma_var_bit(uint32_t *bitmap, enum tdma_vars_e var);
 
 // variable helpers
 struct tdma_vars_t *update_vars(uint32_t *bitmap);
-void print_vars(void);
 
 // kernel module helpers
 int load_kernel_mod(const char *mod_path, const char *params);
@@ -109,13 +108,9 @@ int offload_kernel_mod(const char *mod_path, const char *params);
 int is_module_loaded(const char *mod_name);
 int start_modules(void);
 
-// RTNL Utility Functions
-int add_attr(struct nlmsghdr *n, int maxlen, int type, void *data, int alen);
-struct rtattr *add_attr_nest(struct nlmsghdr *n, int maxlen, int type);
-int add_attr_nest_end(struct nlmsghdr *n, struct rtattr *nest);
-void cls(struct rtnl_handle *rtnl);
-int opn(struct rtnl_handle *rtnl);
-static int talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, struct nlmsghdr **answer);
+// Qdisc Utility Functions
 static int qdisc_modify(int cmd, const char *dev, unsigned int flags, struct tc_tdma_qopt *opt, struct tdma_vars_t *data);
+int add_qdisc(struct tdma_vars_t *data);
+int change_qdisc(struct tdma_vars_t *data);
 
 #endif

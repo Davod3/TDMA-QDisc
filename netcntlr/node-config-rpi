@@ -1,0 +1,5 @@
+devname=wlan0
+node_id=0
+n_nodes=2
+slot_size=2000000000
+limit=1514000

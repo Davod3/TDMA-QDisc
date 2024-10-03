@@ -52,14 +52,6 @@ int start_modules(void)
 		return -1;
 	}
 
-	if (!netlink_sock_mod_loaded && is_module_loaded("netlink_sock") == 0)
-	{
-		load_kernel_mod(NETLINK_SOCK_KMOD_PATH, NULL);
-		netlink_sock_mod_loaded = true;
-	} else {
-		return -1;
-	}
-
 	return 0;
 }
 
@@ -175,15 +167,6 @@ struct tdma_vars_t *update_vars(uint32_t *bitmap)
 	return data;
 }
 
-void print_vars(void)
-{
-	printf("devname: %s\n", devname);
-	printf("limit: %u\n", limit);
-	printf("n_nodes: %ld\n", n_nodes);
-	printf("slot_size: %ld\n", slot_size);
-	printf("node_id: %ld\n", node_id);
-}
-
 int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info)
 {
 	FILE *f;
@@ -278,42 +261,6 @@ int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info)
 	return 0;
 }
 
-int init_netlink_socket(struct nl_sock **sk, int *genl_family)
-{
-	// check pointers are valid
-	if (!sk || !genl_family)
-	{
-		// invalid argument(s)
-		return -EINVAL;
-	}
-	// allocate memory for netlink socket
-	*sk = nl_socket_alloc();
-	if (*sk == NULL)
-	{
-		perror("failed to allocate memory for netlink socket");
-		return -ENOMEM;
-	}
-	// connect socket to generic netlink
-	if (genl_connect(*sk) != 0)
-	{
-		perror("failed to connect netlink socket");
-		nl_socket_free(*sk);
-		*sk = NULL;
-		return -ENOLINK;
-	}
-	// resolve generic netlink family name
-	*genl_family = genl_ctrl_resolve(*sk, NETLINK_FAMILY_NAME);
-	if (*genl_family < 0)
-	{
-		perror("failed to resolve netlink family name");
-		nl_socket_free(*sk);
-		*sk = NULL;
-		return -ENOENT;
-	}
-	// success
-	return 0;
-}
-
 int add_qdisc(struct tdma_vars_t *data) {
 
 	struct tc_tdma_qopt *opt = malloc(sizeof(struct tc_tdma_qopt));
@@ -385,47 +332,6 @@ int change_qdisc(struct tdma_vars_t *data) {
 	printf("Rtnl socket closed.\n");
 
 	return 0;
-
-
-}
-
-int enable_graph() {
-
-	struct nl_sock *sk;
-	struct nl_msg *msg;
-	int genl_family;
-
-	// Create netlink socket to receive messages
-	printf("%sCreating netlink socket%s\n", magenta, reset);
-	if (init_netlink_socket(&sk, &genl_family) != 0)
-	{
-		perror("failed to initialize netlink socket");
-		return -1;
-	}
-
-	// Create netlink message
-	msg = nlmsg_alloc();
-	if (msg < 0)
-	{
-		perror("failed to allocate memory for nlmsg");
-		exit(EXIT_FAILURE);
-	}
-
-	genlmsg_put(msg, NL_AUTO_PORT, NL_AUTO_SEQ, *&genl_family, 0, 0, GNL_RATDMA_RECV_MSG, 1);
-
-	printf("%sSending message to kernel...%s\n", magenta, reset);
-
-	if (nl_send_auto(sk, msg) < 0)
-	{
-		perror("failed to send netlink message");
-		return -errno;
-	}
-
-	printf("%sSent netlink message!%s\n", magenta, reset);
-
-	// cleanup
-	nlmsg_free(msg);
-	nl_socket_free(sk);
 
 
 }

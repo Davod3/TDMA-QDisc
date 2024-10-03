@@ -1,7 +1,0 @@
-devname=wlo1
-t_offset=0
-t_frame=4000000000
-t_slot=2000000000
-limit=0
-offset_future=1
-offset_relative=0
