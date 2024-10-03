@@ -34,17 +34,14 @@ const char *gengetopt_args_info_versiontext = "";
 const char *gengetopt_args_info_description = "";
 
 const char *gengetopt_args_info_help[] = {
-  "  -h, --help                 Print help and exit",
-  "  -V, --version              Print version and exit",
-  "  -f, --config-file=STRING   path to configuration file to use",
-  "  -d, --devname=STRING       name of network device to use",
-  "  -l, --limit=INT            sets limit value for tc",
-  "  -o, --offset=INT           offset delay (can be negative)",
-  "  -F, --frame=INT            size of TDMA frame",
-  "  -s, --slot=INT             size of TDMA slot",
-  "  -O, --offset-future=INT    delay tranmission window longer than t_frame time",
-  "  -r, --offset-relative=INT  delay transmission window relative to current time",
-  "  -g, --graph                start sending/receiving NETLINK messages to plot\n                               network activity",
+  "  -h, --help                Print help and exit",
+  "  -V, --version             Print version and exit",
+  "  -f, --config-file=STRING  path to configuration file to use",
+  "  -d, --devname=STRING      name of network device to use",
+  "  -l, --limit=INT           sets limit value for tc",
+  "  -i, --node_id=INT         id of the node",
+  "  -n, --n_nodes=INT         number of nodes in the network",
+  "  -s, --slot_size=INT       size of TDMA slot",
     0
 };
 
@@ -74,12 +71,9 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->config_file_given = 0 ;
   args_info->devname_given = 0 ;
   args_info->limit_given = 0 ;
-  args_info->offset_given = 0 ;
-  args_info->frame_given = 0 ;
-  args_info->slot_given = 0 ;
-  args_info->offset_future_given = 0 ;
-  args_info->offset_relative_given = 0 ;
-  args_info->graph_given = 0 ;
+  args_info->node_id_given = 0 ;
+  args_info->n_nodes_given = 0 ;
+  args_info->slot_size_given = 0 ;
 }
 
 static
@@ -91,11 +85,9 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->devname_arg = NULL;
   args_info->devname_orig = NULL;
   args_info->limit_orig = NULL;
-  args_info->offset_orig = NULL;
-  args_info->frame_orig = NULL;
-  args_info->slot_orig = NULL;
-  args_info->offset_future_orig = NULL;
-  args_info->offset_relative_orig = NULL;
+  args_info->node_id_orig = NULL;
+  args_info->n_nodes_orig = NULL;
+  args_info->slot_size_orig = NULL;
   
 }
 
@@ -109,12 +101,9 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->config_file_help = gengetopt_args_info_help[2] ;
   args_info->devname_help = gengetopt_args_info_help[3] ;
   args_info->limit_help = gengetopt_args_info_help[4] ;
-  args_info->offset_help = gengetopt_args_info_help[5] ;
-  args_info->frame_help = gengetopt_args_info_help[6] ;
-  args_info->slot_help = gengetopt_args_info_help[7] ;
-  args_info->offset_future_help = gengetopt_args_info_help[8] ;
-  args_info->offset_relative_help = gengetopt_args_info_help[9] ;
-  args_info->graph_help = gengetopt_args_info_help[10] ;
+  args_info->node_id_help = gengetopt_args_info_help[5] ;
+  args_info->n_nodes_help = gengetopt_args_info_help[6] ;
+  args_info->slot_size_help = gengetopt_args_info_help[7] ;
   
 }
 
@@ -209,11 +198,9 @@ cmdline_parser_release (struct gengetopt_args_info *args_info)
   free_string_field (&(args_info->devname_arg));
   free_string_field (&(args_info->devname_orig));
   free_string_field (&(args_info->limit_orig));
-  free_string_field (&(args_info->offset_orig));
-  free_string_field (&(args_info->frame_orig));
-  free_string_field (&(args_info->slot_orig));
-  free_string_field (&(args_info->offset_future_orig));
-  free_string_field (&(args_info->offset_relative_orig));
+  free_string_field (&(args_info->node_id_orig));
+  free_string_field (&(args_info->n_nodes_orig));
+  free_string_field (&(args_info->slot_size_orig));
   
   
 
@@ -254,18 +241,12 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "devname", args_info->devname_orig, 0);
   if (args_info->limit_given)
     write_into_file(outfile, "limit", args_info->limit_orig, 0);
-  if (args_info->offset_given)
-    write_into_file(outfile, "offset", args_info->offset_orig, 0);
-  if (args_info->frame_given)
-    write_into_file(outfile, "frame", args_info->frame_orig, 0);
-  if (args_info->slot_given)
-    write_into_file(outfile, "slot", args_info->slot_orig, 0);
-  if (args_info->offset_future_given)
-    write_into_file(outfile, "offset-future", args_info->offset_future_orig, 0);
-  if (args_info->offset_relative_given)
-    write_into_file(outfile, "offset-relative", args_info->offset_relative_orig, 0);
-  if (args_info->graph_given)
-    write_into_file(outfile, "graph", 0, 0 );
+  if (args_info->node_id_given)
+    write_into_file(outfile, "node_id", args_info->node_id_orig, 0);
+  if (args_info->n_nodes_given)
+    write_into_file(outfile, "n_nodes", args_info->n_nodes_orig, 0);
+  if (args_info->slot_size_given)
+    write_into_file(outfile, "slot_size", args_info->slot_size_orig, 0);
   
 
   i = EXIT_SUCCESS;
@@ -527,16 +508,13 @@ cmdline_parser_internal (
         { "config-file",	1, NULL, 'f' },
         { "devname",	1, NULL, 'd' },
         { "limit",	1, NULL, 'l' },
-        { "offset",	1, NULL, 'o' },
-        { "frame",	1, NULL, 'F' },
-        { "slot",	1, NULL, 's' },
-        { "offset-future",	1, NULL, 'O' },
-        { "offset-relative",	1, NULL, 'r' },
-        { "graph",	0, NULL, 'g' },
+        { "node_id",	1, NULL, 'i' },
+        { "n_nodes",	1, NULL, 'n' },
+        { "slot_size",	1, NULL, 's' },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVf:d:l:o:F:s:O:r:g", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVf:d:l:i:n:s:", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -588,26 +566,26 @@ cmdline_parser_internal (
             goto failure;
         
           break;
-        case 'o':	/* offset delay (can be negative).  */
+        case 'i':	/* id of the node.  */
         
         
-          if (update_arg( (void *)&(args_info->offset_arg), 
-               &(args_info->offset_orig), &(args_info->offset_given),
-              &(local_args_info.offset_given), optarg, 0, 0, ARG_INT,
+          if (update_arg( (void *)&(args_info->node_id_arg), 
+               &(args_info->node_id_orig), &(args_info->node_id_given),
+              &(local_args_info.node_id_given), optarg, 0, 0, ARG_INT,
               check_ambiguity, override, 0, 0,
-              "offset", 'o',
+              "node_id", 'i',
               additional_error))
             goto failure;
         
           break;
-        case 'F':	/* size of TDMA frame.  */
+        case 'n':	/* number of nodes in the network.  */
         
         
-          if (update_arg( (void *)&(args_info->frame_arg), 
-               &(args_info->frame_orig), &(args_info->frame_given),
-              &(local_args_info.frame_given), optarg, 0, 0, ARG_INT,
+          if (update_arg( (void *)&(args_info->n_nodes_arg), 
+               &(args_info->n_nodes_orig), &(args_info->n_nodes_given),
+              &(local_args_info.n_nodes_given), optarg, 0, 0, ARG_INT,
               check_ambiguity, override, 0, 0,
-              "frame", 'F',
+              "n_nodes", 'n',
               additional_error))
             goto failure;
         
@@ -615,47 +593,11 @@ cmdline_parser_internal (
         case 's':	/* size of TDMA slot.  */
         
         
-          if (update_arg( (void *)&(args_info->slot_arg), 
-               &(args_info->slot_orig), &(args_info->slot_given),
-              &(local_args_info.slot_given), optarg, 0, 0, ARG_INT,
+          if (update_arg( (void *)&(args_info->slot_size_arg), 
+               &(args_info->slot_size_orig), &(args_info->slot_size_given),
+              &(local_args_info.slot_size_given), optarg, 0, 0, ARG_INT,
               check_ambiguity, override, 0, 0,
-              "slot", 's',
-              additional_error))
-            goto failure;
-        
-          break;
-        case 'O':	/* delay tranmission window longer than t_frame time.  */
-        
-        
-          if (update_arg( (void *)&(args_info->offset_future_arg), 
-               &(args_info->offset_future_orig), &(args_info->offset_future_given),
-              &(local_args_info.offset_future_given), optarg, 0, 0, ARG_INT,
-              check_ambiguity, override, 0, 0,
-              "offset-future", 'O',
-              additional_error))
-            goto failure;
-        
-          break;
-        case 'r':	/* delay transmission window relative to current time.  */
-        
-        
-          if (update_arg( (void *)&(args_info->offset_relative_arg), 
-               &(args_info->offset_relative_orig), &(args_info->offset_relative_given),
-              &(local_args_info.offset_relative_given), optarg, 0, 0, ARG_INT,
-              check_ambiguity, override, 0, 0,
-              "offset-relative", 'r',
-              additional_error))
-            goto failure;
-        
-          break;
-        case 'g':	/* start sending/receiving NETLINK messages to plot network activity.  */
-        
-        
-          if (update_arg( 0 , 
-               0 , &(args_info->graph_given),
-              &(local_args_info.graph_given), optarg, 0, 0, ARG_NO,
-              check_ambiguity, override, 0, 0,
-              "graph", 'g',
+              "slot_size", 's',
               additional_error))
             goto failure;
         

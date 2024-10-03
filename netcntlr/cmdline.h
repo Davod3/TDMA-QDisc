@@ -48,34 +48,24 @@ struct gengetopt_args_info
   int limit_arg;	/**< @brief sets limit value for tc.  */
   char * limit_orig;	/**< @brief sets limit value for tc original value given at command line.  */
   const char *limit_help; /**< @brief sets limit value for tc help description.  */
-  int offset_arg;	/**< @brief offset delay (can be negative).  */
-  char * offset_orig;	/**< @brief offset delay (can be negative) original value given at command line.  */
-  const char *offset_help; /**< @brief offset delay (can be negative) help description.  */
-  int frame_arg;	/**< @brief size of TDMA frame.  */
-  char * frame_orig;	/**< @brief size of TDMA frame original value given at command line.  */
-  const char *frame_help; /**< @brief size of TDMA frame help description.  */
-  int slot_arg;	/**< @brief size of TDMA slot.  */
-  char * slot_orig;	/**< @brief size of TDMA slot original value given at command line.  */
-  const char *slot_help; /**< @brief size of TDMA slot help description.  */
-  int offset_future_arg;	/**< @brief delay tranmission window longer than t_frame time.  */
-  char * offset_future_orig;	/**< @brief delay tranmission window longer than t_frame time original value given at command line.  */
-  const char *offset_future_help; /**< @brief delay tranmission window longer than t_frame time help description.  */
-  int offset_relative_arg;	/**< @brief delay transmission window relative to current time.  */
-  char * offset_relative_orig;	/**< @brief delay transmission window relative to current time original value given at command line.  */
-  const char *offset_relative_help; /**< @brief delay transmission window relative to current time help description.  */
-  const char *graph_help; /**< @brief start sending/receiving NETLINK messages to plot network activity help description.  */
+  int node_id_arg;	/**< @brief id of the node.  */
+  char * node_id_orig;	/**< @brief id of the node original value given at command line.  */
+  const char *node_id_help; /**< @brief id of the node help description.  */
+  int n_nodes_arg;	/**< @brief number of nodes in the network.  */
+  char * n_nodes_orig;	/**< @brief number of nodes in the network original value given at command line.  */
+  const char *n_nodes_help; /**< @brief number of nodes in the network help description.  */
+  int slot_size_arg;	/**< @brief size of TDMA slot.  */
+  char * slot_size_orig;	/**< @brief size of TDMA slot original value given at command line.  */
+  const char *slot_size_help; /**< @brief size of TDMA slot help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
   unsigned int config_file_given ;	/**< @brief Whether config-file was given.  */
   unsigned int devname_given ;	/**< @brief Whether devname was given.  */
   unsigned int limit_given ;	/**< @brief Whether limit was given.  */
-  unsigned int offset_given ;	/**< @brief Whether offset was given.  */
-  unsigned int frame_given ;	/**< @brief Whether frame was given.  */
-  unsigned int slot_given ;	/**< @brief Whether slot was given.  */
-  unsigned int offset_future_given ;	/**< @brief Whether offset-future was given.  */
-  unsigned int offset_relative_given ;	/**< @brief Whether offset-relative was given.  */
-  unsigned int graph_given ;	/**< @brief Whether graph was given.  */
+  unsigned int node_id_given ;	/**< @brief Whether node_id was given.  */
+  unsigned int n_nodes_given ;	/**< @brief Whether n_nodes was given.  */
+  unsigned int slot_size_given ;	/**< @brief Whether slot_size was given.  */
 
 } ;
 

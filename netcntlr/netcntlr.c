@@ -236,19 +236,19 @@ int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info)
 			strcpy(devname, args_info->devname_arg);
 			set_tdma_var_bit(bitmap, DEVNAME);
 		}
-		if (args_info->offset_given) 	 
+		if (args_info->node_id_given) 	 
 		{
-			node_id = args_info->offset_arg;
+			node_id = args_info->node_id_arg;
 			set_tdma_var_bit(bitmap, NODE_ID);
 		}
-		if (args_info->frame_given)
+		if (args_info->n_nodes_given)
 		{ 
-			n_nodes = args_info->frame_arg;
+			n_nodes = args_info->n_nodes_arg;
 			set_tdma_var_bit(bitmap, N_NODES);
 		}
-		if (args_info->slot_given)
+		if (args_info->slot_size_given)
 		{
-			slot_size = args_info->slot_arg;
+			slot_size = args_info->slot_size_arg;
 			set_tdma_var_bit(bitmap, SLOT_SIZE);
 		}
 		if(args_info->limit_given)

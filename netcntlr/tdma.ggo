@@ -6,9 +6,6 @@ purpose "Network Traffic Controller, interacts with TDMA Scheduler Kernel Module
 option "config-file" f "path to configuration file to use" string optional
 option "devname" d "name of network device to use" string optional
 option "limit" l "sets limit value for tc" int optional
-option "offset" o "offset delay (can be negative)" int optional
-option "frame" F "size of TDMA frame" int optional
-option "slot" s "size of TDMA slot" int optional
-option "offset-future" O "delay tranmission window longer than t_frame time" int optional
-option "offset-relative" r "delay transmission window relative to current time" int optional
-option "graph" g "start sending/receiving NETLINK messages to plot network activity" optional
+option "node_id" i "id of the node" int optional
+option "n_nodes" n "number of nodes in the network" int optional
+option "slot_size" s "size of TDMA slot" int optional
