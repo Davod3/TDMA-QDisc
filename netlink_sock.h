@@ -18,6 +18,7 @@ enum genl_ratdma_ops
 enum genl_ratdma_attr_ids
 {
     GNL_RATDMA_DEVNAME = 1,
+    GNL_RATDMA_LIMIT,
     GNL_RATDMA_NODE_ID,
     GNL_RATDMA_N_NODES,
     GNL_RATDMA_SLOT_SIZE,
@@ -38,6 +39,7 @@ enum
 #ifdef NETLINK_SOCK
 
 extern char devname[64];
+extern u32 limit;
 extern s64 n_nodes;
 extern s64 slot_size;
 extern s64 node_id;
@@ -49,6 +51,7 @@ extern s64 node_id;
 
 struct tc_tdma_qopt
 {
+    u32 limit;
     s64 n_nodes;
     s64 slot_size;
     s64 node_id;

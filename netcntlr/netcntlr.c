@@ -142,6 +142,14 @@ struct tdma_vars_t *update_vars(uint32_t *bitmap)
 		clear_tdma_var_bit(bitmap, DEVNAME);
 	}
 
+	if(get_tdma_var_bit(bitmap, LIMIT)) {
+		
+		printf("%sattr: %s is set!%s\n", yellow, "LIMIT", reset);
+		data->limit = limit;
+		clear_tdma_var_bit(bitmap, LIMIT);
+
+	}
+
 	if (get_tdma_var_bit(bitmap, NODE_ID))
 	{
 		printf("%sattr: %s is set!%s\n", yellow, "OFFSET", reset);
@@ -170,6 +178,7 @@ struct tdma_vars_t *update_vars(uint32_t *bitmap)
 void print_vars(void)
 {
 	printf("devname: %s\n", devname);
+	printf("limit: %u\n", limit);
 	printf("n_nodes: %ld\n", n_nodes);
 	printf("slot_size: %ld\n", slot_size);
 	printf("node_id: %ld\n", node_id);
@@ -219,6 +228,12 @@ int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info)
 				{
 					slot_size = (int64_t)strtoull(value, &end_ptr, 10);
 					set_tdma_var_bit(bitmap, SLOT_SIZE);
+				}
+				else if (strcmp(key, "limit") == 0) {
+					
+					limit = (uint32_t)strtoul(value, &end_ptr, 10);
+					set_tdma_var_bit(bitmap, LIMIT);
+
 				} 
 				else 
 				{
@@ -252,6 +267,11 @@ int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info)
 		{
 			slot_size = args_info->slot_arg;
 			set_tdma_var_bit(bitmap, SLOT_SIZE);
+		}
+		if(args_info->limit_given)
+		{
+			limit = args_info->limit_arg;
+			set_tdma_var_bit(bitmap, LIMIT);
 		}
 	}
 	

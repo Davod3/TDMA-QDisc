@@ -42,12 +42,14 @@
 struct tdma_vars_t
 {
     char *devname;
+    uint32_t limit;
     int64_t n_nodes;
     int64_t slot_size;
     int64_t node_id;
 };
 
 struct tc_tdma_qopt {
+    __u32       limit;
 	__s64		n_nodes;
 	__s64		slot_size;
 	__s64		node_id;
@@ -56,6 +58,7 @@ struct tc_tdma_qopt {
 enum tdma_vars_e
 {
     DEVNAME = 0,
+    LIMIT,
     NODE_ID,
     N_NODES,
     SLOT_SIZE,
@@ -69,6 +72,7 @@ struct rtnl_handle rth;
 
 // config variables
 char devname[MAX_LINE_LEN];
+uint32_t limit = 0;
 int64_t n_nodes = 2;
 int64_t slot_size = 0;
 int64_t node_id = 0;

@@ -50,12 +50,14 @@
 #define UDP_Header_RM 8
 
 char devname[] = "wlo1"; //Change to interface that will be used
+u32 limit = 0;
 s64 node_id = 0;
 s64 n_nodes = 0;
 s64 slot_size= 0;
 //int slot_start = 0;
 
 EXPORT_SYMBOL(devname);
+EXPORT_SYMBOL(limit);
 EXPORT_SYMBOL(node_id);
 EXPORT_SYMBOL(n_nodes);
 EXPORT_SYMBOL(slot_size);
@@ -86,16 +88,13 @@ static int tdma_segment(struct sk_buff *skb, struct Qdisc *sch,
 	struct tdma_sched_data *q = qdisc_priv(sch);
 	struct sk_buff *segs, *nskb;
 	netdev_features_t features = netif_skb_features(skb);
-	// unsigned int len = 0, prev_len = qdisc_pkt_len(skb);
 	unsigned int len = 0;
-	// int ret, nb;
 	int ret, nb, nt;
 
 	segs = skb_gso_segment(skb, features & ~NETIF_F_GSO_MASK);
 
 	if (IS_ERR_OR_NULL(segs)) {
-		// printk(KERN_DEBUG "drop\t%u\t%s\t(gso)\n", len, qdisc_dev(sch)->name);
-		//printk(KERN_DEBUG "\e[0;31mdrop\t%u\t%s\t(gso)\e[0m\n", len, qdisc_dev(sch)->name);
+		//printk(KERN_DEBUG "drop\t%u\t%s\t(gso)\n", len, qdisc_dev(sch)->name);
 		return qdisc_drop(skb, sch, to_free);
 	}
 
@@ -104,17 +103,16 @@ static int tdma_segment(struct sk_buff *skb, struct Qdisc *sch,
 	skb_list_walk_safe(segs, segs, nskb) {
 		skb_mark_not_on_list(segs);
 		qdisc_skb_cb(segs)->pkt_len = segs->len;
-		// len += segs->len;
+
 		len = segs->len;
 		ret = qdisc_enqueue(segs, q->qdisc, to_free);
 		if (ret != NET_XMIT_SUCCESS) {
 			if (net_xmit_drop_count(ret))
 				qdisc_qstats_drop(sch);
-			// printk(KERN_DEBUG "drop\t%u\t%s\t(gso %d)\n", len, qdisc_dev(sch)->name, nt + 1);
-			//printk(KERN_DEBUG "\e[0;31mdrop\t%u\t%s\t(gso %d)\e[0m\n", len, qdisc_dev(sch)->name, nt + 1);
+			//printk(KERN_DEBUG "drop\t%u\t%s\t(gso %d)\n", len, qdisc_dev(sch)->name, nt + 1);
 		} else {
-			// printk(KERN_DEBUG "enqueue\t%u\t%s\t(gso %d)\n", len, qdisc_dev(sch)->name, nt + 1);
-			//printk(KERN_DEBUG "\e[0;34menqueue\t%u\t%s\t(gso %d)\e[0m\n", len, qdisc_dev(sch)->name, nt + 1);
+			
+			//printk(KERN_DEBUG "enqueue\t%u\t%s\t(gso %d)\n", len, qdisc_dev(sch)->name, nt + 1);
 
 			sch->qstats.backlog += len;
 			sch->q.qlen++;
@@ -122,9 +120,7 @@ static int tdma_segment(struct sk_buff *skb, struct Qdisc *sch,
 		}
 		nt++;
 	}
-	// sch->q.qlen += nb;
-	// if (nb > 1)
-	// 	qdisc_tree_reduce_backlog(sch, 1 - nb, prev_len - len);
+
 	consume_skb(skb);
 	return nb > 0 ? NET_XMIT_SUCCESS : NET_XMIT_DROP;
 }
@@ -157,8 +153,7 @@ static int tdma_enqueue(struct sk_buff *skb, struct Qdisc *sch,
 		return ret;
 	}
 
-	printk(KERN_DEBUG "enqueue\t%u\t%s\n", len, qdisc_dev(sch)->name);
-	//printk(KERN_DEBUG "\e[0;34menqueue\t%u\t%s\e[0m\n", len, qdisc_dev(sch)->name);
+	//printk(KERN_DEBUG "enqueue\t%u\t%s\n", len, qdisc_dev(sch)->name);
 
 	sch->qstats.backlog += len;
 	sch->q.qlen++;
@@ -255,8 +250,6 @@ static struct sk_buff *generate_topology_packet(char* dev_name) {
 	printk(KERN_INFO "generate_topology_packet: Setup ethernet header...\n");
 
 	//Dispatch packet
-	//dev_queue_xmit(skb);
-
 	return skb;
 
 }
@@ -270,7 +263,6 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 	s64 now = ktime_get_ns();
 	s64 div_result = intdiv(now - q->slot_offset, q->frame_len);
 	s64 offset = q->slot_offset + (div_result * q->frame_len);
-
 
 	//TODO: Check if this can be removed
 	if (!((offset <= now) && (now < (offset + q->frame_len)) && (((offset - q->slot_offset) % q->frame_len) == 0)))
@@ -295,7 +287,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 			if (unlikely(!skb))
 				return NULL;
 					
-			printk(KERN_DEBUG "DEQUEUED PACKET!!!!----------%lld------------%lld-------------%lld\n", offset, now, offset + q->slot_len);
+			//printk(KERN_DEBUG "DEQUEUED PACKET!!!!----------%lld------------%lld-------------%lld\n", offset, now, offset + q->slot_len);
 			qdisc_qstats_backlog_dec(sch, skb);
 			sch->q.qlen--;
 			qdisc_bstats_update(sch, skb);
@@ -348,18 +340,9 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 		qdisc_hash_add(child, true);
 	}
 
-	//Limit for backlog packets. TODO: May need to be made configurable. If so use commented code block to set
-	u32 limit = 2048;
-
-	if((err = fifo_set_limit(child, limit)) < 0) {
-
-		return err;
-	}
-	
-	/*
+	//Limit for backlog packets
 	if (qopt->limit && (err = fifo_set_limit(child, qopt->limit)) < 0)
 		return err;
-	*/
 
 	sch_tree_lock(sch);
 
@@ -379,8 +362,6 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 	sch_tree_unlock(sch);
 
 	qdisc_watchdog_schedule_ns(&q->watchdog, 0);
-
-	//printk(KERN_DEBUG "change\tflags=%u%u\t%s", q->offset_future, q->offset_relative, qdisc_dev(sch)->name);
 
 	return 0;
 }
@@ -421,16 +402,11 @@ static int tdma_dump(struct Qdisc *sch, struct sk_buff *skb)
 		goto nla_put_failure;
 
 
-	//opt.limit = q->limit;
-
-	//opt.t_frame = q->t_frame;
-	//opt.t_slot = q->t_slot;
-	//opt.t_offset = q->t_offset;
+	opt.limit = q->limit;
 
 	printk(KERN_DEBUG "(dump %08x) dev: (name, tx_queue_len, psched_mtu) = (%s, %d, %d)\n", sch->handle, qdisc_dev(sch)->name, qdisc_dev(sch)->tx_queue_len, psched_mtu(qdisc_dev(sch)));
 	printk(KERN_DEBUG "(dump %08x) bfifo: (limit, qlen, backlog, drops) = (%d, %d, %d, %d)\n", sch->handle, q->qdisc->limit, q->qdisc->q.qlen, q->qdisc->qstats.backlog, q->qdisc->qstats.drops);
 	printk(KERN_DEBUG "(dump %08x) tdma: (limit, qlen, backlog, drops) = (%d, %d, %d, %d)\n", sch->handle, q->limit, sch->q.qlen, sch->qstats.backlog, sch->qstats.drops);
-	//printk(KERN_DEBUG "(dump %08x) limit: (kernel, user) = (%d, %d)\n", sch->handle, q->limit, opt.limit);
 	printk(KERN_DEBUG "(dump %08x) frame_len: %lld\n", sch->handle, q->frame_len);
 	printk(KERN_DEBUG "(dump %08x) slot_len: %lld\n", sch->handle, q->slot_len);
 	printk(KERN_DEBUG "(dump %08x) slot_offset: %lld\n", sch->handle, q->slot_offset);
