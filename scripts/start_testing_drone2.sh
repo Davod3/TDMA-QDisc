@@ -1,3 +1,3 @@
-./add_qdisc.sh test-config-rpi
-ping 192.168.4.1
-./remove_qdisc.sh wlan0
+./add_qdisc.sh test-config-drone2
+ping 10.10.10.1
+./remove_qdisc.sh wlx000f60050e55
