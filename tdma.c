@@ -260,20 +260,13 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 	struct tdma_sched_data *q = qdisc_priv(sch);
 	struct sk_buff *skb;
 
-	s64 now = ktime_get_ns();
+	s64 now = ktime_get_real_ns();
 	s64 div_result = intdiv(now - q->slot_offset, q->frame_len);
 	s64 offset = q->slot_offset + (div_result * q->frame_len);
 
 	//TODO: Check if this can be removed
-	if (!((offset <= now) && (now < (offset + q->frame_len)) && (((offset - q->slot_offset) % q->frame_len) == 0)))
+	if (!((offset < now) && (now < (offset + q->frame_len)) && (((offset - q->slot_offset) % q->frame_len) == 0)))
 		printk(KERN_DEBUG "TDMA: bad offsets (%lld -> %lld @ %lld)\n", q->slot_offset, offset, now);
-
-	// // TODO: Check if this can be removed
-	/*
-	if (!(q->offset_future)) {
-		q->slot_offset = offset;
-	}
-	*/
 
 	if (q->qdisc->ops->peek(q->qdisc)) {
 
