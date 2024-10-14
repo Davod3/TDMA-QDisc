@@ -1,5 +1,5 @@
 devname=wlx000f60050e55
 node_id=1
 n_nodes=2
-slot_size=500000000
+slot_size=100000000
 limit=1514000
