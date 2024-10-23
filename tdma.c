@@ -57,6 +57,7 @@ s64 node_id = 0;
 s64 n_nodes = 0;
 s64 slot_size= 0;
 s64 slot_guard = 0;
+s64 use_guard = 0;
 //int slot_start = 0;
 
 EXPORT_SYMBOL(devname);
@@ -64,6 +65,7 @@ EXPORT_SYMBOL(limit);
 EXPORT_SYMBOL(node_id);
 EXPORT_SYMBOL(n_nodes);
 EXPORT_SYMBOL(slot_size);
+EXPORT_SYMBOL(use_guard);
 
 struct tdma_sched_data {
 /* Parameters */
@@ -348,9 +350,21 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 
 	if (qopt->n_nodes > 0 && qopt->slot_size > 0 && qopt->node_id >= 0) {
 
-		//Compute slot guard such that it is 10% of the slot size or MAX_SLOT_GUARD
-		s64 possible_slot_guard = (qopt->slot_size * 10) / 100;
-		slot_guard = (possible_slot_guard <= MAX_SLOT_GUARD) ? possible_slot_guard : MAX_SLOT_GUARD;
+		if(qopt->use_guard){
+
+			//Compute slot guard such that it is 10% of the slot size or MAX_SLOT_GUARD
+			s64 possible_slot_guard = (qopt->slot_size * 10) / 100;
+			slot_guard = (possible_slot_guard <= MAX_SLOT_GUARD) ? possible_slot_guard : MAX_SLOT_GUARD;
+
+			printk(KERN_DEBUG "[RA-TDMA] Using slot guard - %lld nanoseconds\n", slot_guard);
+
+		} else {
+
+			slot_guard = 0;
+
+			printk(KERN_DEBUG "[RA-TDMA] Slot guard disabled! \n");
+
+		}
 
 		//Compute TDMA parameters
 		q->slot_len = qopt->slot_size;

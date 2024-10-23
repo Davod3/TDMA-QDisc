@@ -57,6 +57,9 @@ struct gengetopt_args_info
   int slot_size_arg;	/**< @brief size of TDMA slot.  */
   char * slot_size_orig;	/**< @brief size of TDMA slot original value given at command line.  */
   const char *slot_size_help; /**< @brief size of TDMA slot help description.  */
+  int use_guard_arg;	/**< @brief indicates whether a slot guard should be used.  */
+  char * use_guard_orig;	/**< @brief indicates whether a slot guard should be used original value given at command line.  */
+  const char *use_guard_help; /**< @brief indicates whether a slot guard should be used help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
@@ -66,6 +69,7 @@ struct gengetopt_args_info
   unsigned int node_id_given ;	/**< @brief Whether node_id was given.  */
   unsigned int n_nodes_given ;	/**< @brief Whether n_nodes was given.  */
   unsigned int slot_size_given ;	/**< @brief Whether slot_size was given.  */
+  unsigned int use_guard_given ;	/**< @brief Whether use_guard was given.  */
 
 } ;
 

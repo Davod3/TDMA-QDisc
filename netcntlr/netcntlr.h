@@ -46,6 +46,7 @@ struct tdma_vars_t
     int64_t n_nodes;
     int64_t slot_size;
     int64_t node_id;
+    int64_t use_guard;
 };
 
 struct tc_tdma_qopt {
@@ -53,6 +54,7 @@ struct tc_tdma_qopt {
 	__s64		n_nodes;
 	__s64		slot_size;
 	__s64		node_id;
+    __s64       use_guard;
 };
 
 enum tdma_vars_e
@@ -62,6 +64,7 @@ enum tdma_vars_e
     NODE_ID,
     N_NODES,
     SLOT_SIZE,
+    USE_GUARD,
 };
 
 struct rtnl_handle rth;
@@ -76,6 +79,7 @@ uint32_t limit = 0;
 int64_t n_nodes = 2;
 int64_t slot_size = 0;
 int64_t node_id = 0;
+int64_t use_guard = 0;
 bool tdma_mod_loaded = false;
 bool netlink_sock_mod_loaded = false;
 

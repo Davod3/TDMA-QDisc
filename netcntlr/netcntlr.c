@@ -163,6 +163,13 @@ struct tdma_vars_t *update_vars(uint32_t *bitmap)
 		clear_tdma_var_bit(bitmap, SLOT_SIZE);
 	}
 
+	if (get_tdma_var_bit(bitmap, USE_GUARD))
+	{
+		printf("%sattr: %s is set!%s\n", yellow, "GUARD", reset);
+		data->use_guard = use_guard;
+		clear_tdma_var_bit(bitmap, USE_GUARD);
+	}
+
 	// return pointer to data struct
 	return data;
 }
@@ -217,7 +224,12 @@ int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info)
 					limit = (uint32_t)strtoul(value, &end_ptr, 10);
 					set_tdma_var_bit(bitmap, LIMIT);
 
-				} 
+				}
+				else if (strcmp(key, "use_guard") == 0) 
+				{
+					use_guard = (int64_t)strtoull(value, &end_ptr, 10);
+					set_tdma_var_bit(bitmap, USE_GUARD);
+				}  
 				else 
 				{
 					printf("Invalid key: %s specified\n", key);
@@ -256,6 +268,11 @@ int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info)
 			limit = args_info->limit_arg;
 			set_tdma_var_bit(bitmap, LIMIT);
 		}
+		if (args_info->use_guard_given) 	 
+		{
+			use_guard = args_info->use_guard_arg;
+			set_tdma_var_bit(bitmap, USE_GUARD);
+		}
 	}
 	
 	return 0;
@@ -270,6 +287,7 @@ int add_qdisc(struct tdma_vars_t *data) {
 	opt->n_nodes = data->n_nodes;
 	opt->slot_size = data->slot_size;
 	opt->node_id = data->node_id;
+	opt->use_guard = data->use_guard;
 
 	printf("Opening rtnl socket...\n");
 
@@ -308,6 +326,7 @@ int change_qdisc(struct tdma_vars_t *data) {
 	opt->n_nodes = data->n_nodes;
 	opt->slot_size = data->slot_size;
 	opt->node_id = data->node_id;
+	opt->use_guard = data->use_guard;
 
 	//communication
 	if(rtnl_open(&rth, 0) < 0) {

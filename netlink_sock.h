@@ -22,6 +22,7 @@ enum genl_ratdma_attr_ids
     GNL_RATDMA_NODE_ID,
     GNL_RATDMA_N_NODES,
     GNL_RATDMA_SLOT_SIZE,
+    GNL_RATDMA_USE_GUARD,
     /* include additional variables here */
     __GNL_RATDMA_COUNT
 };
@@ -43,6 +44,7 @@ extern u32 limit;
 extern s64 n_nodes;
 extern s64 slot_size;
 extern s64 node_id;
+extern s64 use_guard;
 
 #endif
 
@@ -55,6 +57,7 @@ struct tc_tdma_qopt
     s64 n_nodes;
     s64 slot_size;
     s64 node_id;
+    s64 use_guard;
 };
 
 #endif 
