@@ -49,6 +49,8 @@
 #define IP_Header_RM 20
 #define UDP_Header_RM 8
 
+#define MAX_SLOT_GUARD 10000000 //ns = 10 ms 
+
 char devname[] = "wlo1"; //Change to interface that will be used
 u32 limit = 0;
 s64 node_id = 0;
@@ -345,8 +347,12 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 
 	if (qopt->n_nodes > 0 && qopt->slot_size > 0 && qopt->node_id >= 0) {
 
+		//Compute slot guard such that it is 10% of the slot size or MAX_SLOT_GUARD
+		s64 possible_slot_guard = (qopt->slot_size * 10) / 100;
+		s64 slot_guard = (possible_slot_guard <= MAX_SLOT_GUARD) ? possible_slot_guard : MAX_SLOT_GUARD;
+
 		//Compute TDMA parameters
-		q->slot_len = qopt->slot_size;
+		q->slot_len = qopt->slot_size - slot_guard;
 		q->frame_len = qopt->slot_size * qopt->n_nodes;
 		q->slot_offset = qopt->slot_size * qopt->node_id;
 
