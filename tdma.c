@@ -56,6 +56,7 @@ u32 limit = 0;
 s64 node_id = 0;
 s64 n_nodes = 0;
 s64 slot_size= 0;
+s64 slot_guard = 0;
 //int slot_start = 0;
 
 EXPORT_SYMBOL(devname);
@@ -274,7 +275,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
 		//printk(KERN_DEBUG "CHECKING IF DEQUEUE!!----------%lld------------%lld-------------%lld\n", offset, now, offset + q->slot_len);
 
-		if ((offset <= now) && (now < (offset + q->slot_len))) {
+		if ((offset <= now) && (now < (offset + q->slot_len - slot_guard))) {
 
 			//printk(KERN_DEBUG "ATTEMPTING TO DEQUEUE!!----------%lld------------%lld-------------%lld\n", offset, now, offset + q->slot_len);
 
@@ -349,10 +350,10 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 
 		//Compute slot guard such that it is 10% of the slot size or MAX_SLOT_GUARD
 		s64 possible_slot_guard = (qopt->slot_size * 10) / 100;
-		s64 slot_guard = (possible_slot_guard <= MAX_SLOT_GUARD) ? possible_slot_guard : MAX_SLOT_GUARD;
+		slot_guard = (possible_slot_guard <= MAX_SLOT_GUARD) ? possible_slot_guard : MAX_SLOT_GUARD;
 
 		//Compute TDMA parameters
-		q->slot_len = qopt->slot_size - slot_guard;
+		q->slot_len = qopt->slot_size;
 		q->frame_len = qopt->slot_size * qopt->n_nodes;
 		q->slot_offset = qopt->slot_size * qopt->node_id;
 
