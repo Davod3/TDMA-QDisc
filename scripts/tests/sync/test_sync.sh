@@ -22,4 +22,4 @@ cd docs/logs
 
 sudo pkill -f 'dmesg -w'
 
-./save_log.sh kernel-log-latest.txt ratdma-sync 2nodes-1second drone$1
+./save_log.sh kernel-log-latest.txt ratdma-sync 2nodes-50ms drone$1
