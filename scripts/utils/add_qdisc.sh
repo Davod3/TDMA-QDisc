@@ -4,8 +4,8 @@
 sudo modprobe sch_netem
 
 # Compile and insert kernel modules with config values
-cd .. #Scripts folder
-cd .. #Project root
+
+cd .. #Project root. Scripts should be called from Script folder
 make
 cd netcntlr
 sudo ./netcntlr -f $1
