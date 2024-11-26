@@ -1,5 +1,5 @@
 devname=wlan0
-node_id=0
+node_id=2
 n_nodes=4
 slot_size=50000000
 limit=1514000
