@@ -1,0 +1,4 @@
+Warning: Permanently added '10.10.10.3' (ED25519) to the list of known hosts.
+512000+0 records in
+512000+0 records out
+262144000 bytes (262 MB, 250 MiB) copied, 142.919 s, 1.8 MB/s
