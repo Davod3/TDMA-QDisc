@@ -6,6 +6,8 @@
 *.mod.c
 *.order
 *.vscode
+*.pcapng
+*.pcapng.gz
 
 # userspace virtual environment
 netcntl/graph_env
