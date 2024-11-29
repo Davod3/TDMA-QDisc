@@ -1,0 +1,3 @@
+512000+0 records in
+512000+0 records out
+262144000 bytes (262 MB, 250 MiB) copied, 36.568 s, 7.2 MB/s
