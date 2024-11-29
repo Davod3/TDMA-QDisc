@@ -1,2 +1,0 @@
-Test cases executed without qdisc.
-Test duration 60 seconds.
