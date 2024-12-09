@@ -1,0 +1,7 @@
+NODE ID / START_SYNC / END_SYNC
+0           Ref         Ref
+1           +-35ms      +-61ms
+2           +-37ms      +-87ms 
+3           +-38ms      +-83ms
+4           +-38ms      +-57ms
+5           +-37ms      +-72ms
