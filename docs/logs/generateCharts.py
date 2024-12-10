@@ -25,8 +25,9 @@ four_nodes = 0
 two_nodes = 0
 
 # Data aggregation
-slot_length = 1
+slot_length = 0
 node_number = 0
+over_time = 1
 
 # Throughput Regex
 pattern = r'\b\d+(?:\.\d+)?\s*(?:bits|Kbits|Mbits)\/sec\b'
@@ -158,6 +159,69 @@ def show_slot_length():
 def show_node_number():
     return
 
+def show_over_time():
+
+    aggregated_data = dict()
+
+    #Set to whichever folder you want
+    folder = test_folders[0]
+
+    if(six_nodes):
+        data = get_data(folder + '/six-node-')
+    elif(four_nodes):
+        data = get_data(folder + '/four-node-')
+    elif(two_nodes):
+        data = get_data(folder + '/two-node')
+    else:
+        print('Set number of nodes flag!')
+
+    if 'noqdisc' in folder:
+        aggregated_data['noqdisc'] = data
+    else:
+        split_folder = folder.split('-')
+        aggregated_data[split_folder[1]] = data
+
+    #Normality test
+    test_normality(aggregated_data)
+
+    fig, ax = plt.subplots(figsize=(20, 15))
+
+    for key in aggregated_data:
+        entry_list = aggregated_data[key]
+        current_min_x = 0
+        current_max_x = 0
+        current_min_y = 0
+        current_max_y = 0
+        
+        for entry in entry_list:
+            
+            data = entry['data']
+            node_name = entry['node']
+
+            data['Throughput'] = data['Throughput'].astype(float)
+
+            x = np.array(data['Instant'])[5:-5]
+            y = np.array(data['Throughput'])[5:-5]
+
+            if min(x) < current_min_x:
+                current_min_x = min(x)
+            if max(x) > current_max_x:
+                current_max_x = max(x)
+            if min(y) < current_min_y:
+                current_min_y = min(y)
+            if max(y) > current_max_y:
+                current_max_y = max(y)
+
+            ax.plot(x,y, label=node_name)
+
+        ax.set_title('Node throughput over time')
+        ax.set_xlabel('Instant (seconds)')
+        ax.set_ylabel('Throughput (Mbits/s)')
+        ax.set_xticks(range(int(current_min_x), int(current_max_x) + 1))
+        ax.set_yticks(range(int(current_min_y), int(current_max_y) + 1))
+        ax.legend()
+
+        plt.savefig('charts/line-' + key + '.png', bbox_inches='tight')
 
 def main():
 
@@ -165,6 +229,8 @@ def main():
         show_slot_length()
     elif (node_number):
         show_node_number()
+    elif(over_time):
+        show_over_time()
     else:
         print('Set data aggregation flag!')
 
