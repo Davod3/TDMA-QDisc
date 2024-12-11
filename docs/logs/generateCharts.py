@@ -111,6 +111,15 @@ def get_data(folder):
 
     return data
 
+def set_box_color(bp, color):
+    plt.setp(bp['boxes'], color=color)
+    plt.setp(bp['whiskers'], color=color)
+    #plt.setp(bp['caps'], color=color)
+    #plt.setp(bp['medians'], color=color)
+    
+    for box in bp['boxes']:
+        box.set_facecolor(color)
+
 def test_normality(aggregated_data):
 
         for key in aggregated_data.keys():
@@ -167,12 +176,11 @@ def show_node_number():
     fig, ax = plt.subplots(figsize=(20, 15))
 
     aggregated_data = dict()
-    labels = []
-    boxplot_data = []
-    positions = []
+    ticks = []
+    boxplot_data = dict()
 
     #Set to whichever folder you want
-    folder = test_folders[0]
+    folder = test_folders[1]
 
     if(two_nodes):
         data = get_data(folder + '/two-node-')
@@ -187,25 +195,53 @@ def show_node_number():
     for key in aggregated_data:
         
         data_object_list = aggregated_data[key]
+        ticks.append(key)
 
         for data_object in data_object_list:
-            labels.append(key + '-' + data_object['node'])
+
             df = data_object['data']
-            boxplot_data.append(df['Throughput'])
+            
+            if(data_object['node'] in boxplot_data.keys()):
+                boxplot_data[data_object['node']].append(df['Throughput'])
+            else:
+                boxplot_data[data_object['node']] = []
+                boxplot_data[data_object['node']].append(df['Throughput'])
 
-            if key == 'two-nodes':
-                positions.append(2)
-            if key == 'four-nodes':
-                positions.append(4)
-            if key == 'six-nodes':
-                positions.append(6)
+    plt.figure()
 
-    #bp = ax.boxplot(boxplot_data, tick_labels=labels, patch_artist=True)
+    index = 0
 
-    plt.title('Boxplot of Groups')
-    plt.ylabel('Values')
+    for key in boxplot_data.keys():
+        data_array = boxplot_data[key]
+        positions = []
+        offset = 3 - len(data_array)
+
+        if(index % 2 == 0):
+            positions=np.array(range(offset,len(data_array)+offset))*6.0-(0.6*index) 
+        else:
+            positions=np.array(range(offset,len(data_array)+offset))*6.0+(0.6*index)
+
+        bp = plt.boxplot(data_array, positions=positions, sym='', widths=0.6, patch_artist=True)
+        set_box_color(bp, node_colors[index])
+
+        #Temporary line just for the legend
+        plt.plot([], c=node_colors[index], label=key)
+
+        index+=1
     
-    plt.savefig('charts/boxplot-node-number.png', bbox_inches='tight')
+    plt.legend()
+    plt.grid()
+
+    plt.xticks(range(0, len(ticks) * 6, 6), ticks)
+    plt.xlim(-3, len(ticks)*6)
+
+    plt.suptitle("Node Throughput VS Number of Nodes")
+    plt.title('TDMA - 50ms slots')
+    plt.xlabel("Number of Nodes (N)")
+    plt.ylabel("Throughput (Mbits/s)") 
+
+    plt.savefig('charts/boxplot-node-number.png')
+    
 
 
 def show_over_time():
