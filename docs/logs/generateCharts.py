@@ -21,19 +21,22 @@ test_folders = ['./noqdisc-tests',
 
 # Number of Nodes
 six_nodes = 1
-four_nodes = 0
-two_nodes = 0
+four_nodes = 1
+two_nodes = 1
 
 # Data aggregation
 slot_length = 0
-node_number = 0
-over_time = 1
+node_number = 1
+over_time = 0
 
 # Throughput Regex
 pattern = r'\b\d+(?:\.\d+)?\s*(?:bits|Kbits|Mbits)\/sec\b'
 
 # Shapiro-Wilk Alpha
 alpha = 0.05
+
+# Node Colors
+node_colors = ['#e31919', '#1919e3', '#0fad0c', '#7a0cad', '#542d03', '#d1af06']
 
 def convert_to_mbits(data):
 
@@ -48,6 +51,8 @@ def parse_udp_logs(folder):
 
     file_list = os.listdir(folder)
     dataframes = []
+
+    file_list.sort()
 
     for file in file_list:
         if 'drone' in file:            
@@ -73,11 +78,12 @@ def parse_udp_logs(folder):
                     n_lines+=1
 
             data = {
-                'Instant' : instants,
-                'Throughput' : values,
+                'Instant' : instants[5:-5],
+                'Throughput' : values[5:-5],
             }
 
             df = pd.DataFrame(data)
+            df['Throughput'] = df['Throughput'].astype(float)
             dataframes.append({'node' : file.split('.txt')[0],
                                'data' : df})
             
@@ -137,7 +143,7 @@ def show_slot_length():
         elif(four_nodes):
             data = get_data(folder + '/four-node-')
         elif(two_nodes):
-            data = get_data(folder + '/two-node')
+            data = get_data(folder + '/two-node-')
         else:
             print('Set number of nodes flag!')
 
@@ -157,7 +163,50 @@ def show_slot_length():
 
 
 def show_node_number():
-    return
+
+    fig, ax = plt.subplots(figsize=(20, 15))
+
+    aggregated_data = dict()
+    labels = []
+    boxplot_data = []
+    positions = []
+
+    #Set to whichever folder you want
+    folder = test_folders[0]
+
+    if(two_nodes):
+        data = get_data(folder + '/two-node-')
+        aggregated_data['two-nodes'] = data
+    if(four_nodes):
+        data = get_data(folder + '/four-node-')
+        aggregated_data['four-nodes'] = data
+    if(six_nodes):
+        data = get_data(folder + '/six-node-')
+        aggregated_data['six-nodes'] = data
+
+    for key in aggregated_data:
+        
+        data_object_list = aggregated_data[key]
+
+        for data_object in data_object_list:
+            labels.append(key + '-' + data_object['node'])
+            df = data_object['data']
+            boxplot_data.append(df['Throughput'])
+
+            if key == 'two-nodes':
+                positions.append(2)
+            if key == 'four-nodes':
+                positions.append(4)
+            if key == 'six-nodes':
+                positions.append(6)
+
+    #bp = ax.boxplot(boxplot_data, tick_labels=labels, patch_artist=True)
+
+    plt.title('Boxplot of Groups')
+    plt.ylabel('Values')
+    
+    plt.savefig('charts/boxplot-node-number.png', bbox_inches='tight')
+
 
 def show_over_time():
 
@@ -171,7 +220,7 @@ def show_over_time():
     elif(four_nodes):
         data = get_data(folder + '/four-node-')
     elif(two_nodes):
-        data = get_data(folder + '/two-node')
+        data = get_data(folder + '/two-node-')
     else:
         print('Set number of nodes flag!')
 
@@ -198,10 +247,10 @@ def show_over_time():
             data = entry['data']
             node_name = entry['node']
 
-            data['Throughput'] = data['Throughput'].astype(float)
+            #data['Throughput'] = data['Throughput'].astype(float)
 
-            x = np.array(data['Instant'])[5:-5]
-            y = np.array(data['Throughput'])[5:-5]
+            x = np.array(data['Instant'])
+            y = np.array(data['Throughput'])
 
             if min(x) < current_min_x:
                 current_min_x = min(x)
