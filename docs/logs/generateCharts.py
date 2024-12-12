@@ -54,7 +54,7 @@ def parse_udp_logs(folder):
     file_list.sort()
 
     for file in file_list:
-        if 'drone' in file:            
+        if 'drone' in file and 'ntp' not in file:            
             f = open(folder + '/' + file, "r")
             n_lines = 0
             instants = []
@@ -300,7 +300,7 @@ def show_sync():
     else:
         print('Set number of nodes flag!')
 
-    fig, ax = plt.subplots(figsize=(20, 15))
+    fig, ax = plt.subplots(figsize=(15, 6))
 
     for key in aggregated_data:
         
