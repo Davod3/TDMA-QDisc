@@ -19,13 +19,13 @@ test_folders = ['./noqdisc-tests',
 
 # Number of Nodes
 six_nodes = 1
-four_nodes = 1
-two_nodes = 1
+four_nodes = 0
+two_nodes = 0
 
 # Data aggregation
-distributions = 1
+distributions = 0
 node_number = 0
-over_time = 0
+over_time = 1
 
 # Throughput Regex
 pattern = r'\b\d+(?:\.\d+)?\s*(?:bits|Kbits|Mbits)\/sec\b'
