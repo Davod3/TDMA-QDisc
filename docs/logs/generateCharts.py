@@ -15,11 +15,7 @@ tcp = 0
 filetransfer = 0
 
 test_folders = ['./noqdisc-tests', 
-               './tdma-50ms-slot-tests', 
-               './tdma-100ms-slot-tests',
-               './tdma-250ms-slot-tests',
-               './tdma-500ms-slot-tests',
-               './tdma-baseline-tests']
+               './tdma-50ms-slot-tests',]
 
 # Number of Nodes
 six_nodes = 1
@@ -27,8 +23,8 @@ four_nodes = 1
 two_nodes = 1
 
 # Data aggregation
-slot_length = 0
-node_number = 1
+distributions = 1
+node_number = 0
 over_time = 0
 
 # Throughput Regex
@@ -143,33 +139,43 @@ def test_normality(aggregated_data):
 
                 #plt.hist(histogram_data, edgecolor='black', bins=20)
 
-def show_slot_length():
+def show_distributions():
 
     aggregated_data = dict()
 
     for folder in test_folders:
         
+        fig, axes = plt.subplots(12, 1, figsize=(8, 30))
+        index = 0
+
+        if(two_nodes):
+            data = get_data(folder + '/two-node-')
+            aggregated_data['two-nodes'] = data
+        if(four_nodes):
+            data = get_data(folder + '/four-node-')
+            aggregated_data['four-nodes'] = data
         if(six_nodes):
             data = get_data(folder + '/six-node-')
-        elif(four_nodes):
-            data = get_data(folder + '/four-node-')
-        elif(two_nodes):
-            data = get_data(folder + '/two-node-')
-        else:
-            print('Set number of nodes flag!')
+            aggregated_data['six-nodes'] = data
 
-        if 'noqdisc' in folder:
-            aggregated_data['noqdisc'] = data
-        else:
-            split_folder = folder.split('-')
-            aggregated_data[split_folder[1]] = data
+        for key in aggregated_data:
+            
+            data_object_list = aggregated_data[key]
+            
+            for data_object in data_object_list:
+                
+                df = data_object['data']
+                axes[index].hist(df['Throughput'], bins=30, color='blue', alpha=0.7)   
+                axes[index].set_title(key + '-' + data_object['node'])
+                axes[index].set_xlabel('Throughput (Mbits/s)')
+                axes[index].set_ylabel('Ocurrences')
+                axes[index].hist(df['Throughput'])
 
-    #Create charts and run statistical tests
-    
-    #Normality test
-    test_normality(aggregated_data)
+                index+=1
 
-    #Plot
+        plt.tight_layout()
+        plt.savefig('charts/distributions/' + folder + '.png')
+
 
 def custom_tick_formatter_line_y(value, _):
     # Only label certain ticks (e.g., 10, 15, etc.)
@@ -256,8 +262,6 @@ def show_node_number_line():
         csma_error.append(np.std(node_avg_list))
     
     ideal_y = [60/x for x in range(2,7,2)]
-
-    print(ideal_y) 
 
     plt.figure()
 
@@ -419,8 +423,8 @@ def show_over_time():
 
 def main():
 
-    if(slot_length):
-        show_slot_length()
+    if(distributions):
+        show_distributions()
     elif (node_number):
         #show_node_number_boxplot()
         show_node_number_line()
