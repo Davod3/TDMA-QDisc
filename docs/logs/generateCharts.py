@@ -5,6 +5,8 @@ import numpy as np
 from scipy.stats import shapiro
 from numpy.random import randn
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MultipleLocator, FuncFormatter
+import scipy.optimize as opt;
 
 #Flags
 # Protocol Type
@@ -169,9 +171,116 @@ def show_slot_length():
 
     #Plot
 
+def custom_tick_formatter_line_y(value, _):
+    # Only label certain ticks (e.g., 10, 15, etc.)
+    if value in [10, 15, 20, 25, 30, 35]:
+        return f"{value}"
+    return ""  # Hide other ticks
 
+def custom_tick_formatter_line_x(value, _):
+    # Only label certain ticks (e.g., 10, 15, etc.)
+    if value in [2,4,6]:
+        return f"{value}"
+    return ""  # Hide other ticks
 
-def show_node_number():
+def show_node_number_line():
+
+    fig, ax = plt.subplots(figsize=(20, 15))
+    aggregated_data_tdma = dict()
+    aggregated_data_csma = dict()
+
+    tdma_y = []
+    tdma_error = []
+    csma_y = []
+    csma_error = []
+    x = []
+
+    #Set to whichever folder you want
+    folder_tdma = test_folders[1]
+    folder_csma = test_folders[0]
+
+    if(two_nodes):
+        
+        data = get_data(folder_tdma + '/two-node-')
+        aggregated_data_tdma['two-nodes'] = data
+
+        data = get_data(folder_csma + '/two-node-')
+        aggregated_data_csma['two-nodes'] = data
+
+        x.append(2)
+
+    if(four_nodes):
+        data = get_data(folder_tdma + '/four-node-')
+        aggregated_data_tdma['four-nodes'] = data
+
+        data = get_data(folder_csma + '/four-node-')
+        aggregated_data_csma['four-nodes'] = data
+
+        x.append(4)
+
+    if(six_nodes):
+        data = get_data(folder_tdma + '/six-node-')
+        aggregated_data_tdma['six-nodes'] = data
+
+        data = get_data(folder_csma + '/six-node-')
+        aggregated_data_csma['six-nodes'] = data
+
+        x.append(6)
+    
+    for key in aggregated_data_tdma:
+        data_object_list = aggregated_data_tdma[key]
+        node_avg_list = []
+
+        for data_object in data_object_list:
+            
+            df = data_object['data']
+            avg = df['Throughput'].mean()
+
+            node_avg_list.append(avg)
+        
+        tdma_y.append(np.mean(node_avg_list))
+        tdma_error.append(np.std(node_avg_list))
+
+    for key in aggregated_data_csma:
+        data_object_list = aggregated_data_csma[key]
+        node_avg_list = []
+
+        for data_object in data_object_list:
+            
+            df = data_object['data']
+            avg = df['Throughput'].mean()
+
+            node_avg_list.append(avg)
+        
+        csma_y.append(np.mean(node_avg_list))
+        csma_error.append(np.std(node_avg_list))
+    
+    ideal_y = [60/x for x in range(2,7,2)]
+
+    print(ideal_y) 
+
+    plt.figure()
+
+    plt.scatter(x, tdma_y, label='TDMA 50ms slots', marker='o', zorder=1)
+    plt.plot(x, tdma_y, zorder=2)
+    plt.scatter(x, csma_y, label='CSMA',marker='s', zorder=1)
+    plt.plot(x, csma_y, zorder=2)
+    plt.scatter(x, ideal_y, label='Ideal', marker='v', zorder=1)
+    plt.plot(x, ideal_y, zorder=2)
+
+    ax = plt.gca()
+    ax.yaxis.set_major_locator(MultipleLocator(0.5))
+    ax.yaxis.set_major_formatter(FuncFormatter(custom_tick_formatter_line_y))
+    ax.xaxis.set_major_formatter(FuncFormatter(custom_tick_formatter_line_x))
+
+    plt.legend()
+    plt.title("Node Throughput VS Number of Nodes")
+    plt.xlabel("Number of Nodes (N)")
+    plt.ylabel("Average Throughput (Mbits/s)") 
+
+    plt.savefig('charts/errorbar-node-number.png')
+
+def show_node_number_boxplot():
 
     fig, ax = plt.subplots(figsize=(20, 15))
 
@@ -313,7 +422,8 @@ def main():
     if(slot_length):
         show_slot_length()
     elif (node_number):
-        show_node_number()
+        #show_node_number_boxplot()
+        show_node_number_line()
     elif(over_time):
         show_over_time()
     else:
