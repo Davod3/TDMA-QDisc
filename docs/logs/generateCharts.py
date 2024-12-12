@@ -10,9 +10,10 @@ import scipy.optimize as opt;
 
 #Flags
 # Protocol Type
-udp = 1
+udp = 0
 tcp = 0
 filetransfer = 0
+sync_progression = 1
 
 test_folders = ['./noqdisc-tests', 
                './tdma-50ms-slot-tests',]
@@ -104,6 +105,8 @@ def get_data(folder):
         data = parse_tcp_logs(folder + 'throughput')
     elif(filetransfer):
         data = parse_filetransfer_logs(folder + 'filetransfer')
+    elif(sync_progression):
+        data = parse_udp_logs(folder + 'sync-progression')
     else:
         print('Set protocol type flag') 
 
@@ -284,6 +287,42 @@ def show_node_number_line():
 
     plt.savefig('charts/errorbar-node-number.png')
 
+def show_sync():
+
+    aggregated_data = dict()
+
+    #Set to whichever folder you want
+    folder = test_folders[1]
+
+    if(six_nodes):
+        data = get_data(folder + '/six-node-')
+        aggregated_data['six-nodes'] = data
+    else:
+        print('Set number of nodes flag!')
+
+    fig, ax = plt.subplots(figsize=(20, 15))
+
+    for key in aggregated_data:
+        
+        data_object_list = aggregated_data[key]
+
+        for data_object in data_object_list:
+
+            df = data_object['data']
+            
+            plt.bar(df['Instant'],df['Throughput'], label=data_object['node'])
+    
+    plt.legend()
+
+    ax = plt.gca()
+    ax.xaxis.set_major_locator(MultipleLocator(50))
+
+    plt.suptitle("Node Throughput VS Time")
+    plt.xlabel("Time (Seconds)")
+    plt.ylabel("Throughput (Mbits/s)") 
+
+    plt.savefig('charts/line-sync-progression.png')
+
 def show_node_number_boxplot():
 
     fig, ax = plt.subplots(figsize=(20, 15))
@@ -429,7 +468,8 @@ def main():
         #show_node_number_boxplot()
         show_node_number_line()
     elif(over_time):
-        show_over_time()
+        #show_over_time()
+        show_sync()
     else:
         print('Set data aggregation flag!')
 
