@@ -10,23 +10,23 @@ import scipy.optimize as opt;
 
 #Flags
 # Protocol Type
-udp = 0
+udp = 1
 tcp = 0
 filetransfer = 0
-sync_progression = 1
+sync_progression = 0
 
 test_folders = ['./noqdisc-tests', 
                './tdma-50ms-slot-tests',]
 
 # Number of Nodes
 six_nodes = 1
-four_nodes = 0
-two_nodes = 0
+four_nodes = 1
+two_nodes = 1
 
 # Data aggregation
-distributions = 0
+distributions = 1
 node_number = 0
-over_time = 1
+over_time = 0
 
 # Throughput Regex
 pattern = r'\b\d+(?:\.\d+)?\s*(?:bits|Kbits|Mbits)\/sec\b'
@@ -35,7 +35,7 @@ pattern = r'\b\d+(?:\.\d+)?\s*(?:bits|Kbits|Mbits)\/sec\b'
 alpha = 0.05
 
 # Node Colors
-node_colors = ['#e31919', '#1919e3', '#0fad0c', '#7a0cad', '#542d03', '#d1af06']
+node_colors = ['#0000ff', '#ff2c2c','#008000', '#fd3db5', '#ffde21', '#00ffff']
 
 def convert_to_mbits(data):
 
@@ -54,7 +54,7 @@ def parse_udp_logs(folder):
     file_list.sort()
 
     for file in file_list:
-        if 'drone' in file and 'ntp' not in file:            
+        if 'drone' in file and 'ntp' not in file and 'a' not in file:            
             f = open(folder + '/' + file, "r")
             n_lines = 0
             instants = []
@@ -94,6 +94,36 @@ def parse_tcp_logs(folder):
 
 def parse_filetransfer_logs(folder):
     return
+
+def parse_ntp_logs(folder):
+
+    file_list = os.listdir(folder)
+    dataframes = []
+
+    file_list.sort()
+
+    for file in file_list:
+        if 'ntp' in file and 'a' not in file and '1' not in file:
+            f = open(folder + '/' + file, "r")
+            values = []
+
+            for l in f:
+                trimed_line = l.strip()
+                values.append(trimed_line)
+            
+            data = {
+                'Instant' : list(range(0, len(values)*10, 10)),
+                'Error' : values,
+            }
+
+            df = pd.DataFrame(data)
+            df['Error'] = df['Error'].astype(int)
+            dataframes.append({'node' : file.split('.txt')[0],
+                               'data' : df})
+            
+    
+    return dataframes
+
 
 def get_data(folder):
 
@@ -168,13 +198,15 @@ def show_distributions():
             for data_object in data_object_list:
                 
                 df = data_object['data']
-                axes[index].hist(df['Throughput'], bins=30, color='blue', alpha=0.7)   
+                #axes[index].hist(df['Throughput'], bins=30, color='blue', alpha=0.7) 
+                axes[index].hist(df['Throughput'])   
                 axes[index].set_title(key + '-' + data_object['node'])
                 axes[index].set_xlabel('Throughput (Mbits/s)')
                 axes[index].set_ylabel('Ocurrences')
-                axes[index].hist(df['Throughput'])
 
                 index+=1
+        
+        test_normality(aggregated_data)
 
         plt.tight_layout()
         plt.savefig('charts/distributions/' + folder + '.png')
@@ -290,6 +322,7 @@ def show_node_number_line():
 def show_sync():
 
     aggregated_data = dict()
+    ntp_data = dict()
 
     #Set to whichever folder you want
     folder = test_folders[1]
@@ -297,30 +330,46 @@ def show_sync():
     if(six_nodes):
         data = get_data(folder + '/six-node-')
         aggregated_data['six-nodes'] = data
+        ntp_data = parse_ntp_logs(folder + '/six-node-sync-progression')
     else:
-        print('Set number of nodes flag!')
+        print('Set number of nodes flag!')  
 
-    fig, ax = plt.subplots(figsize=(15, 6))
+    fig, axes = plt.subplots(2,1,figsize=(15, 10))
 
     for key in aggregated_data:
         
         data_object_list = aggregated_data[key]
+        index = 0
 
         for data_object in data_object_list:
 
             df = data_object['data']
             
-            plt.bar(df['Instant'],df['Throughput'], label=data_object['node'])
-    
-    plt.legend()
+            axes[0].bar(df['Instant'],df['Throughput'], label=data_object['node'], color = node_colors[index])
+            axes[0].set_title('Node Throughput VS Time')
+            axes[0].set_xlabel('Time (Seconds)')
+            axes[0].set_ylabel('Throughput (Mbits/s)')
+            axes[0].xaxis.set_major_locator(MultipleLocator(50))
+            axes[0].legend()
 
-    ax = plt.gca()
-    ax.xaxis.set_major_locator(MultipleLocator(50))
+            index+=1
 
-    plt.suptitle("Node Throughput VS Time")
-    plt.xlabel("Time (Seconds)")
-    plt.ylabel("Throughput (Mbits/s)") 
+    index = 1
 
+    for data_object in ntp_data:
+        
+        df = data_object['data']
+
+        axes[1].plot(df['Instant'], df['Error'], label=data_object['node'], color = node_colors[index])
+        axes[1].set_title('NTP Sync Error VS Time')
+        axes[1].set_xlabel('Time (Seconds)')
+        axes[1].set_ylabel('Sync Error (Miliseconds)')
+        axes[1].xaxis.set_major_locator(MultipleLocator(50))
+        axes[1].legend()
+
+        index+=1
+
+    plt.tight_layout()
     plt.savefig('charts/line-sync-progression.png')
 
 def show_node_number_boxplot():
@@ -417,9 +466,6 @@ def show_over_time():
     else:
         split_folder = folder.split('-')
         aggregated_data[split_folder[1]] = data
-
-    #Normality test
-    test_normality(aggregated_data)
 
     fig, ax = plt.subplots(figsize=(20, 15))
 
