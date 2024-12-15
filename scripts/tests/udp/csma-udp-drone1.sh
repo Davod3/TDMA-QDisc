@@ -17,4 +17,4 @@ cd .. # Root Folder
 
 cd docs/logs
 
-./save_log iperf-log-latest.txt csma-tests $1-node-throughput-udp drone1-$2
+./save_log.sh iperf-log-latest.txt csma-tests $1-node-throughput-udp drone1-$2
