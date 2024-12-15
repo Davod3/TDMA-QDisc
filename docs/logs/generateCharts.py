@@ -15,8 +15,8 @@ tcp = 0
 filetransfer = 0
 sync_progression = 0
 
-test_folders = ['./noqdisc-tests', 
-               './tdma-50ms-slot-tests',]
+test_folders = ['./csma-tests', 
+               './tdma-tests',]
 
 # Number of Nodes
 six_nodes = 1
@@ -24,8 +24,8 @@ four_nodes = 1
 two_nodes = 1
 
 # Data aggregation
-distributions = 1
-node_number = 0
+distributions = 0
+node_number = 1
 over_time = 0
 
 # Throughput Regex
@@ -49,12 +49,13 @@ def convert_to_mbits(data):
 def parse_udp_logs(folder):
 
     file_list = os.listdir(folder)
-    dataframes = []
+    data_objects = []
+    dataframes = dict()
 
     file_list.sort()
 
     for file in file_list:
-        if 'drone' in file and 'ntp' not in file and 'a' not in file:            
+        if 'drone' in file and 'ntp' not in file:            
             f = open(folder + '/' + file, "r")
             n_lines = 0
             instants = []
@@ -76,6 +77,7 @@ def parse_udp_logs(folder):
 
                     n_lines+=1
 
+
             data = {
                 'Instant' : instants[5:-5],
                 'Throughput' : values[5:-5],
@@ -83,11 +85,21 @@ def parse_udp_logs(folder):
 
             df = pd.DataFrame(data)
             df['Throughput'] = df['Throughput'].astype(float)
-            dataframes.append({'node' : file.split('.txt')[0],
-                               'data' : df})
-            
 
-    return dataframes
+            key = file.split('-')[0]
+
+            if key in dataframes.keys():
+                dataframes[key].append(df)
+            else:
+                dataframes[key] = []
+                dataframes[key].append(df)
+
+    for key in dataframes.keys():
+        concat_df = pd.concat(dataframes[key], ignore_index=True)
+        data_objects.append({'node' : key,
+                             'data' : concat_df})
+
+    return data_objects
 
 def parse_tcp_logs(folder):
     return
@@ -198,8 +210,8 @@ def show_distributions():
             for data_object in data_object_list:
                 
                 df = data_object['data']
-                #axes[index].hist(df['Throughput'], bins=30, color='blue', alpha=0.7) 
-                axes[index].hist(df['Throughput'])   
+                axes[index].hist(df['Throughput'], bins=15, color='blue', alpha=0.7) 
+                #axes[index].hist(df['Throughput'])   
                 axes[index].set_title(key + '-' + data_object['node'])
                 axes[index].set_xlabel('Throughput (Mbits/s)')
                 axes[index].set_ylabel('Ocurrences')
@@ -437,7 +449,7 @@ def show_node_number_boxplot():
     plt.xlim(-3, len(ticks)*6)
 
     plt.suptitle("Node Throughput VS Number of Nodes")
-    plt.title('TDMA - 50ms slots')
+    plt.title(folder.split('/')[1])
     plt.xlabel("Number of Nodes (N)")
     plt.ylabel("Throughput (Mbits/s)") 
 
