@@ -210,7 +210,7 @@ def show_distributions():
             for data_object in data_object_list:
                 
                 df = data_object['data']
-                axes[index].hist(df['Throughput'], bins=15, color='blue', alpha=0.7) 
+                axes[index].hist(df['Throughput'], bins=range(0,60, 3), color='blue', alpha=0.7, rwidth=0.9) 
                 #axes[index].hist(df['Throughput'])   
                 axes[index].set_title(key + '-' + data_object['node'])
                 axes[index].set_xlabel('Throughput (Mbits/s)')
@@ -523,8 +523,8 @@ def main():
     if(distributions):
         show_distributions()
     elif (node_number):
-        #show_node_number_boxplot()
-        show_node_number_line()
+        show_node_number_boxplot()
+        #show_node_number_line()
     elif(over_time):
         #show_over_time()
         show_sync()
