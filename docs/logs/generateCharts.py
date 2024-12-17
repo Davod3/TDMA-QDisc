@@ -24,8 +24,8 @@ four_nodes = 1
 two_nodes = 1
 
 # Data aggregation
-distributions = 0
-node_number = 1
+distributions = 1
+node_number = 0
 over_time = 0
 
 # Throughput Regex
@@ -210,11 +210,13 @@ def show_distributions():
             for data_object in data_object_list:
                 
                 df = data_object['data']
-                axes[index].hist(df['Throughput'], bins=range(0,60, 3), color='blue', alpha=0.7, rwidth=0.9) 
-                #axes[index].hist(df['Throughput'])   
+                axes[index].hist(df['Throughput'], bins=range(0,60, 3), color='blue', alpha=0.7, rwidth=0.9, zorder=1)  
                 axes[index].set_title(key + '-' + data_object['node'])
                 axes[index].set_xlabel('Throughput (Mbits/s)')
                 axes[index].set_ylabel('Ocurrences')
+
+                axes[index].axvline(x = df['Throughput'].mean(), color = 'r', label = 'Mean',  linewidth=3, zorder=2)
+                axes[index].legend()
 
                 index+=1
         
