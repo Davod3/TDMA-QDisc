@@ -24,8 +24,8 @@ four_nodes = 1
 two_nodes = 1
 
 # Data aggregation
-distributions = 1
-node_number = 0
+distributions = 0
+node_number = 1
 over_time = 0
 
 # Throughput Regex
@@ -441,23 +441,34 @@ def show_node_number_boxplot():
 
     plt.figure()
 
-    index = 0
+    index = 1
 
     for key in boxplot_data.keys():
         data_array = boxplot_data[key]
         positions = []
         offset = 3 - len(data_array)
 
-        if(index % 2 == 0):
-            positions=np.array(range(offset,len(data_array)+offset))*6.0-(0.6*index) 
-        else:
-            positions=np.array(range(offset,len(data_array)+offset))*6.0+(0.6*index)
+        if((index - 1 ) % 2 == 0):
+            #positions=np.array(range(offset,len(data_array)+offset))*6.0-(0.6*index)
+            positions=np.array(range(offset,len(data_array)+offset))*6.0-(0.4*index)
 
+        else:
+            
+            if index == 2:
+                positions=np.array(range(offset,len(data_array)+offset))*6.0+(0.2*index)
+            elif index == 6:
+                positions=np.array(range(offset,len(data_array)+offset))*6.0+(0.33*index)
+            else:
+                positions=np.array(range(offset,len(data_array)+offset))*6.0+(0.3*index)
+
+
+        print(key + '---' + str(positions) + '----' + str(index))
+        
         bp = plt.boxplot(data_array, positions=positions, sym='', widths=0.6, patch_artist=True)
-        set_box_color(bp, node_colors[index])
+        set_box_color(bp, node_colors[index - 1])
 
         #Temporary line just for the legend
-        plt.plot([], c=node_colors[index], label=key)
+        plt.plot([], c=node_colors[index - 1], label=key)
 
         index+=1
     
@@ -542,8 +553,8 @@ def main():
     if(distributions):
         show_distributions()
     elif (node_number):
-        #show_node_number_boxplot()
-        show_node_number_line()
+        show_node_number_boxplot()
+        #show_node_number_line()
     elif(over_time):
         #show_over_time()
         show_sync()
