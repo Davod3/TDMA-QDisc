@@ -10,23 +10,23 @@ import scipy.optimize as opt;
 
 #Flags
 # Protocol Type
-udp = 1
+udp = 0
 tcp = 0
 filetransfer = 0
-sync_progression = 0
+sync_progression = 1
 
 test_folders = ['./csma-tests', 
                './tdma-tests',]
 
 # Number of Nodes
 six_nodes = 1
-four_nodes = 1
-two_nodes = 1
+four_nodes = 0
+two_nodes = 0
 
 # Data aggregation
 distributions = 0
-node_number = 1
-over_time = 0
+node_number = 0
+over_time = 1
 
 # Throughput Regex
 pattern = r'\b\d+(?:\.\d+)?\s*(?:bits|Kbits|Mbits)\/sec\b'
@@ -356,12 +356,12 @@ def show_sync():
     ntp_data = dict()
 
     #Set to whichever folder you want
-    folder = test_folders[1]
+    folder = "./tdma-50ms-slot-tests"
 
     if(six_nodes):
         data = get_data(folder + '/six-node-')
         aggregated_data['six-nodes'] = data
-        ntp_data = parse_ntp_logs(folder + '/six-node-sync-progression')
+        #ntp_data = parse_ntp_logs(folder + '/six-node-sync-progression')
     else:
         print('Set number of nodes flag!')  
 
@@ -385,20 +385,20 @@ def show_sync():
 
             index+=1
 
-    index = 1
+    #index = 1
 
-    for data_object in ntp_data:
-        
-        df = data_object['data']
+    #for data_object in ntp_data:
+    #    
+    #    df = data_object['data']
+    #
+    #   axes[1].plot(df['Instant'], df['Error'], label=data_object['node'], color = node_colors[index])
+    #   axes[1].set_title('NTP Sync Error VS Time')
+    #   axes[1].set_xlabel('Time (Seconds)')
+    #   axes[1].set_ylabel('Sync Error (Miliseconds)')
+    #   axes[1].xaxis.set_major_locator(MultipleLocator(50))
+    #   axes[1].legend()
 
-        axes[1].plot(df['Instant'], df['Error'], label=data_object['node'], color = node_colors[index])
-        axes[1].set_title('NTP Sync Error VS Time')
-        axes[1].set_xlabel('Time (Seconds)')
-        axes[1].set_ylabel('Sync Error (Miliseconds)')
-        axes[1].xaxis.set_major_locator(MultipleLocator(50))
-        axes[1].legend()
-
-        index+=1
+    #   index+=1
 
     plt.tight_layout()
     plt.savefig('charts/line-sync-progression.png')
