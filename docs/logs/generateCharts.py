@@ -5,7 +5,7 @@ import numpy as np
 from scipy.stats import shapiro
 from numpy.random import randn
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator, FuncFormatter
+from matplotlib.ticker import MultipleLocator, FuncFormatter, MaxNLocator
 import scipy.optimize as opt;
 
 #Flags
@@ -217,6 +217,7 @@ def show_distributions():
 
                 axes[index].axvline(x = df['Throughput'].mean(), color = 'r', label = 'Mean',  linewidth=3, zorder=2)
                 axes[index].legend()
+                axes[index].grid()
 
                 index+=1
         
@@ -235,7 +236,7 @@ def custom_tick_formatter_line_y(value, _):
 def custom_tick_formatter_line_x(value, _):
     # Only label certain ticks (e.g., 10, 15, etc.)
     if value in [2,4,6]:
-        return f"{value}"
+        return f"{int(value)}"
     return ""  # Hide other ticks
 
 def show_node_number_line():
@@ -310,28 +311,44 @@ def show_node_number_line():
         csma_y.append(np.mean(node_avg_list))
         csma_error.append(np.std(node_avg_list))
     
-    ideal_y = [60/x for x in range(2,7,2)]
+    ideal_throughput = [65/x for x in range(2,7,2)]
+    ideal_y = [ (a / b) * 100 for a, b in zip(ideal_throughput, ideal_throughput)]
+    normalized_tdma_y = [(a / b) * 100 for a,b in zip(tdma_y, ideal_throughput)]
+    normalized_csma_y = [(a / b) * 100 for a,b in zip(csma_y, ideal_throughput)]
 
     plt.figure()
 
-    plt.scatter(x, tdma_y, label='TDMA 50ms slots', marker='o', zorder=1)
-    plt.plot(x, tdma_y, zorder=2)
-    plt.scatter(x, csma_y, label='CSMA',marker='s', zorder=1)
-    plt.plot(x, csma_y, zorder=2)
+    plt.scatter(x, normalized_tdma_y, label='TDMA', marker='o', zorder=1)
+    plt.plot(x, normalized_tdma_y, zorder=2)
+
+    for i, value in enumerate(tdma_y):
+        plt.annotate(f'{round(value,2)} Mbits/s', (x[i], normalized_tdma_y[i]), textcoords="offset points", xytext=(0, 4), ha='left')
+
+    plt.scatter(x, normalized_csma_y, label='CSMA',marker='s', zorder=1)
+    plt.plot(x, normalized_csma_y, zorder=2)
+
+    for i, value in enumerate(csma_y):
+        plt.annotate(f'{round(value,2)} Mbits/s', (x[i], normalized_csma_y[i]), textcoords="offset points", xytext=(0, 4), ha='left')
+
     plt.scatter(x, ideal_y, label='Ideal', marker='v', zorder=1)
     plt.plot(x, ideal_y, zorder=2)
 
+    for i, value in enumerate(ideal_throughput):
+        plt.annotate(f'{round(value,2)} Mbits/s', (x[i], ideal_y[i]), textcoords="offset points", xytext=(16, -16), ha='center')
+
     ax = plt.gca()
-    ax.yaxis.set_major_locator(MultipleLocator(0.5))
-    ax.yaxis.set_major_formatter(FuncFormatter(custom_tick_formatter_line_y))
+    #ax.yaxis.set_major_locator(MultipleLocator(0.2))
+    #ax.yaxis.set_major_formatter(FuncFormatter(custom_tick_formatter_line_y))
     ax.xaxis.set_major_formatter(FuncFormatter(custom_tick_formatter_line_x))
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
-    plt.legend()
-    plt.title("Node Throughput VS Number of Nodes")
+    plt.legend(fontsize='small', loc=5, bbox_to_anchor=(1, 0.7))
+    plt.grid()
+    plt.title("Node Throughput VS Number of Nodes (Normalized)")
     plt.xlabel("Number of Nodes (N)")
-    plt.ylabel("Average Throughput (Mbits/s)") 
+    plt.ylabel("Achieved Throughput (%)") 
 
-    plt.savefig('charts/errorbar-node-number.png')
+    plt.savefig('charts/normalized-node-number.png')
 
 def show_sync():
 
@@ -525,8 +542,8 @@ def main():
     if(distributions):
         show_distributions()
     elif (node_number):
-        show_node_number_boxplot()
-        #show_node_number_line()
+        #show_node_number_boxplot()
+        show_node_number_line()
     elif(over_time):
         #show_over_time()
         show_sync()
