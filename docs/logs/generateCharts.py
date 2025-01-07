@@ -24,8 +24,8 @@ four_nodes = 1
 two_nodes = 1
 
 # Data aggregation
-distributions = 1
-node_number = 0
+distributions = 0
+node_number = 1
 over_time = 0
 
 # Throughput Regex
@@ -266,7 +266,7 @@ def custom_tick_formatter_line_x(value, _):
 
 def show_node_number_line():
 
-    fig, ax = plt.subplots(figsize=(20, 15))
+    fig, ax = plt.subplots()
     aggregated_data_tdma = dict()
     aggregated_data_csma = dict()
 
@@ -369,10 +369,11 @@ def show_node_number_line():
 
     plt.legend(fontsize='small', loc=5, bbox_to_anchor=(1, 0.7))
     plt.grid()
-    plt.title("Node Throughput VS Number of Nodes (Normalized)")
+    #plt.title("Node Throughput VS Number of Nodes (Normalized)")
     plt.xlabel("Number of Nodes (N)")
     plt.ylabel("Achieved Throughput (%)") 
 
+    plt.tight_layout()
     plt.savefig('charts/normalized-node-number.png')
 
 def show_sync():
@@ -580,8 +581,8 @@ def main():
     if(distributions):
         show_distributions()
     elif (node_number):
-        show_node_number_boxplot()
-        #show_node_number_line()
+        #show_node_number_boxplot()
+        show_node_number_line()
     elif(over_time):
         #show_over_time()
         show_sync()
