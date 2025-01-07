@@ -10,23 +10,23 @@ import scipy.optimize as opt;
 
 #Flags
 # Protocol Type
-udp = 0
+udp = 1
 tcp = 0
 filetransfer = 0
-sync_progression = 1
+sync_progression = 0
 
 test_folders = ['./csma-tests', 
                './tdma-tests',]
 
 # Number of Nodes
 six_nodes = 1
-four_nodes = 0
-two_nodes = 0
+four_nodes = 1
+two_nodes = 1
 
 # Data aggregation
-distributions = 0
+distributions = 1
 node_number = 0
-over_time = 1
+over_time = 0
 
 # Throughput Regex
 pattern = r'\b\d+(?:\.\d+)?\s*(?:bits|Kbits|Mbits)\/sec\b'
@@ -36,6 +36,16 @@ alpha = 0.05
 
 # Node Colors
 node_colors = ['#0000ff', '#ff2c2c','#008000', '#fd3db5', '#ffde21', '#00ffff']
+
+def format_key(key):
+
+    #drone1 -> Drone 1
+
+    split_key = re.findall(r'[A-Za-z]+|\d+', key)
+
+    new_key = split_key[0].capitalize() + ' ' + split_key[1]
+
+    return new_key
 
 def convert_to_mbits(data):
 
@@ -210,13 +220,28 @@ def show_distributions():
             for data_object in data_object_list:
                 
                 df = data_object['data']
-                axes[index].hist(df['Throughput'], bins=range(0,60, 3), color='blue', alpha=0.7, rwidth=0.9, zorder=1)  
-                axes[index].set_title(key + '-' + data_object['node'])
-                axes[index].set_xlabel('Throughput (Mbits/s)')
+                axes[index].hist(df['Throughput'], bins=range(0,60, 3), color='blue', alpha=0.7, rwidth=0.9, zorder=1) 
+
+                #title = ''
+
+                #if 'two' in key:
+                #    title = 'Throughput Histogram of 2 Nodes (mean in red)'
+                #if 'four' in key:
+                #    title = 'Throughput Histogram of 4 Nodes'
+                #if 'six' in key:
+                #    title = 'Throughput Histogram of 6 Nodes'
+
+                #if index == 0 or index == 2 or index == 6:
+                #    axes[index].set_title(title)
+
+                if index == 1 or index == 5 or index == 11:
+                    axes[index].set_xlabel('Throughput (Mbits/s)')
+
                 axes[index].set_ylabel('Ocurrences')
 
-                axes[index].axvline(x = df['Throughput'].mean(), color = 'r', label = 'Mean',  linewidth=3, zorder=2)
-                axes[index].legend()
+                axes[index].axvline(x = df['Throughput'].mean(), color = 'r',  linewidth=3, zorder=2)
+                #axes[index].legend()
+                axes[index].annotate(format_key(data_object['node']), xy=(0.85,0.8),xycoords='axes fraction', fontsize=14)
                 axes[index].grid()
 
                 index+=1
@@ -330,7 +355,7 @@ def show_node_number_line():
     for i, value in enumerate(csma_y):
         plt.annotate(f'{round(value,2)} Mbits/s', (x[i], normalized_csma_y[i]), textcoords="offset points", xytext=(0, 4), ha='left')
 
-    plt.scatter(x, ideal_y, label='Ideal', marker='v', zorder=1)
+    plt.scatter(x, ideal_y, label='Theoretical', marker='v', zorder=1)
     plt.plot(x, ideal_y, zorder=2)
 
     for i, value in enumerate(ideal_throughput):
@@ -365,7 +390,7 @@ def show_sync():
     else:
         print('Set number of nodes flag!')  
 
-    fig, axes = plt.subplots(2,1,figsize=(15, 10))
+    fig, axes = plt.subplots(figsize=(12, 6))
 
     for key in aggregated_data:
         
@@ -376,12 +401,12 @@ def show_sync():
 
             df = data_object['data']
             
-            axes[0].bar(df['Instant'],df['Throughput'], label=data_object['node'], color = node_colors[index])
-            axes[0].set_title('Node Throughput VS Time')
-            axes[0].set_xlabel('Time (Seconds)')
-            axes[0].set_ylabel('Throughput (Mbits/s)')
-            axes[0].xaxis.set_major_locator(MultipleLocator(50))
-            axes[0].legend()
+            axes.plot(df['Instant'][::10],df['Throughput'][::10], label=format_key(data_object['node'].split('.')[0]), color = node_colors[index])
+            #axes.set_title('Node Throughput VS Time')
+            axes.set_xlabel('Time (Seconds)')
+            axes.set_ylabel('Throughput (Mbits/s)')
+            axes.xaxis.set_major_locator(MultipleLocator(100))
+            axes.legend()
 
             index+=1
 
@@ -468,7 +493,7 @@ def show_node_number_boxplot():
         set_box_color(bp, node_colors[index - 1])
 
         #Temporary line just for the legend
-        plt.plot([], c=node_colors[index - 1], label=key)
+        plt.plot([], c=node_colors[index - 1], label=format_key(key))
 
         index+=1
     
@@ -478,10 +503,12 @@ def show_node_number_boxplot():
     plt.xticks(range(0, len(ticks) * 6, 6), ticks)
     plt.xlim(-3, len(ticks)*6)
 
-    plt.suptitle("Node Throughput VS Number of Nodes")
-    plt.title(folder.split('/')[1])
+    #plt.suptitle("Node Throughput VS Number of Nodes")
+    #plt.title(folder.split('/')[1])
     plt.xlabel("Number of Nodes (N)")
-    plt.ylabel("Throughput (Mbits/s)") 
+    plt.ylabel("Throughput (Mbits/s)")
+
+    plt.tight_layout() 
 
     plt.savefig('charts/boxplot-node-number.png')
     
