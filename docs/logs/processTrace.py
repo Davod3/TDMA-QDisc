@@ -20,6 +20,16 @@ node_colors = ['#0000ff',
 tdma_round_len_ms = 300
 offset = -290
 
+def format_key(key):
+
+    #drone1 -> Drone 1
+
+    split_key = re.findall(r'[A-Za-z]+|\d+', key)
+
+    new_key = split_key[0].capitalize() + ' ' + split_key[1]
+
+    return new_key
+
 def plot_packet(packet, relative_timestamp_ms):
     
     x = (relative_timestamp_ms + offset) % 300
@@ -106,7 +116,7 @@ def process_pcap(file_path):
         x_points = [x for x, y in points]
         y_points = [y for x, y in points]
         
-        plt.scatter(x_points, y_points, label=key, marker='s', color=node_colors[index])
+        plt.scatter(x_points, y_points, label=format_key(key), marker='s', color=node_colors[index], s=30, edgecolors='black')
 
         index+=1
 
@@ -119,7 +129,7 @@ if __name__ == '__main__':
 
     process_pcap('./tdma-tests/six-node-throughput-udp/50ms-six-node-udp.pcapng.gz')
 
-    plt.legend()
+    plt.legend(loc='upper right')
     plt.grid()
     plt.xlabel("Round Time (ms)")
     plt.ylabel("Round Number") 
