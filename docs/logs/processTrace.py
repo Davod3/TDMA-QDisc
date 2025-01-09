@@ -18,7 +18,7 @@ node_colors = ['#0000ff',
                '#00ffff']
 
 tdma_round_len_ms = 300
-offset = -290
+offset = 35
 
 def format_key(key):
 
@@ -70,7 +70,7 @@ def process_pcap(file_path):
 
             relative_timestamp_ms = timestamp_ms - first_packet_time_ms
 
-            if relative_timestamp_ms > 39880:
+            if relative_timestamp_ms > 800075:
 
                 wlan_source_address = dot11.addr2
                 
@@ -125,9 +125,9 @@ def process_pcap(file_path):
 
 if __name__ == '__main__':
 
-    #process_pcap('./tdma-50ms-slot-tests/six-node-sync-progression/trace.pcapng.gz')
+    process_pcap('./tdma-50ms-slot-tests/six-node-sync-progression/trace_new.pcapng.gz')
 
-    process_pcap('./tdma-tests/six-node-throughput-udp/50ms-six-node-udp.pcapng.gz')
+    #process_pcap('./tdma-tests/six-node-throughput-udp/50ms-six-node-udp.pcapng.gz')
 
     plt.legend(loc='upper right')
     plt.grid()

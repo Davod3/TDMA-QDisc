@@ -10,23 +10,23 @@ import scipy.optimize as opt;
 
 #Flags
 # Protocol Type
-udp = 1
+udp = 0
 tcp = 0
 filetransfer = 0
-sync_progression = 0
+sync_progression = 1
 
 test_folders = ['./csma-tests', 
                './tdma-tests',]
 
 # Number of Nodes
 six_nodes = 1
-four_nodes = 1
-two_nodes = 1
+four_nodes = 0
+two_nodes = 0
 
 # Data aggregation
 distributions = 0
-node_number = 1
-over_time = 0
+node_number = 0
+over_time = 1
 
 # Throughput Regex
 pattern = r'\b\d+(?:\.\d+)?\s*(?:bits|Kbits|Mbits)\/sec\b'
@@ -382,7 +382,7 @@ def show_sync():
     ntp_data = dict()
 
     #Set to whichever folder you want
-    folder = "./tdma-50ms-slot-tests"
+    folder = "./tdma-tests"
 
     if(six_nodes):
         data = get_data(folder + '/six-node-')
