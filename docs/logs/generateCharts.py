@@ -10,23 +10,23 @@ import scipy.optimize as opt;
 
 #Flags
 # Protocol Type
-udp = 0
+udp = 1
 tcp = 0
 filetransfer = 0
-sync_progression = 1
+sync_progression = 0
 
 test_folders = ['./csma-tests', 
                './tdma-tests',]
 
 # Number of Nodes
 six_nodes = 1
-four_nodes = 0
-two_nodes = 0
+four_nodes = 1
+two_nodes = 1
 
 # Data aggregation
-distributions = 0
+distributions = 1
 node_number = 0
-over_time = 1
+over_time = 0
 
 # Throughput Regex
 pattern = r'\b\d+(?:\.\d+)?\s*(?:bits|Kbits|Mbits)\/sec\b'
@@ -194,6 +194,22 @@ def test_normality(aggregated_data):
 
                 #plt.hist(histogram_data, edgecolor='black', bins=20)
 
+def histogram_key(key):
+    
+
+    node_number = int(key.split(' ')[1])
+    pair_number = 0
+
+    if node_number % 2 == 0:
+        pair_number = node_number - 1
+    else:
+        pair_number = node_number + 1 
+    
+
+    new_key = 'Drone ' + str(node_number) + ' -> ' + 'Drone ' + str(pair_number)
+
+    return new_key
+
 def show_distributions():
 
     aggregated_data = dict()
@@ -241,7 +257,7 @@ def show_distributions():
 
                 axes[index].axvline(x = df['Throughput'].mean(), color = 'r',  linewidth=3, zorder=2)
                 #axes[index].legend()
-                axes[index].annotate(format_key(data_object['node']), xy=(0.85,0.8),xycoords='axes fraction', fontsize=14)
+                axes[index].annotate(histogram_key(format_key(data_object['node'])), xy=(0.70,0.8),xycoords='axes fraction', fontsize=14)
                 axes[index].grid()
 
                 index+=1
