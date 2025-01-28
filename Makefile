@@ -1,5 +1,6 @@
 # build modules
-obj-m += tdma.o 
+#obj-m += tdma.o 
+obj-m += topology.o
 
 # Kernel src directory
 KDIR = /lib/modules/$(shell uname -r)/build
@@ -8,6 +9,7 @@ KDIR = /lib/modules/$(shell uname -r)/build
 # build all modules
 all: netcntlr 
 	$(MAKE) -C $(KDIR) M=$(PWD) modules
+	rm -r -f *.mod.c .*.cmd *.symvers *.o
 
 # (sub)build user-space program
 # invokes 'Makefile' in netcntl directory
@@ -16,11 +18,11 @@ netcntlr:
 
 # ensure correct ordering of module insertion
 install:
-	sudo insmod tdma.ko
+	sudo insmod topology.ko
 
 # remove modules in reverse order of insertion
 remove:
-	sudo rmmod tdma.ko
+	sudo rmmod topology.ko
 
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean
