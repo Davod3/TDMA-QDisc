@@ -15,8 +15,8 @@ struct topology_info_t {
     uint8_t activeNodes;
     uint8_t connectionMatrix[MAX_NODES][MAX_NODES];
     uint8_t activeNodesList[MAX_NODES];
-    double creationTime[MAX_NODES];
-    double age[MAX_NODES];
+    s64 creationTime[MAX_NODES];
+    s64 age[MAX_NODES];
     uint8_t active; 
 
 };
@@ -45,6 +45,37 @@ static unsigned int hookFunc(void *priv, struct sk_buff *skb, const struct nf_ho
     }
 
     return NF_ACCEPT; //Accept the packet regardless
+
+}
+
+// Called by TDMA QDisc to enable topology tracking
+static void topology_enable(int nodeID) {
+
+    topology_info->myID = nodeID;
+
+    topology_info->activeNodes = topology_info->activeNodes + 1;
+    topology_info->activeNodesList[topology_info->activeNodes - 1] = nodeID;
+
+    topology_info->age[nodeID] = 0;
+    s64 epoch = ktime_get_real_ns();
+    topology_info->creationTime[nodeID] = epoch;
+
+    //Activate traking (Join the network)
+    topology_info->active = 1;
+
+}
+
+/* Called by TDMA QDisc to send topology info to the network */
+static void topology_serialize(void) {
+
+    //TODO
+
+}
+
+/* Called when a packet containing topology info is received */
+static void topology_parse(void) {
+
+    //TODO
 
 }
 
@@ -80,6 +111,9 @@ static void __exit topology_exit(void) {
     printk(KERN_DEBUG "TOPOLOGY: Tracker disabled.\n");
 
 }
+
+EXPORT_SYMBOL(topology_enable);
+EXPORT_SYMBOL(topology_serialize);
 
 module_init(topology_init);
 module_exit(topology_exit);
