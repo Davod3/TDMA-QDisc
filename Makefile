@@ -1,5 +1,5 @@
 # build modules
-#obj-m += tdma.o 
+obj-m += tdma.o 
 obj-m += topology.o
 
 # Kernel src directory
@@ -19,9 +19,11 @@ netcntlr:
 # ensure correct ordering of module insertion
 install:
 	sudo insmod topology.ko
+	sudo insmod tdma.ko
 
 # remove modules in reverse order of insertion
 remove:
+	sudo rmmod tdma.ko
 	sudo rmmod topology.ko
 
 clean:

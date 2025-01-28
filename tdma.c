@@ -67,6 +67,10 @@ EXPORT_SYMBOL(n_nodes);
 EXPORT_SYMBOL(slot_size);
 EXPORT_SYMBOL(use_guard);
 
+extern void topology_enable(s64 nodeID); //Get function from topology module
+
+void (*__topology_enable)(s64 nodeID); //Placeholder if module is not loaded
+
 struct tdma_sched_data {
 /* Parameters */
 	u32		limit;		/* Maximal length of backlog: bytes */
@@ -366,6 +370,14 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 
 		}
 
+		//If desired, enable topology tracker
+		//if(self_configure){
+		__topology_enable = symbol_get(topology_enable);
+		if(__topology_enable){
+			__topology_enable(qopt->node_id);
+		}
+		//}
+
 		//Compute TDMA parameters
 		q->slot_len = qopt->slot_size;
 		q->frame_len = qopt->slot_size * qopt->n_nodes;
@@ -462,6 +474,10 @@ static void __exit tdma_module_exit(void)
 {	
 	printk(KERN_DEBUG "Qdisc unregistered!\n");
 	unregister_qdisc(&tdma_qdisc_ops);
+
+	//Stop using topology module
+	if (__topology_enable)
+    	symbol_put(topology_enable);
 }
 
 module_init(tdma_module_init)
