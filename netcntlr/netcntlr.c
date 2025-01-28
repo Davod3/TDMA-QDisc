@@ -44,6 +44,14 @@ static int qdisc_modify(int cmd, const char *dev, unsigned int flags, struct tc_
 int start_modules(void)
 {
 
+	if (!topology_mod_loaded && is_module_loaded("topology") == 0)
+	{
+		load_kernel_mod(TOPOLOGY_KMOD_PATH, NULL);
+		topology_mod_loaded = true;
+	} else {
+		return 0;
+	}
+
 	if (!tdma_mod_loaded && is_module_loaded("tdma") == 0)
 	{
 		load_kernel_mod(TDMA_KMOD_PATH, NULL);
@@ -170,6 +178,13 @@ struct tdma_vars_t *update_vars(uint32_t *bitmap)
 		clear_tdma_var_bit(bitmap, USE_GUARD);
 	}
 
+	if (get_tdma_var_bit(bitmap, SELF_CONFIGURED))
+	{
+		printf("%sattr: %s is set!%s\n", yellow, "SELF_CONFIGURED", reset);
+		data->self_configured = self_configured;
+		clear_tdma_var_bit(bitmap, SELF_CONFIGURED);
+	}
+
 	// return pointer to data struct
 	return data;
 }
@@ -229,7 +244,12 @@ int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info)
 				{
 					use_guard = (int64_t)strtoull(value, &end_ptr, 10);
 					set_tdma_var_bit(bitmap, USE_GUARD);
-				}  
+				}
+				else if (strcmp(key, "self_configured") == 0) 
+				{
+					self_configured = (int64_t)strtoull(value, &end_ptr, 10);
+					set_tdma_var_bit(bitmap, SELF_CONFIGURED);
+				}
 				else 
 				{
 					printf("Invalid key: %s specified\n", key);
@@ -273,6 +293,11 @@ int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info)
 			use_guard = args_info->use_guard_arg;
 			set_tdma_var_bit(bitmap, USE_GUARD);
 		}
+		if (args_info->self_configured_given) 	 
+		{
+			self_configured = args_info->self_configured_arg;
+			set_tdma_var_bit(bitmap, SELF_CONFIGURED);
+		}
 	}
 	
 	return 0;
@@ -288,6 +313,7 @@ int add_qdisc(struct tdma_vars_t *data) {
 	opt->slot_size = data->slot_size;
 	opt->node_id = data->node_id;
 	opt->use_guard = data->use_guard;
+	opt->self_configured = data->self_configured;
 
 	printf("Opening rtnl socket...\n");
 
@@ -327,6 +353,7 @@ int change_qdisc(struct tdma_vars_t *data) {
 	opt->slot_size = data->slot_size;
 	opt->node_id = data->node_id;
 	opt->use_guard = data->use_guard;
+	opt->self_configured = data->self_configured;
 
 	//communication
 	if(rtnl_open(&rth, 0) < 0) {

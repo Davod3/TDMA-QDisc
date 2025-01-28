@@ -117,8 +117,8 @@ static void __exit topology_exit(void) {
 
 }
 
-EXPORT_SYMBOL(topology_enable);
-EXPORT_SYMBOL(topology_serialize);
+EXPORT_SYMBOL_GPL(topology_enable);
+EXPORT_SYMBOL_GPL(topology_serialize);
 
 module_init(topology_init);
 module_exit(topology_exit);

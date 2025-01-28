@@ -31,7 +31,7 @@
 /*******************************************************************************/
 
 #define MAX_LINE_LEN 128
-#define NETLINK_SOCK_KMOD_PATH "../netlink_sock.ko"
+#define TOPOLOGY_KMOD_PATH "../topology.ko"
 #define TDMA_KMOD_PATH "../tdma.ko"
 #define NLMSG_TAIL(nmsg) ((struct rtattr *) (((void *) (nmsg)) + NLMSG_ALIGN((nmsg)->nlmsg_len)))
 
@@ -47,6 +47,7 @@ struct tdma_vars_t
     int64_t slot_size;
     int64_t node_id;
     int64_t use_guard;
+    int64_t self_configured;
 };
 
 struct tc_tdma_qopt {
@@ -55,6 +56,7 @@ struct tc_tdma_qopt {
 	__s64		slot_size;
 	__s64		node_id;
     __s64       use_guard;
+    __s64       self_configured;
 };
 
 enum tdma_vars_e
@@ -65,6 +67,7 @@ enum tdma_vars_e
     N_NODES,
     SLOT_SIZE,
     USE_GUARD,
+    SELF_CONFIGURED,
 };
 
 struct rtnl_handle rth;
@@ -76,12 +79,13 @@ struct rtnl_handle rth;
 // config variables
 char devname[MAX_LINE_LEN];
 uint32_t limit = 0;
-int64_t n_nodes = 2;
+int64_t n_nodes = 1;
 int64_t slot_size = 0;
 int64_t node_id = 0;
 int64_t use_guard = 0;
+int64_t self_configured = 0;
 bool tdma_mod_loaded = false;
-bool netlink_sock_mod_loaded = false;
+bool topology_mod_loaded = false;
 
 // ANSI escape codes (colors for stdout)
 const char* red = "\033[31m";

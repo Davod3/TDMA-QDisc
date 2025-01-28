@@ -60,6 +60,9 @@ struct gengetopt_args_info
   int use_guard_arg;	/**< @brief indicates whether a slot guard should be used.  */
   char * use_guard_orig;	/**< @brief indicates whether a slot guard should be used original value given at command line.  */
   const char *use_guard_help; /**< @brief indicates whether a slot guard should be used help description.  */
+  int self_configured_arg;	/**< @brief indicates if the node should try to configure itself (Requires Topology Module).  */
+  char * self_configured_orig;	/**< @brief indicates if the node should try to configure itself (Requires Topology Module) original value given at command line.  */
+  const char *self_configured_help; /**< @brief indicates if the node should try to configure itself (Requires Topology Module) help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
@@ -70,6 +73,7 @@ struct gengetopt_args_info
   unsigned int n_nodes_given ;	/**< @brief Whether n_nodes was given.  */
   unsigned int slot_size_given ;	/**< @brief Whether slot_size was given.  */
   unsigned int use_guard_given ;	/**< @brief Whether use_guard was given.  */
+  unsigned int self_configured_given ;	/**< @brief Whether self_configured was given.  */
 
 } ;
 

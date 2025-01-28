@@ -29,7 +29,7 @@
 #include <net/sch_generic.h>
 #include <net/pkt_cls.h>
 #include <net/pkt_sched.h>
-//#include <net/gso.h>
+#include <net/gso.h>
 
 #include <linux/init.h>
 #include <linux/sched.h>
@@ -58,14 +58,17 @@ s64 n_nodes = 0;
 s64 slot_size= 0;
 s64 slot_guard = 0;
 s64 use_guard = 0;
+s64 self_configured = 0;
 //int slot_start = 0;
 
+//TODO: Is this necessary?
 EXPORT_SYMBOL(devname);
 EXPORT_SYMBOL(limit);
 EXPORT_SYMBOL(node_id);
 EXPORT_SYMBOL(n_nodes);
 EXPORT_SYMBOL(slot_size);
 EXPORT_SYMBOL(use_guard);
+EXPORT_SYMBOL(self_configured);
 
 extern void topology_enable(s64 nodeID); //Get function from topology module
 
@@ -371,12 +374,12 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 		}
 
 		//If desired, enable topology tracker
-		//if(self_configure){
-		__topology_enable = symbol_get(topology_enable);
-		if(__topology_enable){
-			__topology_enable(qopt->node_id);
+		if(qopt->self_configured){
+			__topology_enable = symbol_get(topology_enable);
+			if(__topology_enable){
+				__topology_enable(qopt->node_id);
+			}
 		}
-		//}
 
 		//Compute TDMA parameters
 		q->slot_len = qopt->slot_size;
