@@ -12,7 +12,7 @@
 struct topology_info_t {
     
     s64 myID;
-    uint8_t activeNodes;
+    s64 activeNodes;
     uint8_t connectionMatrix[MAX_NODES][MAX_NODES];
     uint8_t activeNodesList[MAX_NODES];
     s64 creationTime[MAX_NODES];
@@ -77,6 +77,14 @@ void topology_serialize(void) {
 
 }
 
+s64 topology_get_network_size(void) {
+    return topology_info->activeNodes;
+}
+
+void topology_get_slot_id(void) {
+    //TODO
+}
+
 /* Called when a packet containing topology info is received */
 void topology_parse(void) {
 
@@ -119,6 +127,8 @@ static void __exit topology_exit(void) {
 
 EXPORT_SYMBOL_GPL(topology_enable);
 EXPORT_SYMBOL_GPL(topology_serialize);
+EXPORT_SYMBOL_GPL(topology_get_network_size);
+EXPORT_SYMBOL_GPL(topology_get_slot_id);
 
 module_init(topology_init);
 module_exit(topology_exit);

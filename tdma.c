@@ -70,9 +70,13 @@ EXPORT_SYMBOL(slot_size);
 EXPORT_SYMBOL(use_guard);
 EXPORT_SYMBOL(self_configured);
 
-extern void topology_enable(s64 nodeID); //Get function from topology module
+//Get functions from topology module
+extern void topology_enable(s64 nodeID);
+extern s64 topology_get_network_size(void);
 
-void (*__topology_enable)(s64 nodeID); //Placeholder if module is not loaded
+//Placeholders if module is not loaded
+void (*__topology_enable)(s64 nodeID);
+s64 (*__topology_get_network_size)(void);
 
 struct tdma_sched_data {
 /* Parameters */
@@ -318,6 +322,16 @@ static const struct nla_policy tdma_policy[TCA_TDMA_MAX + 1] = {
 	[TCA_TDMA_PARMS] = { .len = sizeof(struct tc_tdma_qopt) },
 };
 
+static void stop_topology(void) {
+
+	//Stop using topology module
+	if (__topology_enable)
+    	symbol_put(topology_enable);
+	if (__topology_get_network_size)
+    	symbol_put(topology_get_network_size);
+
+}
+
 static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext_ack *extack)
 {
 	int err;
@@ -375,16 +389,49 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 
 		//If desired, enable topology tracker
 		if(qopt->self_configured){
-			__topology_enable = symbol_get(topology_enable);
-			if(__topology_enable){
-				__topology_enable(qopt->node_id);
-			}
-		}
 
-		//Compute TDMA parameters
-		q->slot_len = qopt->slot_size;
-		q->frame_len = qopt->slot_size * qopt->n_nodes;
-		q->slot_offset = qopt->slot_size * qopt->node_id;
+			__topology_enable = symbol_get(topology_enable);
+			__topology_get_network_size = symbol_get(topology_get_network_size);
+
+			//Check if module is available
+			if(__topology_enable && __topology_get_network_size){
+
+				printk(KERN_DEBUG "[RA-TDMA] Found topology symbols. Self-Configuring Network. \n");
+
+				__topology_enable(qopt->node_id);
+
+				s64 n_nodes = __topology_get_network_size(); //Get from topology module
+				s64 slot_id = 0; //Get from topology module
+
+				printk(KERN_DEBUG "[RA-TDMA] Self-Configured (n_nodes --- slot_id)=(%d --- %d) \n", n_nodes, slot_id);
+
+				//Compute TDMA Parameters based on Topology
+				q->slot_len = qopt->slot_size;
+				q->frame_len = qopt->slot_size * n_nodes;
+				q->slot_offset = qopt->slot_size * slot_id;
+
+			} else {
+
+				//Failed to get required symbols. Calculate manually.
+				printk(KERN_DEBUG "[RA-TDMA] Failed to find topology symbols. Falling back to manual config. \n");
+
+				//Compute TDMA parameters manually
+				q->slot_len = qopt->slot_size;
+				q->frame_len = qopt->slot_size * qopt->n_nodes;
+				q->slot_offset = qopt->slot_size * qopt->node_id;
+
+			}
+		} else {
+
+			//Make sure topology module stops being used
+			stop_topology();
+
+			//Compute TDMA parameters manually
+			q->slot_len = qopt->slot_size;
+			q->frame_len = qopt->slot_size * qopt->n_nodes;
+			q->slot_offset = qopt->slot_size * qopt->node_id;
+
+		}
 
 	}
 
@@ -477,10 +524,7 @@ static void __exit tdma_module_exit(void)
 {	
 	printk(KERN_DEBUG "Qdisc unregistered!\n");
 	unregister_qdisc(&tdma_qdisc_ops);
-
-	//Stop using topology module
-	if (__topology_enable)
-    	symbol_put(topology_enable);
+	stop_topology();
 }
 
 module_init(tdma_module_init)
