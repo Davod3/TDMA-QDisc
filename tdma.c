@@ -59,7 +59,7 @@ s64 slot_size= 0;
 s64 slot_guard = 0;
 s64 use_guard = 0;
 s64 self_configured = 0;
-//int slot_start = 0;
+s64 previous_round = 0;
 
 //TODO: Is this necessary?
 EXPORT_SYMBOL(devname);
@@ -279,26 +279,19 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 	struct sk_buff *skb;
 
 	s64 now = ktime_get_real_ns();
-	s64 div_result = intdiv(now - q->slot_offset, q->frame_len);
-	s64 offset = q->slot_offset + (div_result * q->frame_len);
-
-	//TODO: Check if this can be removed
-	if (!((offset < now) && (now < (offset + q->frame_len)) && (((offset - q->slot_offset) % q->frame_len) == 0)))
-		printk(KERN_DEBUG "TDMA: bad offsets (%lld -> %lld @ %lld)\n", q->slot_offset, offset, now);
+	s64 current_round = intdiv(now - q->slot_offset, q->frame_len);
+	s64 round_start = current_round * q->frame_len;
+	s64 slot_start = q->slot_offset + round_start;
 
 	if (q->qdisc->ops->peek(q->qdisc)) {
-
-		//printk(KERN_DEBUG "CHECKING IF DEQUEUE!!----------%lld------------%lld-------------%lld\n", offset, now, offset + q->slot_len);
-
-		if ((offset <= now) && (now < (offset + q->slot_len - slot_guard))) {
-
-			//printk(KERN_DEBUG "ATTEMPTING TO DEQUEUE!!----------%lld------------%lld-------------%lld\n", offset, now, offset + q->slot_len);
+		
+		//This means we are within the slot
+		if ((slot_start <= now) && (now < (slot_start + q->slot_len - slot_guard))) {
 
 			skb = qdisc_dequeue_peeked(q->qdisc);
 			if (unlikely(!skb))
 				return NULL;
 					
-			//printk(KERN_DEBUG "DEQUEUED PACKET!!!!----------%lld------------%lld-------------%lld\n", offset, now, offset + q->slot_len);
 			qdisc_qstats_backlog_dec(sch, skb);
 			sch->q.qlen--;
 			qdisc_bstats_update(sch, skb);
@@ -306,7 +299,14 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
 		}
 
-		qdisc_watchdog_schedule_ns(&q->watchdog, q->frame_len - (now - offset));
+		if(previous_round != current_round) {
+			previous_round = current_round;
+
+			//Round has changed, update variables
+			printk(KERN_DEBUG "[RA-TDMA] New Round: %d\n", current_round);
+		}	
+
+		qdisc_watchdog_schedule_ns(&q->watchdog, q->frame_len - (now - slot_start));
 	}
 
 	return NULL;

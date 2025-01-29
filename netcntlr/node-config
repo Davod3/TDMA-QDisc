@@ -1,7 +1,7 @@
 devname=wlo1
 node_id=0
-n_nodes=1
-slot_size=50000000
+n_nodes=2
+slot_size=5000000000
 limit=1514000
 use_guard=0
-self_configured=1
+self_configured=0

@@ -39,9 +39,9 @@ static unsigned int hookFunc(void *priv, struct sk_buff *skb, const struct nf_ho
     //Do whathever with IP Header info
 
     if(topology_info->active){
-        printk(KERN_DEBUG "TOPOLOGY: Packet received, processing...\n");
+        //printk(KERN_DEBUG "TOPOLOGY: Packet received, processing...\n");
     } else {
-        printk(KERN_DEBUG "TOPOLOGY: Packet received, but ignored.\n");
+        //printk(KERN_DEBUG "TOPOLOGY: Packet received, but ignored.\n");
     }
 
     return NF_ACCEPT; //Accept the packet regardless
