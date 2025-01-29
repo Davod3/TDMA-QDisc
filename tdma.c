@@ -76,11 +76,17 @@ EXPORT_SYMBOL(self_configured);
 extern void topology_enable(s64 nodeID);
 extern s64 topology_get_network_size(void);
 extern int topology_get_slot_id(void);
+extern void* topology_get_info(void);
+extern size_t topology_get_info_size(void);
+int8_t topology_is_active(void);
 
-//Placeholders if module is not loaded
+//Placeholders if topology module is not loaded
 void (*__topology_enable)(s64 nodeID);
 s64 (*__topology_get_network_size)(void);
 int (*__topology_get_slot_id)(void);
+void* (*__topology_get_info)(void);
+size_t (*__topology_get_info_size)(void);
+int8_t (*__topology_is_active)(void);
 
 struct tdma_sched_data {
 /* Parameters */
@@ -255,10 +261,10 @@ static struct sk_buff *generate_topology_packet(char* dev_name) {
 	memcpy(dest_addr, addr, ETH_ALEN);
 	proto = ETH_P_IP;
 	unsigned char* data;
-	char* message = "THIS IS A BROADCAST!!!";
-	int data_len = strlen(message);
+	void* content = __topology_get_info();
+	int data_len = __topology_get_info_size();
 
-	printk(KERN_INFO "generate_topology_packet: Defined variables...\n");
+	printk(KERN_INFO "generate_topology_packet: Defined variables... %d\n", __topology_get_info_size());
 
 	//Setup UDP dimensions
 	int udp_header_len = 8;
@@ -280,7 +286,7 @@ static struct sk_buff *generate_topology_packet(char* dev_name) {
 
 	//Setup data
 	data = skb_put(skb, udp_payload_len);
-	memcpy(data, message, data_len);
+	memcpy(data, content, data_len);
 
 	printk(KERN_INFO "generate_topology_packet: Added data...\n");
 
@@ -370,15 +376,21 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				//Send broadcast with topology at the start of the slot and no more.
 				sendBroadcast = 0;
 
-				struct sk_buff* skb = generate_topology_packet(qdisc_dev(sch)->name);
-				printk(KERN_INFO "generate_topology_packet: Generated skb!\n");
+				printk(KERN_INFO "[RA-TDMA] Can send broadcast: %d\n", __topology_is_active());
 
-				if (unlikely(!skb)) {
-					printk(KERN_INFO "generate_topology_packet: Broken packet!\n");
-					return NULL;
-				}
+				if(__topology_is_active && __topology_is_active()){
 
-				return skb;
+					struct sk_buff* skb = generate_topology_packet(qdisc_dev(sch)->name);
+					printk(KERN_INFO "generate_topology_packet: Generated skb!\n");
+
+					if (unlikely(!skb)) {
+						printk(KERN_INFO "generate_topology_packet: Broken packet!\n");
+						return NULL;
+					}
+
+					return skb;
+
+				} 
 
 			}
 
@@ -416,6 +428,12 @@ static void stop_topology(void) {
     	symbol_put(topology_get_network_size);
 	if (__topology_get_slot_id)
 		symbol_put(topology_get_slot_id);
+	if (__topology_get_info)
+		symbol_put(topology_get_info);
+	if (__topology_get_info_size)
+		symbol_put(topology_get_info_size);
+	if (__topology_is_active)
+		symbol_put(topology_is_active);
 
 }
 
@@ -480,9 +498,12 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 			__topology_enable = symbol_get(topology_enable);
 			__topology_get_network_size = symbol_get(topology_get_network_size);
 			__topology_get_slot_id = symbol_get(topology_get_slot_id);
+			__topology_get_info = symbol_get(topology_get_info);
+			__topology_get_info_size = symbol_get(topology_get_info_size);
+			__topology_is_active = symbol_get(topology_is_active);
 
 			//Check if module is available
-			if(__topology_enable && __topology_get_network_size && __topology_get_slot_id){
+			if(__topology_enable && __topology_get_network_size && __topology_get_slot_id && __topology_get_info && __topology_get_info_size){
 
 				printk(KERN_DEBUG "[RA-TDMA] Found topology symbols. Self-Configuring Network. \n");
 

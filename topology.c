@@ -7,7 +7,7 @@
 #include <linux/tcp.h>
 #include <linux/udp.h>
 
-#define MAX_NODES 255
+#define MAX_NODES 20
 
 struct topology_info_t {
     
@@ -70,11 +70,58 @@ void topology_enable(s64 nodeID) {
 
 }
 
+uint8_t topology_is_active(void) {
+    return topology_info->active;
+}
+
+//TODO: Remove. Just for debugging
+void print_struct(void) {
+
+    printk(KERN_DEBUG "id: %lld\n", topology_info->myID);
+    printk(KERN_DEBUG "activeNodes: %lld\n", topology_info->activeNodes);
+    
+    for (size_t i = 0; i < MAX_NODES; i++) {
+
+        printk(KERN_DEBUG "Connection Line: ");
+
+        for (size_t j = 0; j < MAX_NODES; j++){
+            printk(KERN_DEBUG "%u\n", topology_info->connectionMatrix[i][j]);
+        }
+        printk(KERN_DEBUG "\n");
+    }
+
+    for (size_t i = 0; i < MAX_NODES; i++) {
+        printk(KERN_DEBUG "%lld\n", topology_info->activeNodesList[i]);
+    }
+
+    printk(KERN_DEBUG "\n");
+
+    for (size_t i = 0; i < MAX_NODES; i++) {
+        printk(KERN_DEBUG "%lld\n", topology_info->creationTime[i]);
+    }
+
+    printk(KERN_DEBUG "\n");
+
+    for (size_t i = 0; i < MAX_NODES; i++) {
+        printk(KERN_DEBUG "%lld\n", topology_info->age[i]);
+    }
+
+    printk(KERN_DEBUG "\n");
+
+    printk(KERN_DEBUG "%u\n", topology_info->active);  
+
+}
+
 /* Called by TDMA QDisc to send topology info to the network */
-void topology_serialize(void) {
+void* topology_get_info(void) {
 
-    //TODO
+    //print_struct();
 
+    return (void*) topology_info; 
+}
+
+size_t topology_get_info_size(void) {
+    return sizeof(struct topology_info_t);
 }
 
 s64 topology_get_network_size(void) {
@@ -124,7 +171,7 @@ static void quicksort(s64 arr[], s64 low, s64 high) {
 
     }
 
-} 
+}
 
 int topology_get_slot_id(void) {
 
@@ -197,9 +244,11 @@ static void __exit topology_exit(void) {
 }
 
 EXPORT_SYMBOL_GPL(topology_enable);
-EXPORT_SYMBOL_GPL(topology_serialize);
+EXPORT_SYMBOL_GPL(topology_get_info);
+EXPORT_SYMBOL_GPL(topology_get_info_size);
 EXPORT_SYMBOL_GPL(topology_get_network_size);
 EXPORT_SYMBOL_GPL(topology_get_slot_id);
+EXPORT_SYMBOL_GPL(topology_is_active);
 
 module_init(topology_init);
 module_exit(topology_exit);
