@@ -60,6 +60,7 @@ s64 slot_guard = 0;
 s64 use_guard = 0;
 s64 self_configured = 0;
 s64 previous_round = 0;
+int sendBroadcast = 1;
 
 //TODO: Is this necessary?
 EXPORT_SYMBOL(devname);
@@ -286,6 +287,9 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
 		//Round has changed, update variables
 		printk(KERN_DEBUG "[RA-TDMA] New Round: %d\n", current_round);
+
+		//Allow for a broadcast to be made when slot starts
+		sendBroadcast = 1;
 	}
 
 	//Recalculate slot structure with updated parameters
@@ -298,14 +302,29 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		//This means we are within the slot
 		if ((slot_start <= now) && (now < (slot_start + q->slot_len - slot_guard))) {
 
-			skb = qdisc_dequeue_peeked(q->qdisc);
-			if (unlikely(!skb))
-				return NULL;
+			if(!sendBroadcast) {
+
+				//If broadcast is sent, continue with regular slot usage.
+				skb = qdisc_dequeue_peeked(q->qdisc);
+				if (unlikely(!skb))
+					return NULL;
 					
-			qdisc_qstats_backlog_dec(sch, skb);
-			sch->q.qlen--;
-			qdisc_bstats_update(sch, skb);
-			return skb;
+				qdisc_qstats_backlog_dec(sch, skb);
+				sch->q.qlen--;
+				qdisc_bstats_update(sch, skb);
+				return skb;
+
+			} else {
+
+				//Send broadcast with topology at the start of the slot and no more.
+				sendBroadcast = 0;
+				printk(KERN_INFO "generate_topology_packet: Generated skb!\n");
+			}
+
+		} else {
+
+			//Slot has ended. Prepare to broadcast again when slot starts.
+			sendBroadcast = 1;
 
 		}	
 
