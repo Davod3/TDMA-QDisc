@@ -14,7 +14,7 @@ struct topology_info_t {
     s64 myID;
     s64 activeNodes;
     uint8_t connectionMatrix[MAX_NODES][MAX_NODES];
-    uint8_t activeNodesList[MAX_NODES];
+    s64 activeNodesList[MAX_NODES];
     s64 creationTime[MAX_NODES];
     s64 age[MAX_NODES];
     uint8_t active; 
@@ -81,8 +81,79 @@ s64 topology_get_network_size(void) {
     return topology_info->activeNodes;
 }
 
-void topology_get_slot_id(void) {
-    //TODO
+/* Companion function for QuickSort algorithm */
+static void swapper(s64 *a, s64 *b) {
+    s64 temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+/* Companion function for QuickSort algorithm */
+static s64 partition(s64 arr[], s64 low, s64 high){
+    
+    s64 p = arr[low];
+    s64 i = low;
+    s64 j = high;
+
+    while (i < j) {
+
+        while (arr[i] <= p && i <= high - 1) {
+            i++;
+        }
+
+        while (arr[j] > p && j >= low + 1) {
+            j--;
+        }
+        if (i < j) {
+            swapper(&arr[i], &arr[j]);
+        }
+    }
+    swapper(&arr[low], &arr[j]);
+    return j;
+}
+
+/* Helper function to sort active IDs array - QuickSort from https://www.geeksforgeeks.org/quick-sort-in-c/ */
+static void quicksort(s64 arr[], s64 low, s64 high) {
+
+    if (low < high) {
+
+        int pi = partition(arr, low, high);
+
+        quicksort(arr, low, pi - 1);
+        quicksort(arr, pi + 1, high);
+
+    }
+
+} 
+
+int topology_get_slot_id(void) {
+
+    s64 activeNodeIDS[topology_info->activeNodes];
+
+    //Get all currently active nodes
+    for (int i = 0; i < topology_info->activeNodes; i++) {
+        
+        activeNodeIDS[i] = topology_info->activeNodesList[i];
+
+    }
+
+    //Sort the active node list by ascending ID
+    s64 n = sizeof(activeNodeIDS) / sizeof(activeNodeIDS[0]);
+
+    quicksort(activeNodeIDS, 0, n - 1);
+
+    //Find my ID in the list, and return slot position
+    for (int i = 0; i < topology_info->activeNodes; i++) {
+        
+        s64 currentID = activeNodeIDS[i];
+
+        if(currentID == topology_info->myID) {
+            return i;
+        }
+    }
+
+    return -1;
+    
 }
 
 /* Called when a packet containing topology info is received */

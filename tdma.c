@@ -73,10 +73,12 @@ EXPORT_SYMBOL(self_configured);
 //Get functions from topology module
 extern void topology_enable(s64 nodeID);
 extern s64 topology_get_network_size(void);
+extern int topology_get_slot_id(void);
 
 //Placeholders if module is not loaded
 void (*__topology_enable)(s64 nodeID);
 s64 (*__topology_get_network_size)(void);
+int (*__topology_get_slot_id)(void);
 
 struct tdma_sched_data {
 /* Parameters */
@@ -329,6 +331,8 @@ static void stop_topology(void) {
     	symbol_put(topology_enable);
 	if (__topology_get_network_size)
     	symbol_put(topology_get_network_size);
+	if (__topology_get_slot_id)
+		symbol_put(topology_get_slot_id);
 
 }
 
@@ -392,16 +396,17 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 
 			__topology_enable = symbol_get(topology_enable);
 			__topology_get_network_size = symbol_get(topology_get_network_size);
+			__topology_get_slot_id = symbol_get(topology_get_slot_id);
 
 			//Check if module is available
-			if(__topology_enable && __topology_get_network_size){
+			if(__topology_enable && __topology_get_network_size && __topology_get_slot_id){
 
 				printk(KERN_DEBUG "[RA-TDMA] Found topology symbols. Self-Configuring Network. \n");
 
 				__topology_enable(qopt->node_id);
 
 				s64 n_nodes = __topology_get_network_size(); //Get from topology module
-				s64 slot_id = 0; //Get from topology module
+				s64 slot_id = __topology_get_slot_id(); //Get from topology module
 
 				printk(KERN_DEBUG "[RA-TDMA] Self-Configured (n_nodes --- slot_id)=(%d --- %d) \n", n_nodes, slot_id);
 
