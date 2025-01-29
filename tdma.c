@@ -280,6 +280,16 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
 	s64 now = ktime_get_real_ns();
 	s64 current_round = intdiv(now - q->slot_offset, q->frame_len);
+
+	if(previous_round != current_round) {
+		previous_round = current_round;
+
+		//Round has changed, update variables
+		printk(KERN_DEBUG "[RA-TDMA] New Round: %d\n", current_round);
+	}
+
+	//Recalculate slot structure with updated parameters
+	current_round = intdiv(now - q->slot_offset, q->frame_len);
 	s64 round_start = current_round * q->frame_len;
 	s64 slot_start = q->slot_offset + round_start;
 
@@ -297,13 +307,6 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 			qdisc_bstats_update(sch, skb);
 			return skb;
 
-		}
-
-		if(previous_round != current_round) {
-			previous_round = current_round;
-
-			//Round has changed, update variables
-			printk(KERN_DEBUG "[RA-TDMA] New Round: %d\n", current_round);
 		}	
 
 		qdisc_watchdog_schedule_ns(&q->watchdog, q->frame_len - (now - slot_start));

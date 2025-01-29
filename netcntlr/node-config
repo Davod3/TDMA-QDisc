@@ -4,4 +4,4 @@ n_nodes=2
 slot_size=5000000000
 limit=1514000
 use_guard=0
-self_configured=0
+self_configured=1
