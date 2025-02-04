@@ -62,6 +62,7 @@ s64 use_guard = 0;
 s64 self_configured = 0;
 s64 previous_round = 0;
 int sendBroadcast = 1;
+int8_t reset_flag = 0;
 
 //TODO: Is this necessary?
 EXPORT_SYMBOL(devname);
@@ -329,7 +330,6 @@ static struct sk_buff *generate_topology_packet(char* dev_name) {
 
 }
 
-
 static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 {
 
@@ -339,6 +339,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 	s64 now = ktime_get_real_ns();
 	s64 current_round = intdiv(now - q->slot_offset, q->frame_len);
 
+    //Runs at the start of each round
 	if(previous_round != current_round) {
 		previous_round = current_round;
 
@@ -354,67 +355,75 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 	s64 round_start = current_round * q->frame_len;
 	s64 slot_start = q->slot_offset + round_start;
 
-	if (q->qdisc->ops->peek(q->qdisc)) {
-		
-		//This means we are within the slot
-		if ((slot_start <= now) && (now < (slot_start + q->slot_len - slot_guard))) {
+    //Check if within slot
+    if ((slot_start <= now) && (now < (slot_start + q->slot_len - slot_guard))) {
 
-			if(!sendBroadcast) {
+        //Create topology broadcast packet. This runs at the start of the slots
+        if(sendBroadcast) {
 
-				//If broadcast is sent, continue with regular slot usage.
-				skb = qdisc_dequeue_peeked(q->qdisc);
-				if (unlikely(!skb))
-					return NULL;
+            //Send broadcast with topology at the start of the slot and no more.
+            sendBroadcast = 0;
+
+            if(__topology_is_active && __topology_is_active()){
+
+                struct sk_buff* skb = generate_topology_packet(qdisc_dev(sch)->name);
+                printk(KERN_INFO "generate_topology_packet: Generated skb!\n");
+
+                if (unlikely(!skb)) {
+                    printk(KERN_INFO "generate_topology_packet: Broken packet!\n");
+                    return NULL;
+                }
+
+                return skb;
+
+            } 
+
+        }
+
+        //Check if there is any packet to transmit
+        if (q->qdisc->ops->peek(q->qdisc)) {
+
+			skb = qdisc_dequeue_peeked(q->qdisc);
+			if (unlikely(!skb))
+				return NULL;
 					
-				qdisc_qstats_backlog_dec(sch, skb);
-				sch->q.qlen--;
-				qdisc_bstats_update(sch, skb);
-				return skb;
+			qdisc_qstats_backlog_dec(sch, skb);
+			sch->q.qlen--;
+			qdisc_bstats_update(sch, skb);
+			return skb;
 
-			} else {
-
-				//Send broadcast with topology at the start of the slot and no more.
-				sendBroadcast = 0;
-
-				printk(KERN_INFO "[RA-TDMA] Can send broadcast: %d\n", __topology_is_active());
-
-				if(__topology_is_active && __topology_is_active()){
-
-					struct sk_buff* skb = generate_topology_packet(qdisc_dev(sch)->name);
-					printk(KERN_INFO "generate_topology_packet: Generated skb!\n");
-
-					if (unlikely(!skb)) {
-						printk(KERN_INFO "generate_topology_packet: Broken packet!\n");
-						return NULL;
-					}
-
-					//return skb;
-
-					tdma_enqueue(skb, sch, NULL);
-
-				} 
-
+        } else {
+            //Queue is empty
+			if(!reset_flag){
+				__netif_schedule(sch);
 			}
+			
+        }
 
-		} else {
 
-			//Slot has ended. Prepare to broadcast again when slot starts.
-			sendBroadcast = 1;
+    } else {
 
-		}	
+        //Slot has ended. Prepare to broadcast again when slot starts.
+		sendBroadcast = 1;
 
-		qdisc_watchdog_schedule_ns(&q->watchdog, q->frame_len - (now - slot_start));
-	}
+    }
+
+	qdisc_watchdog_schedule_ns(&q->watchdog, q->frame_len - (now - slot_start));
 
 	return NULL;
 }
 
 static void tdma_reset(struct Qdisc *sch)
 {
+
+	reset_flag = 1;
+
 	struct tdma_sched_data *q = qdisc_priv(sch);
 
 	qdisc_watchdog_cancel(&q->watchdog);
+
 	qdisc_reset(q->qdisc);
+
 }
 
 static const struct nla_policy tdma_policy[TCA_TDMA_MAX + 1] = {
@@ -548,6 +557,8 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 
 	sch_tree_unlock(sch);
 
+    __netif_schedule(sch);
+
 	qdisc_watchdog_schedule_ns(&q->watchdog, 0);
 
 	return 0;
@@ -572,6 +583,7 @@ static int tdma_init(struct Qdisc *sch, struct nlattr *opt,
 
 static void tdma_destroy(struct Qdisc *sch)
 {
+
 	struct tdma_sched_data *q = qdisc_priv(sch);
 
 	qdisc_watchdog_cancel(&q->watchdog);
