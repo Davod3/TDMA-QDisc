@@ -5,3 +5,4 @@ slot_size=5000000000
 limit=1514000
 use_guard=0
 self_configured=1
+broadcast_port=15904

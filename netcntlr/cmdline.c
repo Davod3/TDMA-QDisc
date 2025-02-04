@@ -44,6 +44,7 @@ const char *gengetopt_args_info_help[] = {
   "  -s, --slot_size=INT        size of TDMA slot",
   "  -g, --use_guard=INT        indicates whether a slot guard should be used",
   "  -c, --self_configured=INT  indicates if the node should try to configure\n                               itself (Requires Topology Module)",
+  "  -p, --broadcast_port=INT   sets the destionation port where the topology\n                               module will be expecting to find topology\n                               packets",
     0
 };
 
@@ -78,6 +79,7 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->slot_size_given = 0 ;
   args_info->use_guard_given = 0 ;
   args_info->self_configured_given = 0 ;
+  args_info->broadcast_port_given = 0 ;
 }
 
 static
@@ -94,6 +96,7 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->slot_size_orig = NULL;
   args_info->use_guard_orig = NULL;
   args_info->self_configured_orig = NULL;
+  args_info->broadcast_port_orig = NULL;
   
 }
 
@@ -112,6 +115,7 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->slot_size_help = gengetopt_args_info_help[7] ;
   args_info->use_guard_help = gengetopt_args_info_help[8] ;
   args_info->self_configured_help = gengetopt_args_info_help[9] ;
+  args_info->broadcast_port_help = gengetopt_args_info_help[10] ;
   
 }
 
@@ -211,6 +215,7 @@ cmdline_parser_release (struct gengetopt_args_info *args_info)
   free_string_field (&(args_info->slot_size_orig));
   free_string_field (&(args_info->use_guard_orig));
   free_string_field (&(args_info->self_configured_orig));
+  free_string_field (&(args_info->broadcast_port_orig));
   
   
 
@@ -261,6 +266,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "use_guard", args_info->use_guard_orig, 0);
   if (args_info->self_configured_given)
     write_into_file(outfile, "self_configured", args_info->self_configured_orig, 0);
+  if (args_info->broadcast_port_given)
+    write_into_file(outfile, "broadcast_port", args_info->broadcast_port_orig, 0);
   
 
   i = EXIT_SUCCESS;
@@ -527,10 +534,11 @@ cmdline_parser_internal (
         { "slot_size",	1, NULL, 's' },
         { "use_guard",	1, NULL, 'g' },
         { "self_configured",	1, NULL, 'c' },
+        { "broadcast_port",	1, NULL, 'p' },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVf:d:l:i:n:s:g:c:", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVf:d:l:i:n:s:g:c:p:", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -638,6 +646,18 @@ cmdline_parser_internal (
               &(local_args_info.self_configured_given), optarg, 0, 0, ARG_INT,
               check_ambiguity, override, 0, 0,
               "self_configured", 'c',
+              additional_error))
+            goto failure;
+        
+          break;
+        case 'p':	/* sets the destionation port where the topology module will be expecting to find topology packets.  */
+        
+        
+          if (update_arg( (void *)&(args_info->broadcast_port_arg), 
+               &(args_info->broadcast_port_orig), &(args_info->broadcast_port_given),
+              &(local_args_info.broadcast_port_given), optarg, 0, 0, ARG_INT,
+              check_ambiguity, override, 0, 0,
+              "broadcast_port", 'p',
               additional_error))
             goto failure;
         

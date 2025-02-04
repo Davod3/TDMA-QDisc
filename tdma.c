@@ -60,6 +60,7 @@ s64 slot_size= 0;
 s64 slot_guard = 0;
 s64 use_guard = 0;
 s64 self_configured = 0;
+s64 broadcast_port = 0;
 s64 previous_round = 0;
 int sendBroadcast = 1;
 int8_t reset_flag = 0;
@@ -72,9 +73,10 @@ EXPORT_SYMBOL(n_nodes);
 EXPORT_SYMBOL(slot_size);
 EXPORT_SYMBOL(use_guard);
 EXPORT_SYMBOL(self_configured);
+EXPORT_SYMBOL(broadcast_port);
 
 //Get functions from topology module
-extern void topology_enable(s64 nodeID);
+extern void topology_enable(s64 nodeID, s64 broadcast_port);
 extern s64 topology_get_network_size(void);
 extern int topology_get_slot_id(void);
 extern void* topology_get_info(void);
@@ -82,7 +84,7 @@ extern size_t topology_get_info_size(void);
 int8_t topology_is_active(void);
 
 //Placeholders if topology module is not loaded
-void (*__topology_enable)(s64 nodeID);
+void (*__topology_enable)(s64 nodeID, s64 broadcast_port);
 s64 (*__topology_get_network_size)(void);
 int (*__topology_get_slot_id)(void);
 void* (*__topology_get_info)(void);
@@ -96,6 +98,7 @@ struct tdma_sched_data {
 	s64 frame_len;
 	s64 slot_len;
 	s64	slot_offset;			/* Time check-point */
+	s64 broadcast_port;			/* UDP port to broadcast topology packet*/
 
 	struct Qdisc	*qdisc;		/* Inner qdisc, default - bfifo queue */
 	struct qdisc_watchdog watchdog;	/* Watchdog timer */
@@ -244,7 +247,7 @@ static int iph_checksum(u_short *header, int len) {
 }
 
 /* Code adapted from https://github.com/dmytroshytyi-6WIND/KERNEL-sk_buff-helloWorld */
-static struct sk_buff *generate_topology_packet(char* dev_name) {
+static struct sk_buff *generate_topology_packet(char* dev_name, struct tdma_sched_data *q) {
 
 	printk(KERN_INFO "generate_topology_packet: Starting generation...\n");
 
@@ -294,8 +297,8 @@ static struct sk_buff *generate_topology_packet(char* dev_name) {
 	//Setup UDP header
 	struct udphdr* uh = (struct udphdr*)skb_push(skb,udp_header_len);
 	uh->len = htons(udp_total_len);
-	uh->source = htons(15934);
-	uh->dest = htons(15904);
+	uh->source = htons(q->broadcast_port);
+	uh->dest = htons(q->broadcast_port);
 
 	printk(KERN_INFO "generate_topology_packet: Setup udp header...\n");
 
@@ -366,7 +369,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
             if(__topology_is_active && __topology_is_active()){
 
-                struct sk_buff* skb = generate_topology_packet(qdisc_dev(sch)->name);
+                struct sk_buff* skb = generate_topology_packet(qdisc_dev(sch)->name, q);
                 printk(KERN_INFO "generate_topology_packet: Generated skb!\n");
 
                 if (unlikely(!skb)) {
@@ -518,12 +521,13 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 
 				printk(KERN_DEBUG "[RA-TDMA] Found topology symbols. Self-Configuring Network. \n");
 
-				__topology_enable(qopt->node_id);
+				q->broadcast_port = qopt->broadcast_port;
+				__topology_enable(qopt->node_id, qopt->broadcast_port);
 
 				s64 n_nodes = __topology_get_network_size(); //Get from topology module
 				s64 slot_id = __topology_get_slot_id(); //Get from topology module
 
-				printk(KERN_DEBUG "[RA-TDMA] Self-Configured (n_nodes --- slot_id)=(%d --- %d) \n", n_nodes, slot_id);
+				printk(KERN_DEBUG "[RA-TDMA] Self-Configured (n_nodes --- slot_id --- port)=(%d --- %d -- %lld) \n", n_nodes, slot_id, qopt->broadcast_port);
 
 				//Compute TDMA Parameters based on Topology
 				q->slot_len = qopt->slot_size;

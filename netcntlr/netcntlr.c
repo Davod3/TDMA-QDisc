@@ -185,6 +185,14 @@ struct tdma_vars_t *update_vars(uint32_t *bitmap)
 		clear_tdma_var_bit(bitmap, SELF_CONFIGURED);
 	}
 
+	if(get_tdma_var_bit(bitmap, BROADCAST_PORT)) {
+		
+		printf("%sattr: %s is set!%s\n", yellow, "BROADCAST PORT", reset);
+		data->broadcast_port = broadcast_port;
+		clear_tdma_var_bit(bitmap, BROADCAST_PORT);
+
+	}
+
 	// return pointer to data struct
 	return data;
 }
@@ -250,6 +258,12 @@ int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info)
 					self_configured = (int64_t)strtoull(value, &end_ptr, 10);
 					set_tdma_var_bit(bitmap, SELF_CONFIGURED);
 				}
+				else if (strcmp(key, "broadcast_port") == 0) {
+					
+					broadcast_port = (uint64_t)strtoul(value, &end_ptr, 10);
+					set_tdma_var_bit(bitmap, BROADCAST_PORT);
+
+				}
 				else 
 				{
 					printf("Invalid key: %s specified\n", key);
@@ -298,6 +312,11 @@ int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info)
 			self_configured = args_info->self_configured_arg;
 			set_tdma_var_bit(bitmap, SELF_CONFIGURED);
 		}
+		if(args_info->broadcast_port_given)
+		{
+			broadcast_port = args_info->broadcast_port_arg;
+			set_tdma_var_bit(bitmap, BROADCAST_PORT);
+		}
 	}
 	
 	return 0;
@@ -314,6 +333,7 @@ int add_qdisc(struct tdma_vars_t *data) {
 	opt->node_id = data->node_id;
 	opt->use_guard = data->use_guard;
 	opt->self_configured = data->self_configured;
+	opt->broadcast_port = data->broadcast_port;
 
 	printf("Opening rtnl socket...\n");
 
@@ -354,6 +374,7 @@ int change_qdisc(struct tdma_vars_t *data) {
 	opt->node_id = data->node_id;
 	opt->use_guard = data->use_guard;
 	opt->self_configured = data->self_configured;
+	opt->broadcast_port = data->broadcast_port;
 
 	//communication
 	if(rtnl_open(&rth, 0) < 0) {

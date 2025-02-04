@@ -48,6 +48,7 @@ struct tdma_vars_t
     int64_t node_id;
     int64_t use_guard;
     int64_t self_configured;
+    int64_t broadcast_port;
 };
 
 struct tc_tdma_qopt {
@@ -57,6 +58,7 @@ struct tc_tdma_qopt {
 	__s64		node_id;
     __s64       use_guard;
     __s64       self_configured;
+    __s64       broadcast_port;
 };
 
 enum tdma_vars_e
@@ -68,6 +70,7 @@ enum tdma_vars_e
     SLOT_SIZE,
     USE_GUARD,
     SELF_CONFIGURED,
+    BROADCAST_PORT,
 };
 
 struct rtnl_handle rth;
@@ -84,6 +87,7 @@ int64_t slot_size = 0;
 int64_t node_id = 0;
 int64_t use_guard = 0;
 int64_t self_configured = 0;
+int64_t broadcast_port = 0;
 bool tdma_mod_loaded = false;
 bool topology_mod_loaded = false;
 

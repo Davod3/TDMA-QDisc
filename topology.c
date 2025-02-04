@@ -49,7 +49,7 @@ static unsigned int hookFunc(void *priv, struct sk_buff *skb, const struct nf_ho
 }
 
 // Called by TDMA QDisc to enable topology tracking
-void topology_enable(s64 nodeID) {
+void topology_enable(s64 nodeID, s64 broadcast_port) {
 
 
     if(topology_info->active == 0){
