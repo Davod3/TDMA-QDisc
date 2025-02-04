@@ -1,3 +1,5 @@
+EXTRA_CFLAGS += -std=gnu99
+
 # build modules
 obj-m += tdma.o 
 obj-m += topology.o
@@ -8,7 +10,7 @@ KDIR = /lib/modules/$(shell uname -r)/build
 
 # build all modules
 all: netcntlr 
-	$(MAKE) -C $(KDIR) M=$(PWD) modules
+	$(MAKE) -C $(KDIR) M=$(PWD) EXTRA_CFLAGS="$(EXTRA_CFLAGS)" modules
 	rm -r -f *.mod.c .*.cmd *.symvers *.o
 
 # (sub)build user-space program
