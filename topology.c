@@ -229,8 +229,18 @@ void print_struct(void) {
 /* Called by TDMA QDisc to send topology info to the network */
 void* topology_get_info(void) {
 
-    //TODO: Update age values age = epoch - creationTime
+    s64 epoch = ktime_get_real_ns();
 
+    for (size_t i = 0; i < MAX_NODES; i++) {
+        
+        if(i != topology_info->myID){
+            topology_info->age[i] = epoch - topology_info->creationTime[i];
+        } else {
+            topology_info->age[i] = 0;
+        }
+
+    }
+    
     return (void*) topology_info; 
 }
 
