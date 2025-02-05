@@ -30,8 +30,9 @@ static struct topology_info_t *topology_info = NULL;
 /* Called when a packet containing topology info is received */
 void topology_parse(struct topology_info_t *topology_info_new) {
 
-    printk(KERN_DEBUG "Parsing topology packet (me ---- other guy): (%lld ---- %lld)\n", topology_info->myID, topology_info_new->myID);
-    printk(KERN_DEBUG "Active Nodes: (%lld ---- %lld)\n", topology_info->activeNodes, topology_info_new->activeNodes);
+    printk(KERN_DEBUG "Parsing topology packet\n");
+
+    //Check if received packet is a new node
 }
 
 //Runs for every received packet
@@ -104,7 +105,7 @@ void topology_enable(s64 nodeID, s64 broadcast_port) {
         topology_info->myID = nodeID;
 
         topology_info->activeNodes = topology_info->activeNodes + 1;
-        topology_info->activeNodesList[topology_info->activeNodes - 1] = nodeID;
+        topology_info->activeNodesList[nodeID] = 1;
 
         topology_info->age[nodeID] = 0;
         s64 epoch = ktime_get_real_ns();
@@ -226,17 +227,20 @@ static void quicksort(s64 arr[], s64 low, s64 high) {
 int topology_get_slot_id(void) {
 
     s64 activeNodeIDS[topology_info->activeNodes];
+    int foundNodes = 0;
 
     //Get all currently active nodes
-    for (int i = 0; i < topology_info->activeNodes; i++) {
+    for (int i = 0; i < MAX_NODES; i++) {
         
-        activeNodeIDS[i] = topology_info->activeNodesList[i];
+        if(topology_info->activeNodesList[i]){
+            activeNodeIDS[foundNodes] = i;
+            foundNodes++;
+        }
 
     }
 
     //Sort the active node list by ascending ID
     s64 n = sizeof(activeNodeIDS) / sizeof(activeNodeIDS[0]);
-
     quicksort(activeNodeIDS, 0, n - 1);
 
     //Find my ID in the list, and return slot position
