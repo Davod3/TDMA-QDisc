@@ -1,4 +1,4 @@
-devname=eno1
+devname=wlo1
 node_id=1
 n_nodes=2
 slot_size=5000000000
