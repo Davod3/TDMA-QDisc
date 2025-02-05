@@ -30,9 +30,72 @@ static struct topology_info_t *topology_info = NULL;
 /* Called when a packet containing topology info is received */
 void topology_parse(struct topology_info_t *topology_info_new) {
 
-    printk(KERN_DEBUG "Parsing topology packet\n");
+    printk(KERN_DEBUG "Parsing topology packet, %lld ---- %lld\n", topology_info->myID, topology_info->activeNodes);
 
-    //Check if received packet is a new node
+    //Check if received packet is not mine for some reason
+    if(topology_info->myID != topology_info_new->myID){
+
+        //Check if im aware of new guy
+        if(!topology_info->activeNodesList[topology_info_new->myID]){
+
+            //If not aware: 
+            
+            //Activate flag
+            topology_info->activeNodesList[topology_info_new->myID] = 1;
+
+            //Increment activeNode counter
+            topology_info->activeNodes++;
+
+            //Update connection matrix
+            topology_info->connectionMatrix[topology_info->myID][topology_info_new->myID] = 1;
+            topology_info->connectionMatrix[topology_info_new->myID][topology_info->myID] = 1;
+
+        }
+
+        //Update creation time
+        s64 epoch = ktime_get_real_ns();
+        topology_info->creationTime[topology_info_new->myID]= epoch - topology_info_new->age[topology_info_new->myID];
+
+        //For each node new guy has on his connection matrix, check info age. If more recent, update my connection matrix
+
+        //For each node new guy is aware of:
+        for (size_t i = 0; i < MAX_NODES; i++) {
+            
+            if(topology_info_new->activeNodesList[i]){
+
+                //Check if information is more recent
+                epoch = ktime_get_real_ns();
+                s64 creation_time_new = epoch - topology_info_new->age[i];
+
+                if(creation_time_new > topology_info->creationTime[i]){
+
+                    //Information is more recent, update it
+
+                    //Update corresponding line on ConnectionMatrix
+                    for (size_t j = 0; j < MAX_NODES; j++) {
+                        topology_info->connectionMatrix[i][j]=topology_info_new->connectionMatrix[i][j];
+                    }
+
+                    //Check if already aware of node and update accordingly
+                    if(!topology_info->activeNodesList[i]){
+                        topology_info->activeNodesList[i] = 1;
+                        topology_info->activeNodes++;
+                    }
+
+                    //Update creation time
+                    topology_info->creationTime[i] = creation_time_new;
+
+                }
+
+                //Else, information is older. Discard it.
+
+            }
+
+        }
+        
+
+    }
+
 }
 
 //Runs for every received packet
@@ -166,7 +229,7 @@ void print_struct(void) {
 /* Called by TDMA QDisc to send topology info to the network */
 void* topology_get_info(void) {
 
-    //print_struct();
+    //TODO: Update age values age = epoch - creationTime
 
     return (void*) topology_info; 
 }

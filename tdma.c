@@ -155,6 +155,19 @@ static int tdma_segment(struct sk_buff *skb, struct Qdisc *sch,
 	return nb > 0 ? NET_XMIT_SUCCESS : NET_XMIT_DROP;
 }
 
+static void compute_tdma_parameters(struct tdma_sched_data *q) {
+
+	s64 n_nodes = __topology_get_network_size(); //Get from topology module
+	s64 slot_id = __topology_get_slot_id(); //Get from topology module
+
+	printk(KERN_DEBUG "[RA-TDMA] Self-Configured (n_nodes --- slot_id --- port)=(%d --- %d -- %lld) \n", n_nodes, slot_id);
+
+	//Compute TDMA Parameters based on Topology
+	q->frame_len = q->slot_len * n_nodes;
+	q->slot_offset = q->slot_len * slot_id;
+
+}
+
 static int tdma_enqueue(struct sk_buff *skb, struct Qdisc *sch,
 		       struct sk_buff **to_free)
 {
@@ -347,7 +360,8 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		previous_round = current_round;
 
 		//Round has changed, update variables
-		//printk(KERN_DEBUG "[RA-TDMA] New Round: %d\n", current_round);
+		printk(KERN_DEBUG "[RA-TDMA] New Round: %d\n", current_round);
+		compute_tdma_parameters(q);
 
 		//Allow for a broadcast to be made when slot starts
 		sendBroadcast = 1;
@@ -524,15 +538,10 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 				q->broadcast_port = qopt->broadcast_port;
 				__topology_enable(qopt->node_id, qopt->broadcast_port);
 
-				s64 n_nodes = __topology_get_network_size(); //Get from topology module
-				s64 slot_id = __topology_get_slot_id(); //Get from topology module
-
-				printk(KERN_DEBUG "[RA-TDMA] Self-Configured (n_nodes --- slot_id --- port)=(%d --- %d -- %lld) \n", n_nodes, slot_id, qopt->broadcast_port);
-
-				//Compute TDMA Parameters based on Topology
 				q->slot_len = qopt->slot_size;
-				q->frame_len = qopt->slot_size * n_nodes;
-				q->slot_offset = qopt->slot_size * slot_id;
+
+				compute_tdma_parameters(q);
+
 
 			} else {
 
