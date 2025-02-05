@@ -9,6 +9,8 @@
 
 #define MAX_NODES 20
 
+static s64 udp_broadcast_port = 0;
+
 struct topology_info_t {
     
     s64 myID;
@@ -29,19 +31,37 @@ static struct topology_info_t *topology_info = NULL;
 static unsigned int hookFunc(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
 
     struct iphdr *iph;
+    struct udphdr *udph;
 
-    if(!skb) {
-        return NF_ACCEPT;
-    }
-
-    iph = ip_hdr(skb);
-
-    //Do whathever with IP Header info
-
+    //Only handle packets if topology module is being used
     if(topology_info->active){
-        //printk(KERN_DEBUG "TOPOLOGY: Packet received, processing...\n");
-    } else {
-        //printk(KERN_DEBUG "TOPOLOGY: Packet received, but ignored.\n");
+
+        if(!skb) {
+            return NF_ACCEPT;
+        }
+
+        //Get IP Header
+        iph = ip_hdr(skb);
+        if (!iph) {
+            return NF_ACCEPT;
+        }
+
+        //If payload is UDP, get UDP header
+        if (iph->protocol == IPPROTO_UDP) {
+            udph = udp_hdr(skb);
+            if (!udph) {
+                return NF_ACCEPT;
+            }
+
+            uint16_t dst_port = ntohs(udph->dest);
+
+            //Check if port is expected topology port
+            if(dst_port == udp_broadcast_port){
+                printk(KERN_DEBUG "Topology Packet Received!!!\n");
+            }
+
+        }
+
     }
 
     return NF_ACCEPT; //Accept the packet regardless
@@ -65,6 +85,9 @@ void topology_enable(s64 nodeID, s64 broadcast_port) {
 
         //Activate traking (Join the network)
         topology_info->active = 1;
+
+        //Save the port being used
+        udp_broadcast_port = broadcast_port;
 
     }
 

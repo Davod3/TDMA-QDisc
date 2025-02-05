@@ -249,7 +249,7 @@ static int iph_checksum(u_short *header, int len) {
 /* Code adapted from https://github.com/dmytroshytyi-6WIND/KERNEL-sk_buff-helloWorld */
 static struct sk_buff *generate_topology_packet(char* dev_name, struct tdma_sched_data *q) {
 
-	printk(KERN_INFO "generate_topology_packet: Starting generation...\n");
+	//printk(KERN_INFO "generate_topology_packet: Starting generation...\n");
 
 	//Get network device struct from name
 	struct net_device* device = dev_get_by_name(&init_net, dev_name);
@@ -268,7 +268,7 @@ static struct sk_buff *generate_topology_packet(char* dev_name, struct tdma_sche
 	void* content = __topology_get_info();
 	int data_len = __topology_get_info_size();
 
-	printk(KERN_INFO "generate_topology_packet: Defined variables... %d\n", __topology_get_info_size());
+	//printk(KERN_INFO "generate_topology_packet: Defined variables... %d\n", __topology_get_info_size());
 
 	//Setup UDP dimensions
 	int udp_header_len = 8;
@@ -286,13 +286,13 @@ static struct sk_buff *generate_topology_packet(char* dev_name, struct tdma_sche
 	skb->pkt_type = PACKET_OUTGOING;
 	skb_reserve(skb, ETH_HLEN + ip_header_len + udp_header_len);
 
-	printk(KERN_INFO "generate_topology_packet: Reserved packet space...\n");
+	//printk(KERN_INFO "generate_topology_packet: Reserved packet space...\n");
 
 	//Setup data
 	data = skb_put(skb, udp_payload_len);
 	memcpy(data, content, data_len);
 
-	printk(KERN_INFO "generate_topology_packet: Added data...\n");
+	//printk(KERN_INFO "generate_topology_packet: Added data...\n");
 
 	//Setup UDP header
 	struct udphdr* uh = (struct udphdr*)skb_push(skb,udp_header_len);
@@ -300,7 +300,7 @@ static struct sk_buff *generate_topology_packet(char* dev_name, struct tdma_sche
 	uh->source = htons(q->broadcast_port);
 	uh->dest = htons(q->broadcast_port);
 
-	printk(KERN_INFO "generate_topology_packet: Setup udp header...\n");
+	//printk(KERN_INFO "generate_topology_packet: Setup udp header...\n");
 
 	//Setup IP header
 	struct iphdr* iph = (struct iphdr*)skb_push(skb, ip_header_len);
@@ -315,7 +315,7 @@ static struct sk_buff *generate_topology_packet(char* dev_name, struct tdma_sche
 	iph->saddr = inet_addr(device, 0);
 	iph->daddr = inet_addr(device, 1);
 
-	printk(KERN_INFO "generate_topology_packet: Setup ip header...\n");
+	//printk(KERN_INFO "generate_topology_packet: Setup ip header...\n");
 
 	//Setup Ethernet header
 	struct ethhdr* eth = (struct ethhdr*)skb_push(skb, sizeof (struct ethhdr));
@@ -324,7 +324,7 @@ static struct sk_buff *generate_topology_packet(char* dev_name, struct tdma_sche
 	memcpy(eth->h_source, device->dev_addr, ETH_ALEN);
 	memcpy(eth->h_dest, dest_addr, ETH_ALEN);
 
-	printk(KERN_INFO "generate_topology_packet: Setup ethernet header...\n");
+	//printk(KERN_INFO "generate_topology_packet: Setup ethernet header...\n");
 
 	//Calculate IP checksum
 	iph->check = iph_checksum((unsigned short*) iph , ip_header_len);
@@ -347,7 +347,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		previous_round = current_round;
 
 		//Round has changed, update variables
-		printk(KERN_DEBUG "[RA-TDMA] New Round: %d\n", current_round);
+		//printk(KERN_DEBUG "[RA-TDMA] New Round: %d\n", current_round);
 
 		//Allow for a broadcast to be made when slot starts
 		sendBroadcast = 1;
@@ -370,7 +370,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
             if(__topology_is_active && __topology_is_active()){
 
                 struct sk_buff* skb = generate_topology_packet(qdisc_dev(sch)->name, q);
-                printk(KERN_INFO "generate_topology_packet: Generated skb!\n");
+                //printk(KERN_INFO "generate_topology_packet: Generated skb!\n");
 
                 if (unlikely(!skb)) {
                     printk(KERN_INFO "generate_topology_packet: Broken packet!\n");
