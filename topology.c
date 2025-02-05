@@ -27,6 +27,13 @@ static struct nf_hook_ops *nfho = NULL;
 
 static struct topology_info_t *topology_info = NULL;
 
+/* Called when a packet containing topology info is received */
+void topology_parse(struct topology_info_t *topology_info_new) {
+
+    printk(KERN_DEBUG "Parsing topology packet (me ---- other guy): (%lld ---- %lld)\n", topology_info->myID, topology_info_new->myID);
+    printk(KERN_DEBUG "Active Nodes: (%lld ---- %lld)\n", topology_info->activeNodes, topology_info_new->activeNodes);
+}
+
 //Runs for every received packet
 static unsigned int hookFunc(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
 
@@ -57,7 +64,27 @@ static unsigned int hookFunc(void *priv, struct sk_buff *skb, const struct nf_ho
 
             //Check if port is expected topology port
             if(dst_port == udp_broadcast_port){
-                printk(KERN_DEBUG "Topology Packet Received!!!\n");
+
+                // Calculate payload start and length
+                unsigned char *udp_payload = (unsigned char *)((unsigned char *)udph + sizeof(struct udphdr)); //Pointer to the start of UDP payload
+                int udp_payload_length = ntohs(udph->len) - sizeof(struct udphdr);
+
+                if (udp_payload_length > 0 && skb_tail_pointer(skb) >= udp_payload + udp_payload_length) {
+                    
+                    //If this is true, most likely packet contains topology info. Parse it.
+                    if(udp_payload_length == sizeof(struct topology_info_t)) {
+
+                        struct topology_info_t *topology_temp = (struct topology_info_t *) udp_payload;
+
+                        topology_parse(topology_temp);
+                        
+                        //Drop packet after processing to not bother application layer
+                        return NF_DROP;
+
+                    }
+
+                }
+
             }
 
         }
@@ -224,13 +251,6 @@ int topology_get_slot_id(void) {
 
     return -1;
     
-}
-
-/* Called when a packet containing topology info is received */
-void topology_parse(void) {
-
-    //TODO
-
 }
 
 static int __init topology_init(void) {
