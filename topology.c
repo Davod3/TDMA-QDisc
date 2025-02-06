@@ -253,7 +253,7 @@ void* topology_get_info(void) {
                 topology_info->connectionMatrix[topology_info->myID][i] = 0;
                 
                 //Update creation time and age to send
-                topology_info->creationTime[i] = epoch;
+                topology_info->creationTime[i] = 0;
                 topology_info->age[i] = 0;
 
             } else {
