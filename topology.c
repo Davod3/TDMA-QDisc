@@ -8,6 +8,7 @@
 #include <linux/udp.h>
 
 #define MAX_NODES 20
+#define MAX_AGE 30000000000
 
 static s64 udp_broadcast_port = 0;
 
@@ -231,10 +232,35 @@ void* topology_get_info(void) {
 
     s64 epoch = ktime_get_real_ns();
 
+    //Update age values and discard old information
     for (size_t i = 0; i < MAX_NODES; i++) {
         
-        if(i != topology_info->myID){
-            topology_info->age[i] = epoch - topology_info->creationTime[i];
+        if(i != topology_info->myID && topology_info->creationTime[i] != 0){
+
+            s64 age = epoch - topology_info->creationTime[i]; //Nanoseconds
+
+            printk(KERN_DEBUG "ID----Age: %d----%lld\n", i, age);
+
+            if(age > MAX_AGE){
+                
+                //Discard data and set new creation time.
+                topology_info->activeNodes--;
+                topology_info->activeNodesList[i] = 0;
+                for (size_t j = 0; j < MAX_NODES; j++) {
+                    topology_info->connectionMatrix[i][j] = 0;
+                }
+
+                topology_info->connectionMatrix[topology_info->myID][i] = 0;
+                
+                //Update creation time and age to send
+                topology_info->creationTime[i] = epoch;
+                topology_info->age[i] = 0;
+
+            } else {
+                //Just send age as is
+                topology_info->age[i] = age;
+            }
+
         } else {
             topology_info->age[i] = 0;
         }
