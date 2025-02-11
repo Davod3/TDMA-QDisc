@@ -50,7 +50,7 @@
 
 #define IP_Header_RM 20
 #define UDP_Header_RM 8
-#define TDMA_DATA_IP_OPT_TYPE 158
+#define TDMA_DATA_IP_OPT_TYPE 30
 //#define TDMA_DATA_IP_OPT_SIZE sizeof(s64)*2 + 2
 #define TDMA_DATA_IP_OPT_SIZE 4
 
@@ -266,75 +266,77 @@ static int iph_checksum(u_short *header, int len) {
 //Add timestamp information to packet IP Header
 static struct sk_buff* annotate_skb(struct sk_buff* skb, s64 transmission_offset, s64 slot_id){
 
-	//printk(KERN_DEBUG "Start headroom = %d\n", skb_headroom(skb));
+	struct ethhdr *eth = (struct ethhdr *) skb_mac_header(skb);
 
-	if(skb_headroom(skb) < TDMA_DATA_IP_OPT_SIZE) {
+	if(eth->h_proto == htons(ETH_P_IP)) {
 
-		int result = skb_cow_head(skb, TDMA_DATA_IP_OPT_SIZE);
+		if(skb_headroom(skb) < TDMA_DATA_IP_OPT_SIZE) {
 
-		printk(KERN_INFO "[TDMA] Not enough space. Allocating more: %d\n", result);
-	}
+			int result = skb_cow_head(skb, TDMA_DATA_IP_OPT_SIZE);
 
-	struct iphdr *iph = ip_hdr(skb);
+			//printk(KERN_INFO "[TDMA] Not enough space. Allocating more: %d\n", result);
+		}
 
-	//Pointer to start of headers
-	void* skb_data_start = skb->data;
+		struct iphdr *iph = ip_hdr(skb);
 
-	//Pointer to start of clean 4 bytes
-	void* skb_start = skb_push(skb, TDMA_DATA_IP_OPT_SIZE);
+		//Pointer to start of headers
+		void* skb_data_start = skb->data;
 
-	int memory_to_move_len = sizeof (struct ethhdr) + (iph->ihl * 4);
+		//Pointer to start of clean 4 bytes
+		void* skb_start = skb_push(skb, TDMA_DATA_IP_OPT_SIZE);
 
-	void* mac_header_before = skb_mac_header(skb);
-	void* ip_header_before = skb_network_header(skb);
-	void* transport_header_before = skb_transport_header(skb);
+		int memory_to_move_len = sizeof (struct ethhdr) + (iph->ihl * 4);
 
-	printk(KERN_DEBUG "SKB Start: %d\n", skb_start);
-	printk(KERN_DEBUG "Offset: %d\n", memory_to_move_len);
-	printk(KERN_DEBUG "Data Start: %d\n", skb_data_start);
-	printk(KERN_DEBUG "MAC Start: %d\n", mac_header_before);
-	printk(KERN_DEBUG "IP Start: %d\n", ip_header_before); 
-	printk(KERN_DEBUG "Transport Start: %d\n", transport_header_before);  
+		//void* mac_header_before = skb_mac_header(skb);
+		//void* ip_header_before = skb_network_header(skb);
+		//void* transport_header_before = skb_transport_header(skb);
 
-	//Shift everything until end of IP Header to the new start of SKB
-	memmove(skb_start, skb_data_start, memory_to_move_len);
+		//printk(KERN_DEBUG "SKB Start: %d\n", skb_start);
+		//printk(KERN_DEBUG "Offset: %d\n", memory_to_move_len);
+		//printk(KERN_DEBUG "Data Start: %d\n", skb_data_start);
+		//printk(KERN_DEBUG "MAC Start: %d\n", mac_header_before);
+		//printk(KERN_DEBUG "IP Start: %d\n", ip_header_before); 
+		//printk(KERN_DEBUG "Transport Start: %d\n", transport_header_before);  
+
+		//Shift everything until end of IP Header to the new start of SKB
+		memmove(skb_start, skb_data_start, memory_to_move_len);
+		
+		//Reset Headers
+		skb_reset_mac_header(skb);
+		skb_set_network_header(skb, sizeof (struct ethhdr));
+
+		iph = ip_hdr(skb);
+		iph->ihl += (TDMA_DATA_IP_OPT_SIZE / 4);
+		iph->tot_len = htons(ntohs(iph->tot_len) + TDMA_DATA_IP_OPT_SIZE);
+
+		//printk(KERN_DEBUG "IP Header Len: %d\n", iph->ihl);
+		//printk(KERN_DEBUG "IP Version: %d\n", iph->version);
+
+
+		//void* mac_header_after = skb_mac_header(skb);
+		//void* ip_header_after = skb_network_header(skb);
+		//void* transport_header_after = skb_transport_header(skb);
+
+		//printk(KERN_DEBUG "SKB Start after: %d\n", skb->data);
+		//printk(KERN_DEBUG "MAC Start after: %d\n", mac_header_after);
+		//printk(KERN_DEBUG "IP Start after: %d\n", ip_header_after); 
+		//printk(KERN_DEBUG "Transport Start after: %d\n", transport_header_after);
+
+		unsigned char* opts = (unsigned char*)(iph + 1); //Start of options field
+
+		//Setup options
+		opts[0] = 1; //Option Type
+		opts[1] = 1; //Options total size;
+		opts[2] = 1;
+		opts[3] = 1;
+
+		//Re-Calculate header length
+		//iph->ihl += (TDMA_DATA_IP_OPT_SIZE / 4);
+
+		//Calculate IP checksum
+		ip_send_check(iph);
 	
-	//Reset Headers
-	skb_reset_mac_header(skb);
-	skb_set_network_header(skb, sizeof (struct ethhdr));
-
-	iph = ip_hdr(skb);
-	iph->ihl += (TDMA_DATA_IP_OPT_SIZE / 4);
-	iph->tot_len = htons(ntohs(iph->tot_len) + TDMA_DATA_IP_OPT_SIZE);
-
-	//skb_set_transport_header(skb, sizeof (struct ethhdr) + (iph->ihl * 4));
-
-	printk(KERN_DEBUG "IP Header Len: %d\n", iph->ihl);
-	printk(KERN_DEBUG "IP Version: %d\n", iph->version);
-
-
-	void* mac_header_after = skb_mac_header(skb);
-	void* ip_header_after = skb_network_header(skb);
-	void* transport_header_after = skb_transport_header(skb);
-
-	printk(KERN_DEBUG "SKB Start after: %d\n", skb->data);
-	printk(KERN_DEBUG "MAC Start after: %d\n", mac_header_after);
-	printk(KERN_DEBUG "IP Start after: %d\n", ip_header_after); 
-	printk(KERN_DEBUG "Transport Start after: %d\n", transport_header_after);
-
-	unsigned char* opts = (unsigned char*)(iph + 1); //Start of options field
-
-	//Setup options
-	opts[0] = TDMA_DATA_IP_OPT_TYPE; //Option Type
-	opts[1] = TDMA_DATA_IP_OPT_SIZE; //Options total size;
-	opts[2] = 3;
-	opts[3] = 4;
-
-	//Re-Calculate header length
-	//iph->ihl += (TDMA_DATA_IP_OPT_SIZE / 4);
-
-	//Calculate IP checksum
-	ip_send_check(iph);
+	}
 
 	return skb;
 
