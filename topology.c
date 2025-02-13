@@ -10,6 +10,11 @@
 #define MAX_NODES 20
 #define MAX_AGE 30000000000
 
+#define TDMA_DATA_IP_OPT_TYPE 30
+#define TDMA_DATA_IP_OPT_SIZE sizeof(struct ratdma_packet_annotations) + 2
+#define TDMA_DATA_IP_OPT_PADDING (TDMA_DATA_IP_OPT_SIZE - (intdiv(TDMA_DATA_IP_OPT_SIZE, 4) * 4))
+#define TDMA_DATA_IP_OPT_TOTAL_SIZE (TDMA_DATA_IP_OPT_SIZE + TDMA_DATA_IP_OPT_PADDING)
+
 static s64 udp_broadcast_port = 0;
 
 struct topology_info_t {
@@ -22,6 +27,13 @@ struct topology_info_t {
     s64 age[MAX_NODES];
     uint8_t active; 
 
+};
+
+struct ratdma_packet_annotations {
+
+    s64 transmission_offset;    //Amount of time in ns from the start of the slot, to the moment the packet was sent
+    s64 slot_id;                //ID of the slot used by the node to transmit the packet
+    s64 node_id;                //ID of the node who transmitted the packet
 };
 
 static struct nf_hook_ops *nfho = NULL;
@@ -99,6 +111,14 @@ void topology_parse(struct topology_info_t *topology_info_new) {
 
 }
 
+static void parseIPOptions(struct ratdma_packet_annotations* annotations){
+
+    printk(KERN_DEBUG "[TOPOLOGY] SLOT_ID: %lld\n", annotations->slot_id);
+    printk(KERN_DEBUG "[TOPOLOGY] NODE_ID: %lld\n", annotations->node_id);
+    printk(KERN_DEBUG "[TOPOLOGY] TRANSMISSION_OFFSET: %lld\n", annotations->transmission_offset);
+
+}
+
 //Runs for every received packet
 static unsigned int hookFunc(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
 
@@ -116,6 +136,19 @@ static unsigned int hookFunc(void *priv, struct sk_buff *skb, const struct nf_ho
         iph = ip_hdr(skb);
         if (!iph) {
             return NF_ACCEPT;
+        }
+
+        //For every packet, check if it has TDMA IPv4 Options
+        if(iph->ihl > 5){
+
+            //Packet contains options, check type.
+            unsigned char* opts = (unsigned char*)(iph + 1); //Start of options field
+
+            if(opts[0] == TDMA_DATA_IP_OPT_TYPE){
+                //TDMA Options are present. Parse them
+                parseIPOptions((struct ratdma_packet_annotations*) (opts + 2));
+            }
+
         }
 
         //If payload is UDP, get UDP header
