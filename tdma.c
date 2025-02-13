@@ -266,6 +266,9 @@ static int iph_checksum(u_short *header, int len) {
 //Add timestamp information to packet IP Header
 static struct sk_buff* annotate_skb(struct sk_buff* skb, s64 transmission_offset, s64 slot_id){
 
+	skb_reset_mac_header(skb);
+	skb_set_network_header(skb, sizeof (struct ethhdr));
+
 	struct ethhdr *eth = (struct ethhdr *) skb_mac_header(skb);
 
 	if(eth->h_proto == htons(ETH_P_IP)) {
@@ -372,7 +375,7 @@ static struct sk_buff *generate_topology_packet(char* dev_name, struct tdma_sche
 	int udp_total_len = udp_header_len + udp_payload_len;
 
 	//Setup IP dimensions
-	int ip_header_len = 20 + TDMA_DATA_IP_OPT_SIZE;
+	int ip_header_len = 20;
 	int ip_payload_len = udp_total_len;
 	int ip_total_len = ip_header_len + ip_payload_len;
 
@@ -411,14 +414,6 @@ static struct sk_buff *generate_topology_packet(char* dev_name, struct tdma_sche
 	iph->saddr = inet_addr(device, 0);
 	iph->daddr = inet_addr(device, 1);
 
-	unsigned char* opts = (unsigned char*)(iph + 1); //Start of options field
-
-	//Setup IP options
-	opts[0] = TDMA_DATA_IP_OPT_TYPE; //Option Type
-	opts[1] = TDMA_DATA_IP_OPT_SIZE; //Options total size;
-	opts[2] = 4;
-	opts[3] = 5;
-
 	//printk(KERN_INFO "generate_topology_packet: Setup ip header...\n");
 
 	//Setup Ethernet header
@@ -431,8 +426,7 @@ static struct sk_buff *generate_topology_packet(char* dev_name, struct tdma_sche
 	//printk(KERN_INFO "generate_topology_packet: Setup ethernet header...\n");
 
 	//Calculate IP checksum
-	iph->check = iph_checksum((unsigned short*) iph , ip_header_len);
-
+	ip_send_check(iph);
 
 	return skb;
 
@@ -483,8 +477,8 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
                     return NULL;
                 }
 
-                //return annotate_skb(skb, 0, 5);
-				return skb;
+                return annotate_skb(skb, 0, 5);
+				//return skb;
 
             } 
 
