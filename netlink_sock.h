@@ -25,6 +25,7 @@ enum genl_ratdma_attr_ids
     GNL_RATDMA_USE_GUARD,
     GNL_RATDMA_SELF_CONFIGURED,
     GNL_RATDMA_BROADCAST_PORT,
+    GNL_RATDMA_CLOCKLESS_SYNC,
     /* include additional variables here */
     __GNL_RATDMA_COUNT
 };
@@ -49,6 +50,7 @@ extern s64 node_id;
 extern s64 use_guard;
 extern s64 self_configured;
 extern s64 broadcast_port;
+extern s64 clockless_sync;
 
 #endif
 
@@ -64,6 +66,7 @@ struct tc_tdma_qopt
     s64 use_guard;
     s64 self_configured;
     s64 broadcast_port;
+    s64 clockless_sync;
 };
 
 #endif 

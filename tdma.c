@@ -65,6 +65,7 @@ s64 slot_guard = 0;
 s64 use_guard = 0;
 s64 self_configured = 0;
 s64 broadcast_port = 0;
+s64 clockless_sync = 0;
 s64 previous_round = 0;
 int sendBroadcast = 1;
 int8_t reset_flag = 0;
@@ -78,6 +79,7 @@ EXPORT_SYMBOL(slot_size);
 EXPORT_SYMBOL(use_guard);
 EXPORT_SYMBOL(self_configured);
 EXPORT_SYMBOL(broadcast_port);
+EXPORT_SYMBOL(clockless_sync);
 
 //Get functions from topology module
 extern void topology_enable(s64 nodeID, s64 broadcast_port);
@@ -164,7 +166,7 @@ static void compute_tdma_parameters(struct tdma_sched_data *q) {
 	s64 n_nodes = __topology_get_network_size(); //Get from topology module
 	s64 slot_id = __topology_get_slot_id(); //Get from topology module
 
-	printk(KERN_DEBUG "[RA-TDMA] Self-Configured (n_nodes --- slot_id --- port)=(%d --- %d -- %lld) \n", n_nodes, slot_id);
+	printk(KERN_DEBUG "[TDMA] Self-Configured (n_nodes --- slot_id --- port)=(%d --- %d -- %lld) \n", n_nodes, slot_id);
 
 	//Compute TDMA Parameters based on Topology
 	q->frame_len = q->slot_len * n_nodes;
@@ -446,7 +448,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		previous_round = current_round;
 
 		//Round has changed, update variables
-		printk(KERN_DEBUG "[RA-TDMA] New Round: %d\n", current_round);
+		printk(KERN_DEBUG "[TDMA] New Round: %d\n", current_round);
 		compute_tdma_parameters(q);
 
 		//Allow for a broadcast to be made when slot starts
@@ -553,6 +555,12 @@ static void stop_topology(void) {
 
 }
 
+static void stop_ratdma(void) {
+
+
+
+}
+
 static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext_ack *extack)
 {
 	int err;
@@ -598,13 +606,13 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 			s64 possible_slot_guard = (qopt->slot_size * 10) / 100;
 			slot_guard = (possible_slot_guard <= MAX_SLOT_GUARD) ? possible_slot_guard : MAX_SLOT_GUARD;
 
-			printk(KERN_DEBUG "[RA-TDMA] Using slot guard - %lld nanoseconds\n", slot_guard);
+			printk(KERN_DEBUG "[TDMA] Using slot guard - %lld nanoseconds\n", slot_guard);
 
 		} else {
 
 			slot_guard = 0;
 
-			printk(KERN_DEBUG "[RA-TDMA] Slot guard disabled! \n");
+			printk(KERN_DEBUG "[TDMA] Slot guard disabled! \n");
 
 		}
 
@@ -621,7 +629,7 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 			//Check if module is available
 			if(__topology_enable && __topology_get_network_size && __topology_get_slot_id && __topology_get_info && __topology_get_info_size){
 
-				printk(KERN_DEBUG "[RA-TDMA] Found topology symbols. Self-Configuring Network. \n");
+				printk(KERN_DEBUG "[TDMA] Found topology symbols. Self-Configuring Network. \n");
 
 				q->broadcast_port = qopt->broadcast_port;
 				__topology_enable(qopt->node_id, qopt->broadcast_port);
@@ -634,7 +642,7 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 			} else {
 
 				//Failed to get required symbols. Calculate manually.
-				printk(KERN_DEBUG "[RA-TDMA] Failed to find topology symbols. Falling back to manual config. \n");
+				printk(KERN_DEBUG "[TDMA] Failed to find topology symbols. Falling back to manual config. \n");
 
 				//Compute TDMA parameters manually
 				q->slot_len = qopt->slot_size;
@@ -651,6 +659,18 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 			q->slot_len = qopt->slot_size;
 			q->frame_len = qopt->slot_size * qopt->n_nodes;
 			q->slot_offset = qopt->slot_size * qopt->node_id;
+
+		}
+
+		if(qopt->clockless_sync) {
+
+			//Load required functions from the module
+			printk(KERN_DEBUG "[TDMA] Using clockless sync! \n");
+
+		} else {
+
+			//Unload functions to allow module to shutdown
+			stop_ratdma();
 
 		}
 
@@ -749,6 +769,7 @@ static void __exit tdma_module_exit(void)
 	printk(KERN_DEBUG "Qdisc unregistered!\n");
 	unregister_qdisc(&tdma_qdisc_ops);
 	stop_topology();
+	stop_ratdma();
 }
 
 module_init(tdma_module_init)

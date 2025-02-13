@@ -194,6 +194,13 @@ struct tdma_vars_t *update_vars(uint32_t *bitmap)
 
 	}
 
+	if (get_tdma_var_bit(bitmap, CLOCKLESS_SYNC))
+	{
+		printf("%sattr: %s is set!%s\n", yellow, "CLOCKLESS_SYNC", reset);
+		data->clockless_sync = clockless_sync;
+		clear_tdma_var_bit(bitmap, CLOCKLESS_SYNC);
+	}
+
 	// return pointer to data struct
 	return data;
 }
@@ -265,6 +272,11 @@ int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info)
 					set_tdma_var_bit(bitmap, BROADCAST_PORT);
 
 				}
+				else if (strcmp(key, "clockless_sync") == 0) 
+				{
+					clockless_sync = (int64_t)strtoull(value, &end_ptr, 10);
+					set_tdma_var_bit(bitmap, CLOCKLESS_SYNC);
+				}
 				else 
 				{
 					printf("Invalid key: %s specified\n", key);
@@ -318,6 +330,11 @@ int parse_params(uint32_t *bitmap, struct gengetopt_args_info *args_info)
 			broadcast_port = args_info->broadcast_port_arg;
 			set_tdma_var_bit(bitmap, BROADCAST_PORT);
 		}
+		if (args_info->clockless_sync_given) 	 
+		{
+			clockless_sync = args_info->clockless_sync_arg;
+			set_tdma_var_bit(bitmap, CLOCKLESS_SYNC);
+		}
 	}
 	
 	return 0;
@@ -335,6 +352,7 @@ int add_qdisc(struct tdma_vars_t *data) {
 	opt->use_guard = data->use_guard;
 	opt->self_configured = data->self_configured;
 	opt->broadcast_port = data->broadcast_port;
+	opt->clockless_sync = data->clockless_sync;
 
 	printf("Opening rtnl socket...\n");
 
@@ -376,6 +394,7 @@ int change_qdisc(struct tdma_vars_t *data) {
 	opt->use_guard = data->use_guard;
 	opt->self_configured = data->self_configured;
 	opt->broadcast_port = data->broadcast_port;
+	opt->clockless_sync = data->clockless_sync;
 
 	//communication
 	if(rtnl_open(&rth, 0) < 0) {

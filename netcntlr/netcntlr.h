@@ -50,6 +50,7 @@ struct tdma_vars_t
     int64_t use_guard;
     int64_t self_configured;
     int64_t broadcast_port;
+    int64_t clockless_sync;
 };
 
 struct tc_tdma_qopt {
@@ -60,6 +61,7 @@ struct tc_tdma_qopt {
     __s64       use_guard;
     __s64       self_configured;
     __s64       broadcast_port;
+    __s64       clockless_sync;
 };
 
 enum tdma_vars_e
@@ -72,6 +74,7 @@ enum tdma_vars_e
     USE_GUARD,
     SELF_CONFIGURED,
     BROADCAST_PORT,
+    CLOCKLESS_SYNC,
 };
 
 struct rtnl_handle rth;
@@ -89,6 +92,7 @@ int64_t node_id = 0;
 int64_t use_guard = 0;
 int64_t self_configured = 0;
 int64_t broadcast_port = 0;
+int64_t clockless_sync = 0;
 bool tdma_mod_loaded = false;
 bool topology_mod_loaded = false;
 bool ratdma_mod_loaded = false;

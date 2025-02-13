@@ -11,4 +11,5 @@ option "n_nodes" n "number of nodes in the network" int optional
 option "slot_size" s "size of TDMA slot" int optional
 option "use_guard" g "indicates whether a slot guard should be used" int optional
 option "self_configured" c "indicates if the node should try to configure itself (Requires Topology Module)" int optional
-option "broadcast_port" p "sets the destionation port where the topology module will be expecting to find topology packets" int optional
+option "broadcast_port" p "sets the destination port where the topology module will be expecting to find topology packets" int optional
+option "clockless_sync" r "indicates if the node should try to use clockless synchronization (Requires RATDMA Module)" int optional

@@ -63,9 +63,12 @@ struct gengetopt_args_info
   int self_configured_arg;	/**< @brief indicates if the node should try to configure itself (Requires Topology Module).  */
   char * self_configured_orig;	/**< @brief indicates if the node should try to configure itself (Requires Topology Module) original value given at command line.  */
   const char *self_configured_help; /**< @brief indicates if the node should try to configure itself (Requires Topology Module) help description.  */
-  int broadcast_port_arg;	/**< @brief sets the destionation port where the topology module will be expecting to find topology packets.  */
-  char * broadcast_port_orig;	/**< @brief sets the destionation port where the topology module will be expecting to find topology packets original value given at command line.  */
-  const char *broadcast_port_help; /**< @brief sets the destionation port where the topology module will be expecting to find topology packets help description.  */
+  int broadcast_port_arg;	/**< @brief sets the destination port where the topology module will be expecting to find topology packets.  */
+  char * broadcast_port_orig;	/**< @brief sets the destination port where the topology module will be expecting to find topology packets original value given at command line.  */
+  const char *broadcast_port_help; /**< @brief sets the destination port where the topology module will be expecting to find topology packets help description.  */
+  int clockless_sync_arg;	/**< @brief indicates if the node should try to use clockless synchronization (Requires RATDMA Module).  */
+  char * clockless_sync_orig;	/**< @brief indicates if the node should try to use clockless synchronization (Requires RATDMA Module) original value given at command line.  */
+  const char *clockless_sync_help; /**< @brief indicates if the node should try to use clockless synchronization (Requires RATDMA Module) help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
@@ -78,6 +81,7 @@ struct gengetopt_args_info
   unsigned int use_guard_given ;	/**< @brief Whether use_guard was given.  */
   unsigned int self_configured_given ;	/**< @brief Whether self_configured was given.  */
   unsigned int broadcast_port_given ;	/**< @brief Whether broadcast_port was given.  */
+  unsigned int clockless_sync_given ;	/**< @brief Whether clockless_sync was given.  */
 
 } ;
 
