@@ -95,10 +95,10 @@ size_t (*__topology_get_info_size)(void);
 int8_t (*__topology_is_active)(void);
 
 //Get functions from ratdma module
-extern struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 transmission_offset, s64 slot_id, s64 node_id);
+extern struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id);
 
 //Placeholders if ratdma module is not loaded
-struct sk_buff* (*__ratdma_annotate_skb)(struct sk_buff* skb, s64 transmission_offset, s64 slot_id, s64 node_id);
+struct sk_buff* (*__ratdma_annotate_skb)(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id);
 
 struct tdma_sched_data {
 /* Parameters */
@@ -108,6 +108,8 @@ struct tdma_sched_data {
 	s64 slot_len;
 	s64	slot_offset;			/* Time check-point */
 	s64 broadcast_port;			/* UDP port to broadcast topology packet*/
+	s64 node_id;
+	s64 slot_id;
 
 	struct Qdisc	*qdisc;		/* Inner qdisc, default - bfifo queue */
 	struct qdisc_watchdog watchdog;	/* Watchdog timer */
@@ -174,6 +176,7 @@ static void compute_tdma_parameters(struct tdma_sched_data *q) {
 	//Compute TDMA Parameters based on Topology
 	q->frame_len = q->slot_len * n_nodes;
 	q->slot_offset = q->slot_len * slot_id;
+	q->slot_id = slot_id;
 
 }
 
@@ -375,7 +378,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
                 }
 
 				if(__ratdma_annotate_skb) {
-					return __ratdma_annotate_skb(skb, 0, 5, 5);
+					return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id);
 				} else {
 					return skb;
 				}
@@ -396,7 +399,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 			qdisc_bstats_update(sch, skb);
 
 			if(__ratdma_annotate_skb) {
-				return __ratdma_annotate_skb(skb, 0, 5, 5);
+				return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id);
 			} else {
 				return skb;
 			}
@@ -503,6 +506,8 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 	q->limit = child->limit;
 
 	if (qopt->n_nodes > 0 && qopt->slot_size > 0 && qopt->node_id >= 0) {
+
+		q->node_id = qopt->node_id;
 
 		if(qopt->use_guard){
 
