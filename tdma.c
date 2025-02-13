@@ -97,6 +97,12 @@ void* (*__topology_get_info)(void);
 size_t (*__topology_get_info_size)(void);
 int8_t (*__topology_is_active)(void);
 
+//Get functions from ratdma module
+extern struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 transmission_offset, s64 slot_id);
+
+//Placeholders if ratdma module is not loaded
+struct sk_buff* (*__ratdma_annotate_skb)(struct sk_buff* skb, s64 transmission_offset, s64 slot_id);
+
 struct tdma_sched_data {
 /* Parameters */
 	u32		limit;		/* Maximal length of backlog: bytes */
@@ -239,114 +245,6 @@ unsigned int inet_addr(struct net_device* dev, int broadcast) {
     return *(unsigned int *)arr;
 }
 
-
-/* Code adapted from https://stackoverflow.com/questions/26774761/ip-and-tcp-header-checksum-calculate-in-c */
-static int iph_checksum(u_short *header, int len) {
-
-	int nleft = len;
-	u_short *w = header;
-	int sum = 0;
-	u_short result = 0;
-
-	while (nleft > 1) {
-		sum+= *w++;
-		nleft -= 2;
-	}
-
-	if(nleft == 1) {
-		*(u_char * )(&result) = *(u_char *)w;
-		sum += result;
-	}
-
-	sum = (sum >> 16) + (sum & 0xffff);
-	sum += (sum >> 16);
-	result = ~sum;
-	return result;
-
-}
-
-//Add timestamp information to packet IP Header
-static struct sk_buff* annotate_skb(struct sk_buff* skb, s64 transmission_offset, s64 slot_id){
-
-	skb_reset_mac_header(skb);
-	skb_set_network_header(skb, sizeof (struct ethhdr));
-
-	struct ethhdr *eth = (struct ethhdr *) skb_mac_header(skb);
-
-	if(eth->h_proto == htons(ETH_P_IP)) {
-
-		if(skb_headroom(skb) < TDMA_DATA_IP_OPT_SIZE) {
-
-			int result = skb_cow_head(skb, TDMA_DATA_IP_OPT_SIZE);
-
-			//printk(KERN_INFO "[TDMA] Not enough space. Allocating more: %d\n", result);
-		}
-
-		struct iphdr *iph = ip_hdr(skb);
-
-		//Pointer to start of headers
-		void* skb_data_start = skb->data;
-
-		//Pointer to start of clean 4 bytes
-		void* skb_start = skb_push(skb, TDMA_DATA_IP_OPT_SIZE);
-
-		int memory_to_move_len = sizeof (struct ethhdr) + (iph->ihl * 4);
-
-		//void* mac_header_before = skb_mac_header(skb);
-		//void* ip_header_before = skb_network_header(skb);
-		//void* transport_header_before = skb_transport_header(skb);
-
-		//printk(KERN_DEBUG "SKB Start: %d\n", skb_start);
-		//printk(KERN_DEBUG "Offset: %d\n", memory_to_move_len);
-		//printk(KERN_DEBUG "Data Start: %d\n", skb_data_start);
-		//printk(KERN_DEBUG "MAC Start: %d\n", mac_header_before);
-		//printk(KERN_DEBUG "IP Start: %d\n", ip_header_before); 
-		//printk(KERN_DEBUG "Transport Start: %d\n", transport_header_before);  
-
-		//Shift everything until end of IP Header to the new start of SKB
-		memmove(skb_start, skb_data_start, memory_to_move_len);
-		
-		//Reset Headers
-		skb_reset_mac_header(skb);
-		skb_set_network_header(skb, sizeof (struct ethhdr));
-
-		iph = ip_hdr(skb);
-		iph->ihl += (TDMA_DATA_IP_OPT_SIZE / 4);
-		iph->tot_len = htons(ntohs(iph->tot_len) + TDMA_DATA_IP_OPT_SIZE);
-
-		//printk(KERN_DEBUG "IP Header Len: %d\n", iph->ihl);
-		//printk(KERN_DEBUG "IP Version: %d\n", iph->version);
-
-
-		//void* mac_header_after = skb_mac_header(skb);
-		//void* ip_header_after = skb_network_header(skb);
-		//void* transport_header_after = skb_transport_header(skb);
-
-		//printk(KERN_DEBUG "SKB Start after: %d\n", skb->data);
-		//printk(KERN_DEBUG "MAC Start after: %d\n", mac_header_after);
-		//printk(KERN_DEBUG "IP Start after: %d\n", ip_header_after); 
-		//printk(KERN_DEBUG "Transport Start after: %d\n", transport_header_after);
-
-		unsigned char* opts = (unsigned char*)(iph + 1); //Start of options field
-
-		//Setup options
-		opts[0] = 1; //Option Type
-		opts[1] = 1; //Options total size;
-		opts[2] = 1;
-		opts[3] = 1;
-
-		//Re-Calculate header length
-		//iph->ihl += (TDMA_DATA_IP_OPT_SIZE / 4);
-
-		//Calculate IP checksum
-		ip_send_check(iph);
-	
-	}
-
-	return skb;
-
-}
-
 /* Code adapted from https://github.com/dmytroshytyi-6WIND/KERNEL-sk_buff-helloWorld */
 static struct sk_buff *generate_topology_packet(char* dev_name, struct tdma_sched_data *q) {
 
@@ -479,8 +377,11 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
                     return NULL;
                 }
 
-                return annotate_skb(skb, 0, 5);
-				//return skb;
+				if(__ratdma_annotate_skb) {
+					return __ratdma_annotate_skb(skb, 0, 5);
+				} else {
+					return skb;
+				}
 
             } 
 
@@ -496,8 +397,12 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 			qdisc_qstats_backlog_dec(sch, skb);
 			sch->q.qlen--;
 			qdisc_bstats_update(sch, skb);
-			return annotate_skb(skb, 0, 5);
-			//return skb;
+
+			if(__ratdma_annotate_skb) {
+				return __ratdma_annotate_skb(skb, 0, 5);
+			} else {
+				return skb;
+			}
 
         } else {
             //Queue is empty
@@ -557,7 +462,9 @@ static void stop_topology(void) {
 
 static void stop_ratdma(void) {
 
-
+	if(__ratdma_annotate_skb){
+		symbol_put(ratdma_annotate_skb);
+	}
 
 }
 
@@ -666,6 +573,15 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 
 			//Load required functions from the module
 			printk(KERN_DEBUG "[TDMA] Using clockless sync! \n");
+
+			__ratdma_annotate_skb = symbol_get(ratdma_annotate_skb);
+
+			//Check if symbols are available
+			if(__ratdma_annotate_skb) {
+				printk(KERN_DEBUG "[TDMA] Clockless symbols found!\n");
+			} else {
+				printk(KERN_DEBUG "[TDMA] Failed to find clockless sync symbols. Network not syncing.\n");
+			}
 
 		} else {
 
