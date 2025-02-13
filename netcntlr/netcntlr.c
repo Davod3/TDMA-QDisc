@@ -44,16 +44,17 @@ static int qdisc_modify(int cmd, const char *dev, unsigned int flags, struct tc_
 int start_modules(void)
 {
 
-	if (!topology_mod_loaded && is_module_loaded("topology") == 0)
-	{
+	if (!topology_mod_loaded && is_module_loaded("topology") == 0) {
 		load_kernel_mod(TOPOLOGY_KMOD_PATH, NULL);
 		topology_mod_loaded = true;
-	} else {
-		return 0;
 	}
 
-	if (!tdma_mod_loaded && is_module_loaded("tdma") == 0)
-	{
+	if(!ratdma_mod_loaded && is_module_loaded("ratdma") == 0) {
+		load_kernel_mod(RATDMA_KMOD_PATH, NULL);
+		ratdma_mod_loaded = true;
+	}
+
+	if (!tdma_mod_loaded && is_module_loaded("tdma") == 0) {
 		load_kernel_mod(TDMA_KMOD_PATH, NULL);
 		tdma_mod_loaded = true;
 	} else {
@@ -69,7 +70,7 @@ int is_module_loaded(const char *mod_name)
 	char cmd[MAX_LINE_LEN];
 	int found = 0;
 
-	snprintf(cmd, MAX_LINE_LEN, "lsmod | grep %s", mod_name);
+	snprintf(cmd, MAX_LINE_LEN, "lsmod | grep -w \"^%s\"", mod_name);
 
 	if (system(cmd) == 0)
 	{

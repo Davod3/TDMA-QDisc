@@ -33,6 +33,7 @@
 #define MAX_LINE_LEN 128
 #define TOPOLOGY_KMOD_PATH "../topology.ko"
 #define TDMA_KMOD_PATH "../tdma.ko"
+#define RATDMA_KMOD_PATH "../ratdma.ko"
 #define NLMSG_TAIL(nmsg) ((struct rtattr *) (((void *) (nmsg)) + NLMSG_ALIGN((nmsg)->nlmsg_len)))
 
 /*******************************************************************************/
@@ -90,6 +91,7 @@ int64_t self_configured = 0;
 int64_t broadcast_port = 0;
 bool tdma_mod_loaded = false;
 bool topology_mod_loaded = false;
+bool ratdma_mod_loaded = false;
 
 // ANSI escape codes (colors for stdout)
 const char* red = "\033[31m";
