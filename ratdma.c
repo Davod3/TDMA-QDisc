@@ -11,23 +11,37 @@
 #include <net/ip.h> 
 #include <linux/udp.h>
 
+//THIS STRUCT MUST NOT EXCEED 40 BYTES (MAX IP OPTIONS LENGTH)
+struct ratdma_packet_annotations {
+
+    s64 transmission_offset;    //Amount of time in ns from the start of the slot, to the moment the packet was sent
+    s64 slot_id;                //ID of the slot used by the node to transmit the packet
+    s64 node_id;                //ID of the node who transmitted the packet
+};
+
 #define TDMA_DATA_IP_OPT_TYPE 30
-#define TDMA_DATA_IP_OPT_SIZE 4
+#define TDMA_DATA_IP_OPT_SIZE sizeof(struct ratdma_packet_annotations) + 2
+#define TDMA_DATA_IP_OPT_PADDING (TDMA_DATA_IP_OPT_SIZE - (intdiv(TDMA_DATA_IP_OPT_SIZE, 4) * 4))
+#define TDMA_DATA_IP_OPT_TOTAL_SIZE (TDMA_DATA_IP_OPT_SIZE + TDMA_DATA_IP_OPT_PADDING)
 
-struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 transmission_offset, s64 slot_id){
+static s64 intdiv(s64 a, u64 b) {
+	return (((a * ((a >= 0) ? 1 : -1)) / b) * ((a >= 0) ? 1 : -1)) - ((!(a >= 0)) && (!(((a * ((a >= 0) ? 1 : -1)) % b) == 0)));
+}
 
-    skb_reset_mac_header(skb);
-	skb_set_network_header(skb, sizeof (struct ethhdr));
+struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 transmission_offset, s64 slot_id, s64 node_id){
+
+	skb_reset_mac_header(skb);
 
 	struct ethhdr *eth = (struct ethhdr *) skb_mac_header(skb);
 
 	if(eth->h_proto == htons(ETH_P_IP)) {
 
-		if(skb_headroom(skb) < TDMA_DATA_IP_OPT_SIZE) {
+		skb_set_network_header(skb, sizeof (struct ethhdr));
 
-			int result = skb_cow_head(skb, TDMA_DATA_IP_OPT_SIZE);
+		if(skb_headroom(skb) < TDMA_DATA_IP_OPT_TOTAL_SIZE) {
 
-			//printk(KERN_INFO "[TDMA] Not enough space. Allocating more: %d\n", result);
+			int result = skb_cow_head(skb, TDMA_DATA_IP_OPT_TOTAL_SIZE);
+
 		}
 
 		struct iphdr *iph = ip_hdr(skb);
@@ -36,20 +50,9 @@ struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 transmission_offset
 		void* skb_data_start = skb->data;
 
 		//Pointer to start of clean 4 bytes
-		void* skb_start = skb_push(skb, TDMA_DATA_IP_OPT_SIZE);
+		void* skb_start = skb_push(skb, TDMA_DATA_IP_OPT_TOTAL_SIZE);
 
-		int memory_to_move_len = sizeof (struct ethhdr) + (iph->ihl * 4);
-
-		//void* mac_header_before = skb_mac_header(skb);
-		//void* ip_header_before = skb_network_header(skb);
-		//void* transport_header_before = skb_transport_header(skb);
-
-		//printk(KERN_DEBUG "SKB Start: %d\n", skb_start);
-		//printk(KERN_DEBUG "Offset: %d\n", memory_to_move_len);
-		//printk(KERN_DEBUG "Data Start: %d\n", skb_data_start);
-		//printk(KERN_DEBUG "MAC Start: %d\n", mac_header_before);
-		//printk(KERN_DEBUG "IP Start: %d\n", ip_header_before); 
-		//printk(KERN_DEBUG "Transport Start: %d\n", transport_header_before);  
+		int memory_to_move_len = sizeof (struct ethhdr) + (iph->ihl * 4); 
 
 		//Shift everything until end of IP Header to the new start of SKB
 		memmove(skb_start, skb_data_start, memory_to_move_len);
@@ -60,29 +63,25 @@ struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 transmission_offset
 
         //Re-calculate ip header size
 		iph = ip_hdr(skb);
-		iph->ihl += (TDMA_DATA_IP_OPT_SIZE / 4);
-		iph->tot_len = htons(ntohs(iph->tot_len) + TDMA_DATA_IP_OPT_SIZE);
 
-		//printk(KERN_DEBUG "IP Header Len: %d\n", iph->ihl);
-		//printk(KERN_DEBUG "IP Version: %d\n", iph->version);
-
-
-		//void* mac_header_after = skb_mac_header(skb);
-		//void* ip_header_after = skb_network_header(skb);
-		//void* transport_header_after = skb_transport_header(skb);
-
-		//printk(KERN_DEBUG "SKB Start after: %d\n", skb->data);
-		//printk(KERN_DEBUG "MAC Start after: %d\n", mac_header_after);
-		//printk(KERN_DEBUG "IP Start after: %d\n", ip_header_after); 
-		//printk(KERN_DEBUG "Transport Start after: %d\n", transport_header_after);
+		iph->ihl += intdiv(TDMA_DATA_IP_OPT_TOTAL_SIZE, 4);
+		iph->tot_len = htons(ntohs(iph->tot_len) + TDMA_DATA_IP_OPT_TOTAL_SIZE);
 
 		unsigned char* opts = (unsigned char*)(iph + 1); //Start of options field
 
 		//Setup options
-		opts[0] = 1; //Option Type
-		opts[1] = 1; //Options total size;
-		opts[2] = 1;
-		opts[3] = 1;
+		opts[0] = TDMA_DATA_IP_OPT_TYPE; //Option Type
+		opts[1] = TDMA_DATA_IP_OPT_TOTAL_SIZE; //Options total size;
+		
+		struct ratdma_packet_annotations* annotations = (struct ratdma_packet_annotations*) (opts+2);
+        annotations->transmission_offset = transmission_offset;
+        annotations->slot_id = slot_id;
+        annotations->node_id = node_id;
+		
+		for (size_t i = TDMA_DATA_IP_OPT_SIZE; i < TDMA_DATA_IP_OPT_TOTAL_SIZE; i++)
+		{
+			opts[i] = 1; //Set NOP option for padding
+		}
 
 		//Calculate IP checksum
 		ip_send_check(iph);

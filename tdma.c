@@ -50,9 +50,6 @@
 
 #define IP_Header_RM 20
 #define UDP_Header_RM 8
-#define TDMA_DATA_IP_OPT_TYPE 30
-//#define TDMA_DATA_IP_OPT_SIZE sizeof(s64)*2 + 2
-#define TDMA_DATA_IP_OPT_SIZE 4
 
 #define MAX_SLOT_GUARD 10000000 //ns = 10 ms 
 
@@ -98,10 +95,10 @@ size_t (*__topology_get_info_size)(void);
 int8_t (*__topology_is_active)(void);
 
 //Get functions from ratdma module
-extern struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 transmission_offset, s64 slot_id);
+extern struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 transmission_offset, s64 slot_id, s64 node_id);
 
 //Placeholders if ratdma module is not loaded
-struct sk_buff* (*__ratdma_annotate_skb)(struct sk_buff* skb, s64 transmission_offset, s64 slot_id);
+struct sk_buff* (*__ratdma_annotate_skb)(struct sk_buff* skb, s64 transmission_offset, s64 slot_id, s64 node_id);
 
 struct tdma_sched_data {
 /* Parameters */
@@ -378,7 +375,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
                 }
 
 				if(__ratdma_annotate_skb) {
-					return __ratdma_annotate_skb(skb, 0, 5);
+					return __ratdma_annotate_skb(skb, 0, 5, 5);
 				} else {
 					return skb;
 				}
@@ -399,7 +396,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 			qdisc_bstats_update(sch, skb);
 
 			if(__ratdma_annotate_skb) {
-				return __ratdma_annotate_skb(skb, 0, 5);
+				return __ratdma_annotate_skb(skb, 0, 5, 5);
 			} else {
 				return skb;
 			}
@@ -676,13 +673,13 @@ static struct Qdisc_ops tdma_qdisc_ops __read_mostly = {
 static int __init tdma_module_init(void)
 {
 
-	printk(KERN_DEBUG "Qdisc registered!\n");
+	printk(KERN_DEBUG "[TDMA] Qdisc registered!\n");
 	return register_qdisc(&tdma_qdisc_ops);
 }
 
 static void __exit tdma_module_exit(void)
 {	
-	printk(KERN_DEBUG "Qdisc unregistered!\n");
+	printk(KERN_DEBUG "[TDMA] Qdisc unregistered!\n");
 	unregister_qdisc(&tdma_qdisc_ops);
 	stop_topology();
 	stop_ratdma();
