@@ -36,7 +36,7 @@ struct ratdma_packet_annotations {
     s64 node_id;                //ID of the node who transmitted the packet
 };
 
-static struct nf_hook_ops *nfho = NULL;
+static struct nf_hook_ops* nfho_in, *nfho_out = NULL;
 
 static struct topology_info_t *topology_info = NULL;
 
@@ -119,8 +119,26 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations){
 
 }
 
+//Runs for every packet sent
+static unsigned int hookOUT(void* priv, struct sk_buff* skb, const struct nf_hook_state *state){
+
+    //Only handle packets if topology module is being used
+    if(topology_info->active){
+
+        if(!skb) {
+            return NF_ACCEPT;
+        }
+
+        printk(KERN_DEBUG "TÁ SAINDO DA JAULA O MONSTRO!!!!");
+
+    }
+
+    return NF_ACCEPT; //Allow packet to leave regardless
+
+}
+
 //Runs for every received packet
-static unsigned int hookFunc(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
+static unsigned int hookIN(void *priv, struct sk_buff *skb, const struct nf_hook_state *state) {
 
     struct iphdr *iph;
     struct udphdr *udph;
@@ -393,13 +411,19 @@ static int __init topology_init(void) {
 
     printk(KERN_DEBUG "TOPOLOGY: Tracker initialized.\n");
 
-    //Initialize netfilter hook
-    nfho = (struct nf_hook_ops*)kcalloc(1, sizeof(struct nf_hook_ops), GFP_KERNEL);
+    //Initialize netfilter hook - IN
+    nfho_in = (struct nf_hook_ops*)kcalloc(1, sizeof(struct nf_hook_ops), GFP_KERNEL);
+    nfho_in->hook = (nf_hookfn*) hookIN;     //Hook function
+    nfho_in->hooknum = NF_INET_PRE_ROUTING;    //Incoming packets. Pre-Routing.
+    nfho_in->pf = PF_INET;                     //Protocol to capture. IPv4
+    nfho_in->priority = NF_IP_PRI_FIRST;
 
-    nfho->hook = (nf_hookfn*) hookFunc;     //Hook function
-    nfho->hooknum = NF_INET_PRE_ROUTING;    //Incoming packets. Pre-Routing.
-    nfho->pf = PF_INET;                     //Protocol to capture. IPv4
-    nfho->priority = NF_IP_PRI_FIRST;
+    //Initialize netfilter hook - OUT
+    nfho_out = (struct nf_hook_ops*)kcalloc(1, sizeof(struct nf_hook_ops), GFP_KERNEL);
+    nfho_out->hook = (nf_hookfn*) hookOUT;
+    nfho_out->hooknum = NF_INET_POST_ROUTING;
+    nfho_out->pf = PF_INET;
+    nfho_out->priority = NF_IP_PRI_FIRST;
 
     //Initialize topology info struct
     topology_info = (struct topology_info_t*)kcalloc(1, sizeof(struct topology_info_t), GFP_KERNEL);
@@ -407,15 +431,24 @@ static int __init topology_init(void) {
     topology_info->myID = 0;
     topology_info->activeNodes = 0;
     topology_info->active = 0;
+
+    int ret_in = nf_register_net_hook(&init_net, nfho_in), ret_out = nf_register_net_hook(&init_net, nfho_out);
     
-    return nf_register_net_hook(&init_net, nfho);
+    return ret_in ? ret_in : ret_out;
 
 }
 
 static void __exit topology_exit(void) {
 
-    nf_unregister_net_hook(&init_net, nfho);
-    kfree(nfho);
+    //Clear incoming packet hook
+    nf_unregister_net_hook(&init_net, nfho_in);
+    kfree(nfho_in);
+
+    //Clear outgoing packet hook
+    nf_unregister_net_hook(&init_net, nfho_out);
+    kfree(nfho_out);
+
+    //Clear data structures
     kfree(topology_info);
 
     printk(KERN_DEBUG "TOPOLOGY: Tracker disabled.\n");
