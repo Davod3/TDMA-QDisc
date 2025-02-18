@@ -6,6 +6,7 @@
 #include <linux/ip.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
+#include <net/ip.h> 
 
 #define MAX_NODES 20
 #define MAX_AGE 30000000000
@@ -15,7 +16,10 @@
 #define TDMA_DATA_IP_OPT_PADDING (TDMA_DATA_IP_OPT_SIZE - (intdiv(TDMA_DATA_IP_OPT_SIZE, 4) * 4))
 #define TDMA_DATA_IP_OPT_TOTAL_SIZE (TDMA_DATA_IP_OPT_SIZE + TDMA_DATA_IP_OPT_PADDING)
 
+#define DEFAULT_IPH_LEN 20
+
 static s64 udp_broadcast_port = 0;
+static char* qdisc_dev_name = NULL;
 
 struct topology_info_t {
     
@@ -113,9 +117,86 @@ void topology_parse(struct topology_info_t *topology_info_new) {
 
 static void parseIPOptions(struct ratdma_packet_annotations* annotations){
 
-    printk(KERN_DEBUG "[TOPOLOGY] SLOT_ID: %lld\n", annotations->slot_id);
-    printk(KERN_DEBUG "[TOPOLOGY] NODE_ID: %lld\n", annotations->node_id);
-    printk(KERN_DEBUG "[TOPOLOGY] TRANSMISSION_OFFSET: %lld\n", annotations->transmission_offset);
+    //printk(KERN_DEBUG "[TOPOLOGY] SLOT_ID: %lld\n", annotations->slot_id);
+    //printk(KERN_DEBUG "[TOPOLOGY] NODE_ID: %lld\n", annotations->node_id);
+    //printk(KERN_DEBUG "[TOPOLOGY] TRANSMISSION_OFFSET: %lld\n", annotations->transmission_offset);
+
+}
+
+//TODO: REMOVE
+static void dump_skb_data(const struct sk_buff *skb) {
+    int i;
+    unsigned char *data;
+    int data_len;
+
+    if (!skb)
+        return;
+
+    // Get the data pointer and length
+    data = skb->data;
+    data_len = skb->len;
+
+    printk(KERN_INFO "skb data dump (len=%d bytes):\n", data_len);
+
+    for (i = 0; i < data_len; i++) {
+        // Print each byte in hex format
+        printk(KERN_CONT "%02X ", data[i]);
+
+        // Print a newline every 16 bytes for readability
+        if ((i + 1) % 16 == 0)
+            printk(KERN_CONT "\n");
+    }
+
+    // Print final newline if needed
+    if (data_len % 16 != 0)
+        printk(KERN_CONT "\n");
+}
+
+
+static void removeIPOptions(struct sk_buff* skb, int opt_len){
+
+    //Pointer to start of headers
+	void* skb_data_start = skb->data;
+    int memory_to_move_len = DEFAULT_IPH_LEN;
+    
+    //void* mac_header = skb_mac_header(skb);
+    //void* network_header = skb_network_header(skb);
+    //void* transport_header = skb_transport_header(skb);
+
+    //printk(KERN_DEBUG "SKB DATA START: %d\n", skb_data_start);
+    //printk(KERN_DEBUG "MAC HEADER: %d\n", mac_header);
+    //printk(KERN_DEBUG "NETWORK HEADER: %d\n", network_header);
+    //printk(KERN_DEBUG "TRANSPORT HEADER: %d\n", transport_header);
+    //printk(KERN_DEBUG "OPT_LEN: %d\n", opt_len);
+    //printk(KERN_DEBUG "MEMORY_LEN: %d\n", memory_to_move_len);
+
+    //Shift everything until end of IP Header to end of options space
+    memmove(skb_data_start + opt_len, skb_data_start, memory_to_move_len);
+    //memset(opts+2, 1, opt_len-5);
+
+    //Remove extra bytes
+    skb_pull(skb, opt_len);
+
+    //Reset Headers
+    skb_reset_network_header(skb);
+    //skb_set_network_header(skb, sizeof(struct ethhdr));
+
+    //void* mac_header_after = skb_mac_header(skb);
+    //void* network_header_after = skb_network_header(skb);
+    //void* transport_header_after = skb_transport_header(skb);
+
+    //printk(KERN_DEBUG "SKB DATA START AFTER: %d\n", skb->data);
+    //printk(KERN_DEBUG "MAC HEADER AFTER: %d\n", mac_header_after);
+    //printk(KERN_DEBUG "NETWORK HEADER AFTER: %d\n", network_header_after);
+    //printk(KERN_DEBUG "TRANSPORT HEADER AFTER: %d\n", transport_header_after);
+
+    //Set correct IP Header lengths
+    struct iphdr *iph = ip_hdr(skb);
+    iph->ihl = DEFAULT_IPH_LEN / 4;
+    iph->tot_len = htons(ntohs(iph->tot_len) - opt_len);
+
+    //Calculate IP checksum
+	ip_send_check(iph);
 
 }
 
@@ -129,7 +210,45 @@ static unsigned int hookOUT(void* priv, struct sk_buff* skb, const struct nf_hoo
             return NF_ACCEPT;
         }
 
-        printk(KERN_DEBUG "TÁ SAINDO DA JAULA O MONSTRO!!!!");
+        //Check if packet is IPv4
+        struct iphdr* iph = ip_hdr(skb);
+        if (!iph) {
+            return NF_ACCEPT;
+        }
+
+        printk(KERN_DEBUG "Outgoing packet! \n");
+
+        //Check if packet has IPv4 Options
+        if(iph->ihl > 5){
+
+            unsigned char* opts = (unsigned char*)(iph + 1); //Start of options field
+
+            printk(KERN_DEBUG "Packet has options!\n");
+
+            //Check if options are TDMA Annotations
+            if(opts[0] == TDMA_DATA_IP_OPT_TYPE){
+
+                //Check if the packet is going to an interface without the QDisc
+                if (skb->dev && strcmp(skb->dev->name, qdisc_dev_name) != 0) {
+
+                    //Make sure packet is continuous memory block
+                    if (skb_linearize(skb) < 0)
+                        return NF_ACCEPT;
+
+                    //Make sure packet is writable
+                    if (skb_ensure_writable(skb, skb->len))
+                        return NF_ACCEPT;
+                    
+                    //Packet is going to different interface. Remove TDMA options from header
+                    int opt_len = opts[1];
+                    removeIPOptions(skb, opt_len);
+                    printk(KERN_DEBUG "Options reset! --- %d\n", skb->len);
+
+                }
+
+            }
+
+        }
 
     }
 
@@ -212,7 +331,7 @@ static unsigned int hookIN(void *priv, struct sk_buff *skb, const struct nf_hook
 }
 
 // Called by TDMA QDisc to enable topology tracking
-void topology_enable(s64 nodeID, s64 broadcast_port) {
+void topology_enable(s64 nodeID, s64 broadcast_port, char* dev_name) {
 
 
     if(topology_info->active == 0){
@@ -231,6 +350,9 @@ void topology_enable(s64 nodeID, s64 broadcast_port) {
 
         //Save the port being used
         udp_broadcast_port = broadcast_port;
+
+        //Save the interface used by the QDisc
+        qdisc_dev_name = dev_name;
 
     }
 

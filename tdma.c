@@ -79,7 +79,7 @@ EXPORT_SYMBOL(broadcast_port);
 EXPORT_SYMBOL(clockless_sync);
 
 //Get functions from topology module
-extern void topology_enable(s64 nodeID, s64 broadcast_port);
+extern void topology_enable(s64 nodeID, s64 broadcast_port, char* qdisc_dev_name);
 extern s64 topology_get_network_size(void);
 extern int topology_get_slot_id(void);
 extern void* topology_get_info(void);
@@ -87,7 +87,7 @@ extern size_t topology_get_info_size(void);
 int8_t topology_is_active(void);
 
 //Placeholders if topology module is not loaded
-void (*__topology_enable)(s64 nodeID, s64 broadcast_port);
+void (*__topology_enable)(s64 nodeID, s64 broadcast_port, char* qdisc_dev_name);
 s64 (*__topology_get_network_size)(void);
 int (*__topology_get_slot_id)(void);
 void* (*__topology_get_info)(void);
@@ -541,7 +541,7 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 				printk(KERN_DEBUG "[TDMA] Found topology symbols. Self-Configuring Network. \n");
 
 				q->broadcast_port = qopt->broadcast_port;
-				__topology_enable(qopt->node_id, qopt->broadcast_port);
+				__topology_enable(qopt->node_id, qopt->broadcast_port, qdisc_dev(sch)->name);
 
 				q->slot_len = qopt->slot_size;
 
