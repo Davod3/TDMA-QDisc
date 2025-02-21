@@ -79,20 +79,23 @@ EXPORT_SYMBOL(broadcast_port);
 EXPORT_SYMBOL(clockless_sync);
 
 //Get functions from topology module
-extern void topology_enable(s64 nodeID, s64 broadcast_port, char* qdisc_dev_name);
+extern void topology_enable(s64 nodeID, s64 broadcast_port, char* qdisc_dev_name, s64 slot_len_external);
 extern s64 topology_get_network_size(void);
 extern int topology_get_slot_id(void);
 extern void* topology_get_info(void);
 extern size_t topology_get_info_size(void);
-int8_t topology_is_active(void);
+extern int8_t topology_is_active(void);
+extern void topology_set_round_start(s64 round_start_external);
+
 
 //Placeholders if topology module is not loaded
-void (*__topology_enable)(s64 nodeID, s64 broadcast_port, char* qdisc_dev_name);
+void (*__topology_enable)(s64 nodeID, s64 broadcast_port, char* qdisc_dev_name, s64 slot_len_external);
 s64 (*__topology_get_network_size)(void);
 int (*__topology_get_slot_id)(void);
 void* (*__topology_get_info)(void);
 size_t (*__topology_get_info_size)(void);
 int8_t (*__topology_is_active)(void);
+void (*__topology_set_round_start)(s64 round_start_external);
 
 //Get functions from ratdma module
 extern struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id);
@@ -177,6 +180,12 @@ static void compute_tdma_parameters(struct tdma_sched_data *q) {
 	q->frame_len = q->slot_len * n_nodes;
 	q->slot_offset = q->slot_len * slot_id;
 	q->slot_id = slot_id;
+
+	//Just re-calculate the current round to send to topology module
+	s64 now = ktime_get_real_ns();
+	s64 current_round = intdiv(now - q->slot_offset, q->frame_len);
+
+	__topology_set_round_start(current_round * q->frame_len);
 
 }
 
@@ -346,7 +355,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		previous_round = current_round;
 
 		//Round has changed, update variables
-		printk(KERN_DEBUG "[TDMA] New Round: %d\n", current_round);
+		printk(KERN_DEBUG "[TDMA ROUND] %lld\n", current_round);
 		compute_tdma_parameters(q);
 
 		//Allow for a broadcast to be made when slot starts
@@ -457,6 +466,8 @@ static void stop_topology(void) {
 		symbol_put(topology_get_info_size);
 	if (__topology_is_active)
 		symbol_put(topology_is_active);
+	if (__topology_set_round_start)
+		symbol_put(topology_set_round_start);
 
 }
 
@@ -534,14 +545,15 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 			__topology_get_info = symbol_get(topology_get_info);
 			__topology_get_info_size = symbol_get(topology_get_info_size);
 			__topology_is_active = symbol_get(topology_is_active);
+			__topology_set_round_start = symbol_get(topology_set_round_start);
 
 			//Check if module is available
-			if(__topology_enable && __topology_get_network_size && __topology_get_slot_id && __topology_get_info && __topology_get_info_size){
+			if(__topology_enable && __topology_get_network_size && __topology_get_slot_id && __topology_get_info && __topology_get_info_size && __topology_set_round_start && __topology_is_active){
 
 				printk(KERN_DEBUG "[TDMA] Found topology symbols. Self-Configuring Network. \n");
 
 				q->broadcast_port = qopt->broadcast_port;
-				__topology_enable(qopt->node_id, qopt->broadcast_port, qdisc_dev(sch)->name);
+				__topology_enable(qopt->node_id, qopt->broadcast_port, qdisc_dev(sch)->name, qopt->slot_size);
 
 				q->slot_len = qopt->slot_size;
 

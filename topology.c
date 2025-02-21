@@ -10,6 +10,7 @@
 
 #define MAX_NODES 20
 #define MAX_AGE 30000000000
+#define MAX_DELAYS 5000
 
 #define TDMA_DATA_IP_OPT_TYPE 30
 #define TDMA_DATA_IP_OPT_SIZE sizeof(struct ratdma_packet_annotations) + 2
@@ -20,6 +21,8 @@
 
 static s64 udp_broadcast_port = 0;
 static char* qdisc_dev_name = NULL;
+static s64 round_start = 0;
+static s64 slot_len = 0;
 
 struct topology_info_t {
     
@@ -40,14 +43,21 @@ struct ratdma_packet_annotations {
     s64 node_id;                //ID of the node who transmitted the packet
 };
 
-static struct nf_hook_ops* nfho_in, *nfho_out = NULL;
+struct ratdma_packet_delays {
 
-static struct topology_info_t *topology_info = NULL;
+    s64 node_delays[MAX_NODES][MAX_DELAYS];
+    s64 delay_counters[MAX_NODES];
+
+};
+
+static struct nf_hook_ops* nfho_in, *nfho_out = NULL;
+static struct topology_info_t* topology_info = NULL;
+static struct ratdma_packet_delays* ratdma_packet_delays = NULL;
 
 /* Called when a packet containing topology info is received */
 void topology_parse(struct topology_info_t *topology_info_new) {
 
-    printk(KERN_DEBUG "Parsing topology packet, %lld ---- %lld\n", topology_info->myID, topology_info->activeNodes);
+    //printk(KERN_DEBUG "Parsing topology packet, %lld ---- %lld\n", topology_info->myID, topology_info->activeNodes);
 
     //Check if received packet is not mine for some reason
     if(topology_info->myID != topology_info_new->myID){
@@ -115,12 +125,28 @@ void topology_parse(struct topology_info_t *topology_info_new) {
 
 }
 
-static void parseIPOptions(struct ratdma_packet_annotations* annotations){
+static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 packet_arrival_time){
 
-    //printk(KERN_DEBUG "[TOPOLOGY] SLOT_ID: %lld\n", annotations->slot_id);
-    //printk(KERN_DEBUG "[TOPOLOGY] NODE_ID: %lld\n", annotations->node_id);
-    //printk(KERN_DEBUG "[TOPOLOGY] TRANSMISSION_OFFSET: %lld\n", annotations->transmission_offset);
+    s64 received_slot_id = annotations->slot_id;
+    s64 received_node_id = annotations->node_id;
+    s64 received_transmission_offset = annotations->transmission_offset;
 
+    //Calculate expected slot start
+    s64 expected_slot_start = round_start + (slot_len * received_slot_id);
+    
+    //Calculate expected packet arrival time
+    s64 expected_packet_arrival = expected_slot_start + received_transmission_offset;
+
+    //Calculate packet delay
+    s64 packet_delay = packet_arrival_time - expected_packet_arrival;
+
+    //Save delay, but for now just print
+    printk(KERN_DEBUG "[DELAY] %lld\n", packet_delay); 
+
+}
+
+void topology_set_round_start(s64 round_start_external) {
+    round_start = round_start_external;
 }
 
 //TODO: REMOVE
@@ -216,14 +242,14 @@ static unsigned int hookOUT(void* priv, struct sk_buff* skb, const struct nf_hoo
             return NF_ACCEPT;
         }
 
-        printk(KERN_DEBUG "Outgoing packet! \n");
+        //printk(KERN_DEBUG "Outgoing packet! \n");
 
         //Check if packet has IPv4 Options
         if(iph->ihl > 5){
 
             unsigned char* opts = (unsigned char*)(iph + 1); //Start of options field
 
-            printk(KERN_DEBUG "Packet has options!\n");
+            //printk(KERN_DEBUG "Packet has options!\n");
 
             //Check if options are TDMA Annotations
             if(opts[0] == TDMA_DATA_IP_OPT_TYPE){
@@ -242,7 +268,7 @@ static unsigned int hookOUT(void* priv, struct sk_buff* skb, const struct nf_hoo
                     //Packet is going to different interface. Remove TDMA options from header
                     int opt_len = opts[1];
                     removeIPOptions(skb, opt_len);
-                    printk(KERN_DEBUG "Options reset! --- %d\n", skb->len);
+                    //printk(KERN_DEBUG "Options reset! --- %d\n", skb->len);
 
                 }
 
@@ -265,6 +291,8 @@ static unsigned int hookIN(void *priv, struct sk_buff *skb, const struct nf_hook
     //Only handle packets if topology module is being used
     if(topology_info->active){
 
+        s64 packet_arrival_time = ktime_get_real_ns();
+
         if(!skb) {
             return NF_ACCEPT;
         }
@@ -283,7 +311,7 @@ static unsigned int hookIN(void *priv, struct sk_buff *skb, const struct nf_hook
 
             if(opts[0] == TDMA_DATA_IP_OPT_TYPE){
                 //TDMA Options are present. Parse them
-                parseIPOptions((struct ratdma_packet_annotations*) (opts + 2));
+                parseIPOptions((struct ratdma_packet_annotations*) (opts + 2), packet_arrival_time);
             }
 
         }
@@ -331,7 +359,7 @@ static unsigned int hookIN(void *priv, struct sk_buff *skb, const struct nf_hook
 }
 
 // Called by TDMA QDisc to enable topology tracking
-void topology_enable(s64 nodeID, s64 broadcast_port, char* dev_name) {
+void topology_enable(s64 nodeID, s64 broadcast_port, char* dev_name, s64 slot_len_external) {
 
 
     if(topology_info->active == 0){
@@ -353,6 +381,9 @@ void topology_enable(s64 nodeID, s64 broadcast_port, char* dev_name) {
 
         //Save the interface used by the QDisc
         qdisc_dev_name = dev_name;
+
+        //Save the len of the slots;
+        slot_len = slot_len_external;
 
     }
 
@@ -412,7 +443,7 @@ void* topology_get_info(void) {
 
             s64 age = epoch - topology_info->creationTime[i]; //Nanoseconds
 
-            printk(KERN_DEBUG "ID----Age: %d----%lld\n", i, age);
+            //printk(KERN_DEBUG "ID----Age: %d----%lld\n", i, age);
 
             if(age > MAX_AGE){
                 
@@ -554,6 +585,9 @@ static int __init topology_init(void) {
     topology_info->activeNodes = 0;
     topology_info->active = 0;
 
+    //Initialize ratdma delays struct
+    ratdma_packet_delays = (struct ratdma_packet_delays*)kcalloc(1, sizeof(struct ratdma_packet_delays), GFP_KERNEL);
+
     int ret_in = nf_register_net_hook(&init_net, nfho_in), ret_out = nf_register_net_hook(&init_net, nfho_out);
     
     return ret_in ? ret_in : ret_out;
@@ -572,6 +606,7 @@ static void __exit topology_exit(void) {
 
     //Clear data structures
     kfree(topology_info);
+    kfree(ratdma_packet_delays);
 
     printk(KERN_DEBUG "TOPOLOGY: Tracker disabled.\n");
 
@@ -583,6 +618,7 @@ EXPORT_SYMBOL_GPL(topology_get_info_size);
 EXPORT_SYMBOL_GPL(topology_get_network_size);
 EXPORT_SYMBOL_GPL(topology_get_slot_id);
 EXPORT_SYMBOL_GPL(topology_is_active);
+EXPORT_SYMBOL_GPL(topology_set_round_start);
 
 module_init(topology_init);
 module_exit(topology_exit);

@@ -1,8 +1,9 @@
 devname=wlan0
 node_id=2
-n_nodes=2
+n_nodes=1
 slot_size=5000000000
 limit=1514000
 use_guard=0
 self_configured=1
 broadcast_port=15904
+clockless_sync=1
