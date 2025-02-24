@@ -98,10 +98,10 @@ int8_t (*__topology_is_active)(void);
 void (*__topology_set_round_start)(s64 round_start_external);
 
 //Get functions from ratdma module
-extern struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id);
+extern struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id, s64 current_round);
 
 //Placeholders if ratdma module is not loaded
-struct sk_buff* (*__ratdma_annotate_skb)(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id);
+struct sk_buff* (*__ratdma_annotate_skb)(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id, s64 current_round);
 
 struct tdma_sched_data {
 /* Parameters */
@@ -387,7 +387,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
                 }
 
 				if(__ratdma_annotate_skb) {
-					return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id);
+					return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id, current_round);
 				} else {
 					return skb;
 				}
@@ -408,7 +408,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 			qdisc_bstats_update(sch, skb);
 
 			if(__ratdma_annotate_skb) {
-				return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id);
+				return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id, current_round);
 			} else {
 				return skb;
 			}
