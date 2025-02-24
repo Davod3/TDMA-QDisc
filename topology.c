@@ -54,6 +54,16 @@ static struct nf_hook_ops* nfho_in, *nfho_out = NULL;
 static struct topology_info_t* topology_info = NULL;
 static struct ratdma_packet_delays* ratdma_packet_delays = NULL;
 
+static s64 intdiv(s64 a, u64 b) {
+	return (((a * ((a >= 0) ? 1 : -1)) / b) * ((a >= 0) ? 1 : -1)) - ((!(a >= 0)) && (!(((a * ((a >= 0) ? 1 : -1)) % b) == 0)));
+}
+
+static s64 mod(s64 a, s64 b)
+{
+    s64 r = a % b;
+    return r < 0 ? r + b : r;
+}
+
 /* Called when a packet containing topology info is received */
 void topology_parse(struct topology_info_t *topology_info_new) {
 
@@ -131,6 +141,8 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
     s64 received_node_id = annotations->node_id;
     s64 received_transmission_offset = annotations->transmission_offset;
 
+    s64 frame_len = slot_len * topology_info->activeNodes;
+
     //Calculate expected slot start
     s64 expected_slot_start = round_start + (slot_len * received_slot_id);
     
@@ -138,10 +150,11 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
     s64 expected_packet_arrival = expected_slot_start + received_transmission_offset;
 
     //Calculate packet delay
-    s64 packet_delay = packet_arrival_time - expected_packet_arrival;
+    s64 packet_delay_unbound = (packet_arrival_time - expected_packet_arrival + intdiv(frame_len, 2));
+    s64 packet_delay_bounded = (mod(packet_delay_unbound, frame_len)) - intdiv(frame_len, 2); //Make sure delay is between 0 and frame_len
 
     //Save delay, but for now just print
-    printk(KERN_DEBUG "[DELAY] %lld---%lld---%lld\n", packet_delay, packet_arrival_time, expected_packet_arrival); 
+    printk(KERN_DEBUG "[DELAY] %lld\n", packet_delay_bounded); 
 
 }
 
