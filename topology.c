@@ -21,7 +21,6 @@
 
 static s64 udp_broadcast_port = 0;
 static char* qdisc_dev_name = NULL;
-static s64 round_start = 0;
 static s64 slot_len = 0;
 
 struct topology_info_t {
@@ -41,6 +40,7 @@ struct ratdma_packet_annotations {
     s64 transmission_offset;    //Amount of time in ns from the start of the slot, to the moment the packet was sent
     s64 slot_id;                //ID of the slot used by the node to transmit the packet
     s64 node_id;                //ID of the node who transmitted the packet
+    s64 current_round;          //Current round as seen by the node who sent the packet
 };
 
 struct ratdma_packet_delays {
@@ -130,6 +130,9 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
     s64 received_slot_id = annotations->slot_id;
     s64 received_node_id = annotations->node_id;
     s64 received_transmission_offset = annotations->transmission_offset;
+    s64 received_current_round = annotations->current_round;
+
+    s64 round_start = received_current_round * (topology_info->activeNodes * slot_len);
 
     //Calculate expected slot start
     s64 expected_slot_start = round_start + (slot_len * received_slot_id);
@@ -146,7 +149,7 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
 }
 
 void topology_set_round_start(s64 round_start_external) {
-    round_start = round_start_external;
+    //round_start = round_start_external;
 }
 
 //TODO: REMOVE

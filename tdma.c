@@ -182,10 +182,10 @@ static void compute_tdma_parameters(struct tdma_sched_data *q) {
 	q->slot_id = slot_id;
 
 	//Just re-calculate the current round to send to topology module
-	s64 now = ktime_get_real_ns();
-	s64 current_round = intdiv(now - q->slot_offset, q->frame_len);
+	//s64 now = ktime_get_real_ns();
+	//s64 current_round = intdiv(now - q->slot_offset, q->frame_len);
 
-	__topology_set_round_start(current_round * q->frame_len);
+	//__topology_set_round_start(current_round * q->frame_len);
 
 }
 
