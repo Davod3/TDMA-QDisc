@@ -215,27 +215,33 @@ int topology_get_slot_id(void) {
 
 static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 packet_arrival_time){
 
-    s64 received_slot_id = annotations->slot_id;
-    s64 received_node_id = annotations->node_id;
-    s64 received_transmission_offset = annotations->transmission_offset;
+    s64 active_nodes = topology_info->activeNodes;
 
-    //CRITICAL
+    if(active_nodes > 1) {
 
-    s64 frame_len = slot_len * topology_info->activeNodes;
+        s64 received_slot_id = annotations->slot_id;
+        s64 received_node_id = annotations->node_id;
+        s64 received_transmission_offset = annotations->transmission_offset;
 
-    //CRITICAL
+        //CRITICAL
 
-    //Calculate expected slot start of node who sent the packet
-    s64 expected_slot_start = mod((slot_start - ((topology_get_slot_id() - received_slot_id)*slot_len) + frame_len), frame_len);
+        s64 frame_len = slot_len * active_nodes;
 
-    //Calculate expected packet arrival time
-    s64 expected_packet_arrival = mod( expected_slot_start + received_transmission_offset , frame_len);
+        //CRITICAL
 
-    //Calculate packet delay
-    s64 packet_delay = mod((packet_arrival_time - expected_packet_arrival + intdiv(frame_len, 2)), frame_len) - intdiv(frame_len, 2);
+        //Calculate expected slot start of node who sent the packet
+        s64 expected_slot_start = mod((slot_start - ((topology_get_slot_id() - received_slot_id)*slot_len) + frame_len), frame_len);
 
-    //Save delay, but for now just print
-    printk(KERN_DEBUG "[DELAY] %lld\n", packet_delay); 
+        //Calculate expected packet arrival time
+        s64 expected_packet_arrival = mod( expected_slot_start + received_transmission_offset , frame_len);
+
+        //Calculate packet delay
+        s64 packet_delay = mod((packet_arrival_time - expected_packet_arrival + intdiv(frame_len, 2)), frame_len) - intdiv(frame_len, 2);
+
+        //Save delay, but for now just print
+        printk(KERN_DEBUG "[DELAY] %lld\n", packet_delay); 
+
+    }
 
 }
 
