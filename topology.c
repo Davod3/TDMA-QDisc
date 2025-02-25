@@ -21,7 +21,7 @@
 
 static s64 udp_broadcast_port = 0;
 static char* qdisc_dev_name = NULL;
-static s64 round_start = 0;
+static s64 slot_start = 0;
 static s64 slot_len = 0;
 
 struct topology_info_t {
@@ -135,31 +135,112 @@ void topology_parse(struct topology_info_t *topology_info_new) {
 
 }
 
+/* Companion function for QuickSort algorithm */
+static void swapper(s64 *a, s64 *b) {
+    s64 temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+/* Companion function for QuickSort algorithm */
+static s64 partition(s64 arr[], s64 low, s64 high){
+    
+    s64 p = arr[low];
+    s64 i = low;
+    s64 j = high;
+
+    while (i < j) {
+
+        while (arr[i] <= p && i <= high - 1) {
+            i++;
+        }
+
+        while (arr[j] > p && j >= low + 1) {
+            j--;
+        }
+        if (i < j) {
+            swapper(&arr[i], &arr[j]);
+        }
+    }
+    swapper(&arr[low], &arr[j]);
+    return j;
+}
+
+/* Helper function to sort active IDs array - QuickSort from https://www.geeksforgeeks.org/quick-sort-in-c/ */
+static void quicksort(s64 arr[], s64 low, s64 high) {
+
+    if (low < high) {
+
+        int pi = partition(arr, low, high);
+
+        quicksort(arr, low, pi - 1);
+        quicksort(arr, pi + 1, high);
+
+    }
+
+}
+
+int topology_get_slot_id(void) {
+
+    s64 activeNodeIDS[topology_info->activeNodes];
+    int foundNodes = 0;
+
+    //Get all currently active nodes
+    for (int i = 0; i < MAX_NODES; i++) {
+        
+        if(topology_info->activeNodesList[i]){
+            activeNodeIDS[foundNodes] = i;
+            foundNodes++;
+        }
+
+    }
+
+    //Sort the active node list by ascending ID
+    s64 n = sizeof(activeNodeIDS) / sizeof(activeNodeIDS[0]);
+    quicksort(activeNodeIDS, 0, n - 1);
+
+    //Find my ID in the list, and return slot position
+    for (int i = 0; i < topology_info->activeNodes; i++) {
+        
+        s64 currentID = activeNodeIDS[i];
+
+        if(currentID == topology_info->myID) {
+            return i;
+        }
+    }
+
+    return -1;
+    
+}
+
 static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 packet_arrival_time){
 
     s64 received_slot_id = annotations->slot_id;
     s64 received_node_id = annotations->node_id;
     s64 received_transmission_offset = annotations->transmission_offset;
 
+    //CRITICAL
+
     s64 frame_len = slot_len * topology_info->activeNodes;
 
-    //Calculate expected slot start
-    s64 expected_slot_start = round_start + (slot_len * received_slot_id);
-    
+    //CRITICAL
+
+    //Calculate expected slot start of node who sent the packet
+    s64 expected_slot_start = mod((slot_start - ((topology_get_slot_id() - received_slot_id)*slot_len) + frame_len), frame_len);
+
     //Calculate expected packet arrival time
-    s64 expected_packet_arrival = expected_slot_start + received_transmission_offset;
+    s64 expected_packet_arrival = mod( expected_slot_start + received_transmission_offset , frame_len);
 
     //Calculate packet delay
-    s64 packet_delay_unbound = (packet_arrival_time - expected_packet_arrival + intdiv(frame_len, 2));
-    s64 packet_delay_bounded = (mod(packet_delay_unbound, frame_len)) - intdiv(frame_len, 2); //Make sure delay is between 0 and frame_len
+    s64 packet_delay = mod((packet_arrival_time - expected_packet_arrival + intdiv(frame_len, 2)), frame_len) - intdiv(frame_len, 2);
 
     //Save delay, but for now just print
-    printk(KERN_DEBUG "[DELAY] %lld\n", packet_delay_bounded); 
+    printk(KERN_DEBUG "[DELAY] %lld\n", packet_delay); 
 
 }
 
-void topology_set_round_start(s64 round_start_external) {
-    round_start = round_start_external;
+void topology_set_slot_start(s64 slot_start_external) {
+    slot_start = slot_start_external;
 }
 
 //TODO: REMOVE
@@ -495,84 +576,6 @@ s64 topology_get_network_size(void) {
     return topology_info->activeNodes;
 }
 
-/* Companion function for QuickSort algorithm */
-static void swapper(s64 *a, s64 *b) {
-    s64 temp = *a;
-    *a = *b;
-    *b = temp;
-}
-
-/* Companion function for QuickSort algorithm */
-static s64 partition(s64 arr[], s64 low, s64 high){
-    
-    s64 p = arr[low];
-    s64 i = low;
-    s64 j = high;
-
-    while (i < j) {
-
-        while (arr[i] <= p && i <= high - 1) {
-            i++;
-        }
-
-        while (arr[j] > p && j >= low + 1) {
-            j--;
-        }
-        if (i < j) {
-            swapper(&arr[i], &arr[j]);
-        }
-    }
-    swapper(&arr[low], &arr[j]);
-    return j;
-}
-
-/* Helper function to sort active IDs array - QuickSort from https://www.geeksforgeeks.org/quick-sort-in-c/ */
-static void quicksort(s64 arr[], s64 low, s64 high) {
-
-    if (low < high) {
-
-        int pi = partition(arr, low, high);
-
-        quicksort(arr, low, pi - 1);
-        quicksort(arr, pi + 1, high);
-
-    }
-
-}
-
-int topology_get_slot_id(void) {
-
-    s64 activeNodeIDS[topology_info->activeNodes];
-    int foundNodes = 0;
-
-    //Get all currently active nodes
-    for (int i = 0; i < MAX_NODES; i++) {
-        
-        if(topology_info->activeNodesList[i]){
-            activeNodeIDS[foundNodes] = i;
-            foundNodes++;
-        }
-
-    }
-
-    //Sort the active node list by ascending ID
-    s64 n = sizeof(activeNodeIDS) / sizeof(activeNodeIDS[0]);
-    quicksort(activeNodeIDS, 0, n - 1);
-
-    //Find my ID in the list, and return slot position
-    for (int i = 0; i < topology_info->activeNodes; i++) {
-        
-        s64 currentID = activeNodeIDS[i];
-
-        if(currentID == topology_info->myID) {
-            return i;
-        }
-    }
-
-    return -1;
-    
-}
-
 static int __init topology_init(void) {
 
     printk(KERN_DEBUG "TOPOLOGY: Tracker initialized.\n");
@@ -631,7 +634,7 @@ EXPORT_SYMBOL_GPL(topology_get_info_size);
 EXPORT_SYMBOL_GPL(topology_get_network_size);
 EXPORT_SYMBOL_GPL(topology_get_slot_id);
 EXPORT_SYMBOL_GPL(topology_is_active);
-EXPORT_SYMBOL_GPL(topology_set_round_start);
+EXPORT_SYMBOL_GPL(topology_set_slot_start);
 
 module_init(topology_init);
 module_exit(topology_exit);
