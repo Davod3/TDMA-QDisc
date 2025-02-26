@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.ticker as mticker
 
+MAX_ROUNDS = 10
+ROUND_OFFSET = 50
+
 def process_delays(path):
     
     values = dict()
@@ -13,6 +16,7 @@ def process_delays(path):
     with open(path, "r") as file:
 
         round_counter = -1
+        valid_round_counter = 0
 
         for line in file:
 
@@ -20,42 +24,56 @@ def process_delays(path):
 
             if '[TDMA ROUND]' in stripped_line:
                 round_counter+=1
-                values[round_counter] = []
+
+                if(round_counter >= ROUND_OFFSET):
+                    values[round_counter] = []
+                    valid_round_counter+=1
+
+                    if valid_round_counter > MAX_ROUNDS:
+                        break
 
             elif '[DELAY]' in stripped_line:
-                split_line = stripped_line.split(' ')
-                delay = int(split_line[3])
-            
-                values[round_counter].append(delay)
+
+                if(round_counter >= ROUND_OFFSET):
+                    split_line = stripped_line.split('[DELAY]')
+
+                    delay = int(split_line[1])
+
+                    values[round_counter].append(delay)
 
 
-    fig, axes = plt.subplots(round_counter, 1, figsize=(8, 15))
+    fig, axes = plt.subplots(min(MAX_ROUNDS, round_counter), 1, figsize=(8, 15))
 
     for i, ax in enumerate(axes):
-        
-        if len(values[i]) > 0:
+
+        index = i + ROUND_OFFSET
+
+        if index > round_counter:
+            break
+
+        if len(values[index]) > 0:
     
-            print(i)
-    
-            minimum = min(values[i])
-            maximum = max(values[i])
+            minimum = min(values[index])
+            maximum = max(values[index])
     
             print(minimum, maximum)
     
-            ax.hist(values[i], bins='auto', alpha=0.7)
-            ax.set_ylabel('Round ' + str(i))
+            ax.hist(values[index], bins='auto', alpha=0.7)
+            ax.set_ylabel('Round ' + str(index))
             ax.set_xlabel('Packet Delays (s)')
             ax.grid(True, linestyle="--", alpha=0.5)
-            ax.axvline(x = np.median(values[i]), color = 'r',  linewidth=3, zorder=2)
-            ax.axvline(x = min(values[i]), color = 'g',  linewidth=3, zorder=2)
-            ax.axvline(x = max(values[i]), color = 'b',  linewidth=3, zorder=2)
+            ax.axvline(x = np.median(values[index]), color = 'r',  linewidth=3, zorder=2)
+            ax.axvline(x = min(values[index]), color = 'g',  linewidth=3, zorder=2)
+            ax.axvline(x = max(values[index]), color = 'b',  linewidth=3, zorder=2)
             ax.ticklabel_format(axis='x', style='sci', scilimits=(9,9))
+
+
 
     plt.tight_layout()
     plt.savefig('charts/packet-delays.png')
 
 if __name__ == '__main__':
 
-    process_delays('./delay-tests/2-nodes/drone1.txt')
+    process_delays('./delay-tests/2-nodes-50ms/drone2.txt')
 
     
