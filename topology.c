@@ -7,6 +7,7 @@
 #include <linux/tcp.h>
 #include <linux/udp.h>
 #include <net/ip.h> 
+#include <linux/mutex.h>
 
 #define MAX_NODES 20
 #define MAX_AGE 30000000000
@@ -54,6 +55,10 @@ static struct nf_hook_ops* nfho_in, *nfho_out = NULL;
 static struct topology_info_t* topology_info = NULL;
 static struct ratdma_packet_delays* ratdma_packet_delays = NULL;
 
+//Mutexes
+static DEFINE_MUTEX(topology_info_mutex);
+static DEFINE_MUTEX(slot_start_mutex);
+
 static s64 intdiv(s64 a, u64 b) {
 	return (((a * ((a >= 0) ? 1 : -1)) / b) * ((a >= 0) ? 1 : -1)) - ((!(a >= 0)) && (!(((a * ((a >= 0) ? 1 : -1)) % b) == 0)));
 }
@@ -68,6 +73,9 @@ static s64 mod(s64 a, s64 b)
 void topology_parse(struct topology_info_t *topology_info_new) {
 
     //printk(KERN_DEBUG "Parsing topology packet, %lld ---- %lld\n", topology_info->myID, topology_info->activeNodes);
+
+    //CRITICAL-TOPOLOGY-LOCK
+    mutex_lock(&topology_info_mutex);
 
     //Check if received packet is not mine for some reason
     if(topology_info->myID != topology_info_new->myID){
@@ -133,6 +141,9 @@ void topology_parse(struct topology_info_t *topology_info_new) {
 
     }
 
+    //CRITICAL-TOPOLOGY-UNLOCK
+    mutex_unlock(&topology_info_mutex);
+
 }
 
 /* Companion function for QuickSort algorithm */
@@ -182,6 +193,9 @@ static void quicksort(s64 arr[], s64 low, s64 high) {
 
 int topology_get_slot_id(void) {
 
+    //CRITICAL-TOPOLOGY-LOCK
+    mutex_lock(&topology_info_mutex);
+
     s64 activeNodeIDS[topology_info->activeNodes];
     int foundNodes = 0;
 
@@ -205,9 +219,16 @@ int topology_get_slot_id(void) {
         s64 currentID = activeNodeIDS[i];
 
         if(currentID == topology_info->myID) {
+
+            //CRITICAL-TOPOLOGY-UNLOCK
+            mutex_unlock(&topology_info_mutex);
+
             return i;
         }
     }
+
+    //CRITICAL-TOPOLOGY-UNLOCK
+    mutex_unlock(&topology_info_mutex);
 
     return -1;
     
@@ -215,7 +236,13 @@ int topology_get_slot_id(void) {
 
 static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 packet_arrival_time){
 
+    //CRITICAL-TOPOLOGY-LOCK
+    mutex_lock(&topology_info_mutex);
+
     s64 active_nodes = topology_info->activeNodes;
+
+    //CRITICAL-TOPOLOGY-UNLOCK
+    mutex_unlock(&topology_info_mutex);
 
     if(active_nodes > 1) {
 
@@ -223,14 +250,16 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
         s64 received_node_id = annotations->node_id;
         s64 received_transmission_offset = annotations->transmission_offset;
 
-        //CRITICAL
-
         s64 frame_len = slot_len * active_nodes;
 
-        //CRITICAL
+        //CRITICAL-SLOT_START-LOCK
+        mutex_lock(&slot_start_mutex);
 
         //Calculate expected slot start of node who sent the packet
         s64 expected_slot_start = mod((slot_start - ((topology_get_slot_id() - received_slot_id)*slot_len) + frame_len), frame_len);
+
+        //CRITICAL-SLOT_START-UNLOCK
+        mutex_unlock(&slot_start_mutex);
 
         //Calculate expected packet arrival time
         s64 expected_packet_arrival = mod( expected_slot_start + received_transmission_offset , frame_len);
@@ -246,7 +275,14 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
 }
 
 void topology_set_slot_start(s64 slot_start_external) {
+    
+    //CRITICAL-SLOT_START-LOCK
+    mutex_lock(&slot_start_mutex);
+
     slot_start = slot_start_external;
+    
+    //CRITICAL-SLOT_START-UNLOCK
+    mutex_unlock(&slot_start_mutex);
 }
 
 //TODO: REMOVE
@@ -284,37 +320,15 @@ static void removeIPOptions(struct sk_buff* skb, int opt_len){
     //Pointer to start of headers
 	void* skb_data_start = skb->data;
     int memory_to_move_len = DEFAULT_IPH_LEN;
-    
-    //void* mac_header = skb_mac_header(skb);
-    //void* network_header = skb_network_header(skb);
-    //void* transport_header = skb_transport_header(skb);
-
-    //printk(KERN_DEBUG "SKB DATA START: %d\n", skb_data_start);
-    //printk(KERN_DEBUG "MAC HEADER: %d\n", mac_header);
-    //printk(KERN_DEBUG "NETWORK HEADER: %d\n", network_header);
-    //printk(KERN_DEBUG "TRANSPORT HEADER: %d\n", transport_header);
-    //printk(KERN_DEBUG "OPT_LEN: %d\n", opt_len);
-    //printk(KERN_DEBUG "MEMORY_LEN: %d\n", memory_to_move_len);
 
     //Shift everything until end of IP Header to end of options space
     memmove(skb_data_start + opt_len, skb_data_start, memory_to_move_len);
-    //memset(opts+2, 1, opt_len-5);
 
     //Remove extra bytes
     skb_pull(skb, opt_len);
 
     //Reset Headers
     skb_reset_network_header(skb);
-    //skb_set_network_header(skb, sizeof(struct ethhdr));
-
-    //void* mac_header_after = skb_mac_header(skb);
-    //void* network_header_after = skb_network_header(skb);
-    //void* transport_header_after = skb_transport_header(skb);
-
-    //printk(KERN_DEBUG "SKB DATA START AFTER: %d\n", skb->data);
-    //printk(KERN_DEBUG "MAC HEADER AFTER: %d\n", mac_header_after);
-    //printk(KERN_DEBUG "NETWORK HEADER AFTER: %d\n", network_header_after);
-    //printk(KERN_DEBUG "TRANSPORT HEADER AFTER: %d\n", transport_header_after);
 
     //Set correct IP Header lengths
     struct iphdr *iph = ip_hdr(skb);
@@ -461,6 +475,8 @@ static unsigned int hookIN(void *priv, struct sk_buff *skb, const struct nf_hook
 // Called by TDMA QDisc to enable topology tracking
 void topology_enable(s64 nodeID, s64 broadcast_port, char* dev_name, s64 slot_len_external) {
 
+    //CRITICAL-TOPOLOGY-LOCK
+    mutex_lock(&topology_info_mutex);
 
     if(topology_info->active == 0){
 
@@ -487,10 +503,22 @@ void topology_enable(s64 nodeID, s64 broadcast_port, char* dev_name, s64 slot_le
 
     }
 
+    //CRITICAL-TOPOLOGY-UNLOCK
+    mutex_unlock(&topology_info_mutex);
+
 }
 
 uint8_t topology_is_active(void) {
-    return topology_info->active;
+
+    //CRITICAL-TOPOLOGY-LOCK
+    mutex_lock(&topology_info_mutex);
+
+    uint8_t isActive = topology_info->active;
+    
+    //CRITICAL-TOPOLOGY-UNLOCK
+    mutex_unlock(&topology_info_mutex);
+
+    return isActive;
 }
 
 //TODO: Remove. Just for debugging
@@ -534,6 +562,9 @@ void print_struct(void) {
 /* Called by TDMA QDisc to send topology info to the network */
 void* topology_get_info(void) {
 
+    //CRITICAL-TOPOLOGY-LOCK
+    mutex_lock(&topology_info_mutex);
+
     s64 epoch = ktime_get_real_ns();
 
     //Update age values and discard old information
@@ -570,6 +601,9 @@ void* topology_get_info(void) {
         }
 
     }
+
+    //CRITICAL-TOPOLOGY-UNLOCK
+    mutex_unlock(&topology_info_mutex);
     
     return (void*) topology_info; 
 }
@@ -579,7 +613,16 @@ size_t topology_get_info_size(void) {
 }
 
 s64 topology_get_network_size(void) {
-    return topology_info->activeNodes;
+    
+    //CRITICAL-TOPOLOGY-LOCK
+    mutex_lock(&topology_info_mutex);
+
+    s64 network_size = topology_info->activeNodes;
+    
+    //CRITICAL-TOPOLOGY-UNLOCK
+    mutex_unlock(&topology_info_mutex);
+
+    return network_size;
 }
 
 static int __init topology_init(void) {
