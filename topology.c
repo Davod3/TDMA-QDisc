@@ -268,7 +268,7 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
         s64 packet_delay = mod((packet_arrival_time - expected_packet_arrival), frame_len);
 
         //Save delay, but for now just print
-        printk(KERN_DEBUG "[DELAY] %lld\n", packet_delay); 
+        printk(KERN_DEBUG "[DELAY] %lld|%lld\n", received_node_id, packet_delay); 
 
     }
 
