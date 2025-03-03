@@ -165,8 +165,17 @@ void topology_update_spanning_tree(void) {
         key[i] = INT_MAX, stSet[i] = false;
     }
 
+    int active_node_id = 0;
+
     //Get first active node
-    int active_node_id = topology_info->activeNodesList[0];
+    for(int n = 0; n < MAX_NODES; n++){
+
+        if(topology_info->activeNodesList[n]){
+            active_node_id = n;
+            break;
+        }
+
+    }
 
     //Make it first node of ST
     key[active_node_id] = 0;
@@ -249,6 +258,7 @@ static void topology_parse(struct topology_info_t *topology_info_new) {
         //For each node new guy is aware of:
         for (size_t i = 0; i < MAX_NODES; i++) {
             
+            //Don't let new guy gaslight me about what i know
             if(i == topology_info->myID ){
                 continue;
             }
