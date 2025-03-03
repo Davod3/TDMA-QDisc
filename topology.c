@@ -104,7 +104,7 @@ static void print_matrix(void) {
 
         printk(KERN_DEBUG "Node %d:\n", i);
 
-        for(int j = 0; i < MAX_NODES; i++) {
+        for(int j = 0; j < MAX_NODES; j++) {
 
             if(topology_info->connectionMatrix[i][j]){
 
@@ -125,7 +125,7 @@ static void print_matrix(void) {
 
         printk(KERN_DEBUG "Node %d:\n", i);
 
-        for(int j = 0; i < MAX_NODES; i++) {
+        for(int j = 0; j < MAX_NODES; j++) {
 
             if(spanning_tree->spanning_tree[i][j]){
 
@@ -411,7 +411,7 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
         s64 packet_delay = mod((packet_arrival_time - expected_packet_arrival), frame_len);
 
         //Save delay, but for now just print
-        printk(KERN_DEBUG "[DELAY] %lld|%lld\n", received_node_id, packet_delay); 
+        //printk(KERN_DEBUG "[DELAY] %lld|%lld\n", received_node_id, packet_delay); 
 
     }
 
