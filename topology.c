@@ -37,6 +37,11 @@ struct topology_info_t {
 
 };
 
+struct spanning_tree_t {
+    uint8_t spanning_tree[MAX_NODES][MAX_NODES];
+    s64 n_child_nodes[MAX_NODES];
+};
+
 struct ratdma_packet_annotations {
 
     s64 transmission_offset;    //Amount of time in ns from the start of the slot, to the moment the packet was sent
@@ -54,10 +59,12 @@ struct ratdma_packet_delays {
 static struct nf_hook_ops* nfho_in, *nfho_out = NULL;
 static struct topology_info_t* topology_info = NULL;
 static struct ratdma_packet_delays* ratdma_packet_delays = NULL;
+static struct spanning_tree_t* spanning_tree = NULL;
 
 //Mutexes
 static DEFINE_MUTEX(topology_info_mutex);
 static DEFINE_MUTEX(slot_start_mutex);
+static DEFINE_MUTEX(spanning_tree_mutex);
 
 static s64 intdiv(s64 a, u64 b) {
 	return (((a * ((a >= 0) ? 1 : -1)) / b) * ((a >= 0) ? 1 : -1)) - ((!(a >= 0)) && (!(((a * ((a >= 0) ? 1 : -1)) % b) == 0)));
@@ -69,8 +76,144 @@ static s64 mod(s64 a, s64 b)
     return r < 0 ? r + b : r;
 }
 
+//Companion function to update_spanning_tree to find node with minimum key value
+static int minKey(int key[], bool stSet[]){
+
+    int min = INT_MAX, min_index;
+
+    for(int v = 0; v < MAX_NODES; v++){
+
+        if(stSet[v] == false && key[v] < min) {
+            min = key[v], min_index = v;
+        }
+
+    }
+
+    return min_index;
+
+}
+
+//TODO - REMOVE
+static void print_matrix(void) {
+
+    //Print topology
+
+    printk(KERN_DEBUG "-----------------------TOPOLOGY------------------------\n");
+
+    for(int i = 0; i < MAX_NODES; i++) {
+
+        printk(KERN_DEBUG "Node %d:\n", i);
+
+        for(int j = 0; i < MAX_NODES; i++) {
+
+            if(topology_info->connectionMatrix[i][j]){
+
+                printk(KERN_DEBUG "%d -> %d == %d\n", i,j, topology_info->connectionMatrix[i][j]);
+
+            }
+
+        }
+
+        printk(KERN_DEBUG "----------------------------------\n");
+    }
+
+    //Print spanning tree
+
+    printk(KERN_DEBUG "-----------------------SPANNING TREE------------------------\n");
+
+    for(int i = 0; i < MAX_NODES; i++) {
+
+        printk(KERN_DEBUG "Node %d:\n", i);
+
+        for(int j = 0; i < MAX_NODES; i++) {
+
+            if(spanning_tree->spanning_tree[i][j]){
+
+                printk(KERN_DEBUG "%d -> %d == %d\n", i,j, spanning_tree->spanning_tree[i][j]);
+
+            }
+
+        }
+
+        printk(KERN_DEBUG "----------------------------------\n");
+    }
+
+}
+
+//Spanning tree built Prim's Algorithm (https://www.geeksforgeeks.org/prims-minimum-spanning-tree-mst-greedy-algo-5/)
+void topology_update_spanning_tree(void) {
+
+    //CRITICAL-TOPOLOGY-LOCK
+    mutex_lock(&topology_info_mutex);
+
+    //CRITICAL-ST-LOCK
+    mutex_lock(&spanning_tree_mutex);
+
+    //Delete previous ST
+    if(spanning_tree){
+        kfree(spanning_tree);
+    }
+
+    //Allocate space for new ST
+    spanning_tree = (struct spanning_tree_t*)kcalloc(1, sizeof(struct spanning_tree_t), GFP_KERNEL);
+
+    int key[MAX_NODES];
+    bool stSet[MAX_NODES];
+
+    //Start keys (weights) as largest posssible value
+    for(int i = 0; i < MAX_NODES; i++) {
+        key[i] = INT_MAX, stSet[i] = false;
+    }
+
+    //Get first active node
+    int active_node_id = topology_info->activeNodesList[0];
+
+    //Make it first node of ST
+    key[active_node_id] = 0;
+
+    //Build ST
+    for (int count = 0; count < MAX_NODES - 1; count++){
+
+        //Get smallest key of nodes not yet in the ST (First run will be u == active_ node_id)
+        int u = minKey(key, stSet);
+
+        //Add the picked node to ST
+        stSet[u] = true;
+
+        //Update adjacent nodes
+        for(int v = 0; v < MAX_NODES; v++){
+
+            //Graph[u][v] is non-zero only for adjacent nodes of u
+            //stSet[v] is false for nodes not yet in the ST
+            //Update the key only if graph[u][v] is smaller than key[v]
+            if(topology_info->connectionMatrix[u][v] && stSet[v] == false && topology_info->connectionMatrix[u][v] < key[v]){
+
+                //Add connection to ST and update stats
+                spanning_tree->spanning_tree[u][v] = 1;
+                spanning_tree->n_child_nodes[u]++;
+
+                //Update key
+                key[v] = topology_info->connectionMatrix[u][v];
+
+            }
+
+        }
+
+    }
+
+    //TODO - REMOVE
+    print_matrix();
+
+    //CRITICAL-ST-UNLOCK
+    mutex_unlock(&spanning_tree_mutex);
+
+    //CRITICAL-TOPOLOGY-UNLOCK
+    mutex_unlock(&topology_info_mutex);
+
+}
+
 /* Called when a packet containing topology info is received */
-void topology_parse(struct topology_info_t *topology_info_new) {
+static void topology_parse(struct topology_info_t *topology_info_new) {
 
     //printk(KERN_DEBUG "Parsing topology packet, %lld ---- %lld\n", topology_info->myID, topology_info->activeNodes);
 
@@ -673,6 +816,10 @@ static void __exit topology_exit(void) {
     kfree(topology_info);
     kfree(ratdma_packet_delays);
 
+    if(spanning_tree){
+        kfree(spanning_tree);
+    }
+
     printk(KERN_DEBUG "TOPOLOGY: Tracker disabled.\n");
 
 }
@@ -684,6 +831,8 @@ EXPORT_SYMBOL_GPL(topology_get_network_size);
 EXPORT_SYMBOL_GPL(topology_get_slot_id);
 EXPORT_SYMBOL_GPL(topology_is_active);
 EXPORT_SYMBOL_GPL(topology_set_slot_start);
+EXPORT_SYMBOL_GPL(topology_update_spanning_tree);
+
 
 module_init(topology_init);
 module_exit(topology_exit);

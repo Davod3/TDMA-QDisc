@@ -88,6 +88,7 @@ extern void* topology_get_info(void);
 extern size_t topology_get_info_size(void);
 extern int8_t topology_is_active(void);
 extern void topology_set_slot_start(s64 slot_start_external);
+extern void topology_update_spanning_tree(void);
 
 
 //Placeholders if topology module is not loaded
@@ -98,6 +99,7 @@ void* (*__topology_get_info)(void);
 size_t (*__topology_get_info_size)(void);
 int8_t (*__topology_is_active)(void);
 void (*__topology_set_slot_start)(s64 slot_start_external);
+void (*__topology_update_spanning_tree)(void);
 
 //Get functions from ratdma module
 extern struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id);
@@ -175,6 +177,7 @@ static void compute_tdma_parameters(struct tdma_sched_data *q) {
 
 	s64 n_nodes = __topology_get_network_size(); //Get from topology module
 	s64 slot_id = __topology_get_slot_id(); //Get from topology module
+	__topology_update_spanning_tree();
 
 	printk(KERN_DEBUG "[TDMA] Self-Configured (n_nodes --- slot_id --- port)=(%d --- %d -- %lld) \n", n_nodes, slot_id);
 
@@ -466,6 +469,8 @@ static void stop_topology(void) {
 		symbol_put(topology_is_active);
 	if (__topology_set_slot_start)
 		symbol_put(topology_set_slot_start);
+	if (__topology_update_spanning_tree)
+		symbol_put(topology_update_spanning_tree);
 
 }
 
@@ -544,9 +549,10 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 			__topology_get_info_size = symbol_get(topology_get_info_size);
 			__topology_is_active = symbol_get(topology_is_active);
 			__topology_set_slot_start = symbol_get(topology_set_slot_start);
+			__topology_update_spanning_tree = symbol_get(topology_update_spanning_tree);
 
 			//Check if module is available
-			if(__topology_enable && __topology_get_network_size && __topology_get_slot_id && __topology_get_info && __topology_get_info_size && __topology_set_slot_start && __topology_is_active){
+			if(__topology_enable && __topology_get_network_size && __topology_get_slot_id && __topology_get_info && __topology_get_info_size && __topology_set_slot_start && __topology_is_active && __topology_update_spanning_tree){
 
 				printk(KERN_DEBUG "[TDMA] Found topology symbols. Self-Configuring Network. \n");
 
