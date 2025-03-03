@@ -262,6 +262,9 @@ static void topology_parse(struct topology_info_t *topology_info_new) {
                     //Update corresponding line on ConnectionMatrix
                     for (size_t j = 0; j < MAX_NODES; j++) {
                         topology_info->connectionMatrix[i][j]=topology_info_new->connectionMatrix[i][j];
+                        
+                        //This line might break things. JUST TESTING
+                        topology_info->connectionMatrix[j][i]=topology_info_new->connectionMatrix[j][i];
                     }
 
                     //Check if already aware of node and update accordingly
