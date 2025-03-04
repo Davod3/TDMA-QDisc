@@ -11,6 +11,9 @@
 #include <net/ip.h> 
 #include <linux/udp.h>
 
+//Get functions from topology module
+extern s64 topology_get_reference_node(void);
+
 //THIS STRUCT MUST NOT EXCEED 40 BYTES (MAX IP OPTIONS LENGTH)
 struct ratdma_packet_annotations {
 
@@ -96,6 +99,22 @@ struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slo
 
 }
 
+s64 ratdma_get_offset(void) {
+
+	printk(KERN_DEBUG "Getting offsets: \n");
+
+	//Call Topology to get reference node
+	s64 reference_node_id = topology_get_reference_node();
+
+	printk(KERN_DEBUG "My parent is: %lld\n", reference_node_id);
+
+	//Call Topology to get delays of reference node
+	//Calculate offset value
+	//Call Topology to reset delays
+	//Return offset value to TDMA 
+	return 1;
+}
+
 static int __init ratdma_init(void) {
 
     printk(KERN_DEBUG "SYNC: Module initialized.\n");
@@ -111,6 +130,7 @@ static void __exit ratdma_exit(void) {
 }
 
 EXPORT_SYMBOL_GPL(ratdma_annotate_skb);
+EXPORT_SYMBOL_GPL(ratdma_get_offset);
 
 module_init(ratdma_init);
 module_exit(ratdma_exit);

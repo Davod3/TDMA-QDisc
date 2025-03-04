@@ -103,9 +103,11 @@ void (*__topology_update_spanning_tree)(void);
 
 //Get functions from ratdma module
 extern struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id);
+extern s64 ratdma_get_offset(void);
 
 //Placeholders if ratdma module is not loaded
 struct sk_buff* (*__ratdma_annotate_skb)(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id);
+s64 (*__ratdma_get_offset)(void);
 
 struct tdma_sched_data {
 /* Parameters */
@@ -374,6 +376,10 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
         //Create topology broadcast packet. This runs at the start of the slots
         if(sendBroadcast) {
 
+			if(__ratdma_get_offset) {
+				s64 offset = __ratdma_get_offset();
+			}
+
             //Send broadcast with topology at the start of the slot and no more.
             sendBroadcast = 0;
 
@@ -478,6 +484,9 @@ static void stop_ratdma(void) {
 
 	if(__ratdma_annotate_skb){
 		symbol_put(ratdma_annotate_skb);
+	}
+	if(__ratdma_get_offset){
+		symbol_put(ratdma_get_offset);
 	}
 
 }
@@ -593,9 +602,10 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 			printk(KERN_DEBUG "[TDMA] Using clockless sync! \n");
 
 			__ratdma_annotate_skb = symbol_get(ratdma_annotate_skb);
+			__ratdma_get_offset = symbol_get(ratdma_get_offset);
 
 			//Check if symbols are available
-			if(__ratdma_annotate_skb) {
+			if(__ratdma_annotate_skb && __ratdma_get_offset) {
 				printk(KERN_DEBUG "[TDMA] Clockless symbols found!\n");
 			} else {
 				printk(KERN_DEBUG "[TDMA] Failed to find clockless sync symbols. Network not syncing.\n");

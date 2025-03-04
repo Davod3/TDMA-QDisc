@@ -40,6 +40,8 @@ struct topology_info_t {
 struct spanning_tree_t {
     uint8_t spanning_tree[MAX_NODES][MAX_NODES];
     s64 n_child_nodes[MAX_NODES];
+    s64 n_nodes;
+    uint8_t included_nodes[MAX_NODES];
 };
 
 struct ratdma_packet_annotations {
@@ -184,7 +186,7 @@ void topology_update_spanning_tree(void) {
     //Build ST
     for (int count = 0; count < MAX_NODES - 1; count++){
 
-        //Get smallest key of nodes not yet in the ST (First run will be u == active_ node_id)
+        //Get smallest key of nodes not yet in the ST (First run will be u == active_node_id)
         int u = minKey(key, stSet);
 
         //Add the picked node to ST
@@ -205,20 +207,90 @@ void topology_update_spanning_tree(void) {
                 //Update key
                 key[v] = topology_info->connectionMatrix[u][v];
 
+                //Include parent and node
+                spanning_tree->included_nodes[u] = 1;
+                spanning_tree->included_nodes[v] = 1;
+
             }
 
         }
 
     }
 
+    //Save total number of nodes in the tree
+    spanning_tree->n_nodes = topology_info->activeNodes;
+
     //TODO - REMOVE
-    print_matrix();
+    //print_matrix();
 
     //CRITICAL-ST-UNLOCK
     mutex_unlock(&spanning_tree_mutex);
 
     //CRITICAL-TOPOLOGY-UNLOCK
     mutex_unlock(&topology_info_mutex);
+
+}
+
+s64 topology_get_reference_node(void){
+
+    //CRITICAL-TOPOLOGY-LOCK
+    mutex_lock(&topology_info_mutex);
+
+    s64 id = topology_info->myID;
+    
+    //CRITICAL-TOPOLOGY-UNLOCK
+    mutex_unlock(&topology_info_mutex);
+
+    //CRITICAL-ST-LOCK
+    mutex_lock(&spanning_tree_mutex);
+
+    s64 node_levels[spanning_tree->n_nodes];
+    int picked_nodes[MAX_NODES];
+
+    //Order the nodes by level (Assumes each level will only have one node)
+    //While there are still nodes left, do this
+    for(s64 i = 0; i < spanning_tree->n_nodes; i++){
+
+        int current_max_children = -1;
+        s64 current_winner = 0;
+
+        //Get node with most children not yet picked
+        for(s64 j = 0; j < MAX_NODES; j++) {
+
+            if(spanning_tree->included_nodes[j] && !picked_nodes[j]){
+                
+                s64 n_children = spanning_tree->n_child_nodes[j];
+
+                if(n_children > current_max_children){
+                    current_max_children = n_children;
+                    current_winner = j;
+                }
+            }
+
+        }
+
+        node_levels[i] = current_winner;
+        picked_nodes[current_winner] = 1;
+
+    }
+
+    s64 parent_id = id;
+
+    //node_levels now contains info about each node in the network. Pick my parent
+    for(s64 i = id - 1; i >= 0; i--){
+
+        //Pick a parent in a higher level with whom i have a connection
+        if(spanning_tree->spanning_tree[id][i]){
+            parent_id = i;
+            break;
+        }
+
+    }
+
+    //CRITICAL-ST-UNLOCK
+    mutex_unlock(&spanning_tree_mutex);
+
+    return parent_id == id ? -1 : parent_id;
 
 }
 
@@ -857,6 +929,7 @@ EXPORT_SYMBOL_GPL(topology_get_slot_id);
 EXPORT_SYMBOL_GPL(topology_is_active);
 EXPORT_SYMBOL_GPL(topology_set_slot_start);
 EXPORT_SYMBOL_GPL(topology_update_spanning_tree);
+EXPORT_SYMBOL_GPL(topology_get_reference_node);
 
 
 module_init(topology_init);
