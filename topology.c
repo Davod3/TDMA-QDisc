@@ -508,7 +508,7 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
         ratdma_packet_delays->delay_counters[received_node_id]++;
 
         //CRITICAL - DELAYS - UNLOCK
-        mutex_lock(&packet_delays_mutex);
+        mutex_unlock(&packet_delays_mutex);
 
     }
 
