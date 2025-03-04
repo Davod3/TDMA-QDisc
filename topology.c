@@ -65,6 +65,7 @@ static struct spanning_tree_t* spanning_tree = NULL;
 static DEFINE_MUTEX(topology_info_mutex);
 static DEFINE_MUTEX(slot_start_mutex);
 static DEFINE_MUTEX(spanning_tree_mutex);
+static DEFINE_MUTEX(packet_delays_mutex);
 
 static s64 intdiv(s64 a, u64 b) {
 	return (((a * ((a >= 0) ? 1 : -1)) / b) * ((a >= 0) ? 1 : -1)) - ((!(a >= 0)) && (!(((a * ((a >= 0) ? 1 : -1)) % b) == 0)));
@@ -424,8 +425,18 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
         //Calculate packet delay
         s64 packet_delay = mod((packet_arrival_time - expected_packet_arrival), frame_len);
 
-        //Save delay, but for now just print
-        //printk(KERN_DEBUG "[DELAY] %lld|%lld\n", received_node_id, packet_delay); 
+        //Save delay
+        //printk(KERN_DEBUG "[DELAY] %lld|%lld\n", received_node_id, packet_delay);
+        
+        //CRITICAL - DELAYS - LOCK
+        mutex_lock(&packet_delays_mutex);
+
+        s64 i = ratdma_packet_delays->delay_counters[received_node_id];
+        ratdma_packet_delays->node_delays[received_node_id][i];
+        ratdma_packet_delays->delay_counters[received_node_id]++;
+
+        //CRITICAL - DELAYS - UNLOCK
+        mutex_lock(&packet_delays_mutex);
 
     }
 
