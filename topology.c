@@ -247,17 +247,17 @@ s64 topology_get_reference_node(void){
     printk(KERN_DEBUG "N_NODES_ST: %lld", spanning_tree->n_nodes);
 
     s64 node_levels[spanning_tree->n_nodes];
-    int picked_nodes[MAX_NODES];
+    uint8_t picked_nodes[MAX_NODES];
 
     //Order the nodes by level (Assumes each level will only have one node)
     //While there are still nodes left, do this
-    for(s64 i = 0; i < spanning_tree->n_nodes; i++){
+    for(int i = 0; i < spanning_tree->n_nodes; i++){
 
         int current_max_children = -1;
-        s64 current_winner = id;
+        int current_winner = id;
 
         //Get node with most children not yet picked
-        for(s64 j = 0; j < MAX_NODES; j++) {
+        for(int j = 0; j < MAX_NODES; j++) {
 
             printk(KERN_DEBUG "Node: %lld -> %d ---- %d\n", j, spanning_tree->included_nodes[j], picked_nodes[j]);
 
