@@ -259,6 +259,8 @@ s64 topology_get_reference_node(void){
         //Get node with most children not yet picked
         for(s64 j = 0; j < MAX_NODES; j++) {
 
+            printk(KERN_DEBUG "Node: %lld -> %d ---- %d\n", j, spanning_tree->included_nodes[j], picked_nodes[j]);
+
             if(spanning_tree->included_nodes[j] && !picked_nodes[j]){
                 
                 printk(KERN_DEBUG "Found relevant node: %lld\n", j);
