@@ -244,6 +244,8 @@ s64 topology_get_reference_node(void){
     //CRITICAL-ST-LOCK
     mutex_lock(&spanning_tree_mutex);
 
+    printk(KERN_DEBUG "N_NODES_ST: %lld", spanning_tree->n_nodes);
+
     s64 node_levels[spanning_tree->n_nodes];
     int picked_nodes[MAX_NODES];
 
@@ -252,14 +254,18 @@ s64 topology_get_reference_node(void){
     for(s64 i = 0; i < spanning_tree->n_nodes; i++){
 
         int current_max_children = -1;
-        s64 current_winner = 0;
+        s64 current_winner = id;
 
         //Get node with most children not yet picked
         for(s64 j = 0; j < MAX_NODES; j++) {
 
             if(spanning_tree->included_nodes[j] && !picked_nodes[j]){
                 
+                printk(KERN_DEBUG "Found relevant node: %lld\n", j);
+
                 s64 n_children = spanning_tree->n_child_nodes[j];
+
+                printk(KERN_DEBUG "Children Info: %lld\n", n_children, current_max_children);
 
                 if(n_children > current_max_children){
                     current_max_children = n_children;
@@ -268,6 +274,8 @@ s64 topology_get_reference_node(void){
             }
 
         }
+
+        printk(KERN_DEBUG "Level %lld ----> Node %lld\n", i, current_winner);
 
         node_levels[i] = current_winner;
         picked_nodes[current_winner] = 1;
