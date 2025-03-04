@@ -202,6 +202,10 @@ void topology_update_spanning_tree(void) {
 
                 //Add connection to ST and update stats
                 spanning_tree->spanning_tree[u][v] = 1;
+                
+                //This might break things. Remove if so
+                spanning_tree->spanning_tree[v][u] = 1;
+
                 spanning_tree->n_child_nodes[u]++;
 
                 //Update key
@@ -259,15 +263,13 @@ s64 topology_get_reference_node(void){
         //Get node with most children not yet picked
         for(int j = 0; j < MAX_NODES; j++) {
 
-            printk(KERN_DEBUG "Node: %lld -> %d ---- %d\n", j, spanning_tree->included_nodes[j], picked_nodes[j]);
-
             if(spanning_tree->included_nodes[j] && !picked_nodes[j]){
                 
-                printk(KERN_DEBUG "Found relevant node: %lld\n", j);
+                //printk(KERN_DEBUG "Found relevant node: %lld\n", j);
 
                 s64 n_children = spanning_tree->n_child_nodes[j];
 
-                printk(KERN_DEBUG "Children Info: %lld\n", n_children, current_max_children);
+                //printk(KERN_DEBUG "Children Info: %lld\n", n_children, current_max_children);
 
                 if(n_children > current_max_children){
                     current_max_children = n_children;
@@ -277,7 +279,7 @@ s64 topology_get_reference_node(void){
 
         }
 
-        printk(KERN_DEBUG "Level %lld ----> Node %lld\n", i, current_winner);
+        printk(KERN_DEBUG "Level %d ----> Node %d\n", i, current_winner);
 
         node_levels[i] = current_winner;
         picked_nodes[current_winner] = 1;
