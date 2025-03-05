@@ -68,6 +68,7 @@ int sendBroadcast = 1;
 int8_t reset_flag = 0;
 s64 slot_start = 0;
 s64 round_start = 0;
+uint8_t slot_end_flag = 0;
 
 //TODO: Is this necessary?
 EXPORT_SYMBOL(devname);
@@ -368,6 +369,9 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		if(__topology_set_delays_flag)
 			__topology_set_delays_flag(1);
 
+		//Set slot end flag to 0
+		slot_end_flag = 0;
+
 		//Recalculate slot structure with updated parameters
 		current_round = intdiv(now - q->slot_offset, q->frame_len);
 		round_start = current_round * q->frame_len;
@@ -442,12 +446,18 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
     } else {
 
-        //Slot has ended. Prepare to broadcast again when slot starts.
-		sendBroadcast = 1;
+		if(!slot_end_flag){
 
-		//Start collecting delays again
-		if(__topology_set_delays_flag)
-			__topology_set_delays_flag(1);
+			//Slot has ended. Prepare to broadcast again when slot starts.
+			sendBroadcast = 1;
+
+			//Start collecting delays again
+			if(__topology_set_delays_flag)
+				__topology_set_delays_flag(1);
+
+			slot_end_flag = 1;
+
+		}
 
     }
 
