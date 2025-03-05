@@ -24,6 +24,7 @@ static s64 udp_broadcast_port = 0;
 static char* qdisc_dev_name = NULL;
 static s64 slot_start = 0;
 static s64 slot_len = 0;
+static int8_t delays_flag = 1;
 
 struct topology_info_t {
     
@@ -248,7 +249,7 @@ s64 topology_get_reference_node(void){
     //CRITICAL-ST-LOCK
     mutex_lock(&spanning_tree_mutex);
 
-    printk(KERN_DEBUG "N_NODES_ST: %lld", spanning_tree->n_nodes);
+    //printk(KERN_DEBUG "N_NODES_ST: %lld", spanning_tree->n_nodes);
 
     s64 node_levels[spanning_tree->n_nodes];
     uint8_t picked_nodes[MAX_NODES];
@@ -279,7 +280,7 @@ s64 topology_get_reference_node(void){
 
         }
 
-        printk(KERN_DEBUG "Level %d ----> Node %d\n", i, current_winner);
+        //printk(KERN_DEBUG "Level %d ----> Node %d\n", i, current_winner);
 
         node_levels[i] = current_winner;
         picked_nodes[current_winner] = 1;
@@ -303,6 +304,37 @@ s64 topology_get_reference_node(void){
     mutex_unlock(&spanning_tree_mutex);
 
     return parent_id == id ? -1 : parent_id;
+
+}
+
+void topology_get_delays_and_reset(void* copy){
+
+    //CRITICAL-DELAYS-LOCK
+    mutex_lock(&packet_delays_mutex);
+
+    //Copy delays to requesting module
+    memcpy(copy, ratdma_packet_delays, sizeof(struct ratdma_packet_delays));
+
+    //Reset all counters to 0
+    for(int i = 0; i < MAX_NODES; i++){
+        ratdma_packet_delays->delay_counters[i] = 0;
+    }
+
+    //CRITICAL-DELAYS-UNLOCK
+    mutex_unlock(&packet_delays_mutex);
+
+
+}
+
+void topology_set_delays_flag(int value) {
+
+    printk(KERN_DEBUG "Set delays flag to: %d\n", value);
+
+    if(value > 0) {
+        delays_flag = 1;
+    } else {
+        delays_flag = 0;
+    }
 
 }
 
@@ -486,7 +518,7 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
     //CRITICAL-TOPOLOGY-UNLOCK
     mutex_unlock(&topology_info_mutex);
 
-    if(active_nodes > 1) {
+    if(active_nodes > 1 && delays_flag) {
 
         s64 received_slot_id = annotations->slot_id;
         s64 received_node_id = annotations->node_id;
@@ -516,8 +548,14 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
         mutex_lock(&packet_delays_mutex);
 
         s64 i = ratdma_packet_delays->delay_counters[received_node_id];
-        ratdma_packet_delays->node_delays[received_node_id][i];
-        ratdma_packet_delays->delay_counters[received_node_id]++;
+
+        //Check if MAX_DELAYS has not been exceeded. Otherwise discard.
+        if(i < MAX_DELAYS) {
+
+            ratdma_packet_delays->node_delays[received_node_id][i];
+            ratdma_packet_delays->delay_counters[received_node_id]++;
+
+        }
 
         //CRITICAL - DELAYS - UNLOCK
         mutex_unlock(&packet_delays_mutex);
@@ -942,6 +980,8 @@ EXPORT_SYMBOL_GPL(topology_is_active);
 EXPORT_SYMBOL_GPL(topology_set_slot_start);
 EXPORT_SYMBOL_GPL(topology_update_spanning_tree);
 EXPORT_SYMBOL_GPL(topology_get_reference_node);
+EXPORT_SYMBOL_GPL(topology_get_delays_and_reset);
+EXPORT_SYMBOL_GPL(topology_set_delays_flag);
 
 
 module_init(topology_init);

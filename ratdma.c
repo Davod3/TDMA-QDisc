@@ -13,6 +13,7 @@
 
 //Get functions from topology module
 extern s64 topology_get_reference_node(void);
+extern void topology_get_delays_and_reset(void* copy);
 
 //THIS STRUCT MUST NOT EXCEED 40 BYTES (MAX IP OPTIONS LENGTH)
 struct ratdma_packet_annotations {
@@ -26,6 +27,16 @@ struct ratdma_packet_annotations {
 #define TDMA_DATA_IP_OPT_SIZE sizeof(struct ratdma_packet_annotations) + 2
 #define TDMA_DATA_IP_OPT_PADDING (TDMA_DATA_IP_OPT_SIZE - (intdiv(TDMA_DATA_IP_OPT_SIZE, 4) * 4))
 #define TDMA_DATA_IP_OPT_TOTAL_SIZE (TDMA_DATA_IP_OPT_SIZE + TDMA_DATA_IP_OPT_PADDING)
+
+#define MAX_NODES 20
+#define MAX_DELAYS 5000
+
+struct ratdma_packet_delays {
+
+    s64 node_delays[MAX_NODES][MAX_DELAYS];
+    s64 delay_counters[MAX_NODES];
+
+};
 
 static s64 intdiv(s64 a, u64 b) {
 	return (((a * ((a >= 0) ? 1 : -1)) / b) * ((a >= 0) ? 1 : -1)) - ((!(a >= 0)) && (!(((a * ((a >= 0) ? 1 : -1)) % b) == 0)));
@@ -99,20 +110,47 @@ struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slo
 
 }
 
+static s64 get_average_delay(struct ratdma_packet_delays* delays, s64 reference_node_id) {
+
+	s64 n_delays = delays->delay_counters[reference_node_id];
+	s64 total = 0;
+
+	for(int i = 0; i < n_delays; i++) {
+		total += delays->node_delays[reference_node_id][i];
+	}
+
+	s64 avg_delay = intdiv(total, n_delays);
+
+	return avg_delay;
+
+}
+
 s64 ratdma_get_offset(void) {
 
 	printk(KERN_DEBUG "Getting offsets: \n");
 
 	//Call Topology to get reference node
 	s64 reference_node_id = topology_get_reference_node();
+	printk(KERN_DEBUG "PARENT: %lld\n", reference_node_id);
 
-	printk(KERN_DEBUG "My parent is: %lld\n", reference_node_id);
+	//I'm a top level node. Use no offset
+	if(reference_node_id < 0) {
+		return 0;
+	}
 
-	//Call Topology to get delays of reference node
+	//Call Topology to get delays of reference node and reset
+	struct ratdma_packet_delays* delays = (struct ratdma_packet_delays*)kcalloc(1, sizeof(struct ratdma_packet_delays), GFP_KERNEL);
+	topology_get_delays_and_reset(delays);
+	
 	//Calculate offset value
-	//Call Topology to reset delays
+	s64 offset = get_average_delay(delays, reference_node_id);
+
+	printk(KERN_DEBUG "OFFSET: %lld\n", offset);
+
+	kfree(delays);
+
 	//Return offset value to TDMA 
-	return 1;
+	return 0;
 }
 
 static int __init ratdma_init(void) {

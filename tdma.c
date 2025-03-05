@@ -89,6 +89,7 @@ extern size_t topology_get_info_size(void);
 extern int8_t topology_is_active(void);
 extern void topology_set_slot_start(s64 slot_start_external);
 extern void topology_update_spanning_tree(void);
+extern void topology_set_delays_flag(int value);
 
 
 //Placeholders if topology module is not loaded
@@ -100,6 +101,7 @@ size_t (*__topology_get_info_size)(void);
 int8_t (*__topology_is_active)(void);
 void (*__topology_set_slot_start)(s64 slot_start_external);
 void (*__topology_update_spanning_tree)(void);
+void (*__topology_set_delays_flag)(int value);
 
 //Get functions from ratdma module
 extern struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id);
@@ -362,6 +364,10 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		//Allow for a broadcast to be made when slot starts
 		sendBroadcast = 1;
 
+		//Start collecting delays again
+		if(__topology_set_delays_flag)
+			__topology_set_delays_flag(1);
+
 		//Recalculate slot structure with updated parameters
 		current_round = intdiv(now - q->slot_offset, q->frame_len);
 		round_start = current_round * q->frame_len;
@@ -376,7 +382,12 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
         //Create topology broadcast packet. This runs at the start of the slots
         if(sendBroadcast) {
 
-			if(__ratdma_get_offset) {
+			if(__ratdma_get_offset && __topology_set_delays_flag) {
+				
+				//Stop collecting delays
+				__topology_set_delays_flag(0);
+
+				//Get slot offset
 				s64 offset = __ratdma_get_offset();
 			}
 
@@ -434,6 +445,10 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
         //Slot has ended. Prepare to broadcast again when slot starts.
 		sendBroadcast = 1;
 
+		//Start collecting delays again
+		if(__topology_set_delays_flag)
+			__topology_set_delays_flag(1);
+
     }
 
 	qdisc_watchdog_schedule_ns(&q->watchdog, q->frame_len - (now - slot_start));
@@ -477,6 +492,8 @@ static void stop_topology(void) {
 		symbol_put(topology_set_slot_start);
 	if (__topology_update_spanning_tree)
 		symbol_put(topology_update_spanning_tree);
+	if (__topology_set_delays_flag)
+		symbol_put(topology_set_delays_flag);
 
 }
 
@@ -559,9 +576,10 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 			__topology_is_active = symbol_get(topology_is_active);
 			__topology_set_slot_start = symbol_get(topology_set_slot_start);
 			__topology_update_spanning_tree = symbol_get(topology_update_spanning_tree);
+			__topology_set_delays_flag = symbol_get(topology_set_delays_flag);
 
 			//Check if module is available
-			if(__topology_enable && __topology_get_network_size && __topology_get_slot_id && __topology_get_info && __topology_get_info_size && __topology_set_slot_start && __topology_is_active && __topology_update_spanning_tree){
+			if(__topology_enable && __topology_get_network_size && __topology_get_slot_id && __topology_get_info && __topology_get_info_size && __topology_set_slot_start && __topology_is_active && __topology_update_spanning_tree && __topology_set_delays_flag){
 
 				printk(KERN_DEBUG "[TDMA] Found topology symbols. Self-Configuring Network. \n");
 
