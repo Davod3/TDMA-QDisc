@@ -67,8 +67,11 @@ s64 previous_round = 0;
 int sendBroadcast = 1;
 int8_t reset_flag = 0;
 s64 slot_start = 0;
+s64 slot_end = 0;
 s64 round_start = 0;
 uint8_t slot_end_flag = 0;
+uint8_t slot_start_flag = 0;
+s64 total_offset = 0;
 
 //TODO: Is this necessary?
 EXPORT_SYMBOL(devname);
@@ -351,7 +354,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 	struct tdma_sched_data *q = qdisc_priv(sch);
 	struct sk_buff *skb;
 
-	s64 now = ktime_get_real_ns();
+	s64 now = ktime_get_real_ns(); //+ total_offset;
 	s64 current_round = intdiv(now - q->slot_offset, q->frame_len);
 
     //Runs at the start of each round
@@ -372,27 +375,39 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		//Set slot end flag to 0
 		slot_end_flag = 0;
 
+		slot_start_flag = 0;
+
 		//Recalculate slot structure with updated parameters
 		current_round = intdiv(now - q->slot_offset, q->frame_len);
-		round_start = current_round * q->frame_len;
-		slot_start = q->slot_offset + round_start;
+		round_start = current_round * q->frame_len; //+ total_offset;
+		slot_start = q->slot_offset + round_start; //+ total_offset;
+		slot_end = slot_start + q->slot_len - slot_guard; //+ total_offset;
 
 		__topology_set_slot_start(slot_start);
 	}
 
     //Check if within slot
-    if ((slot_start <= now) && (now < (slot_start + q->slot_len - slot_guard))) {
+    if ((slot_start <= now) && (now < slot_end)) {
 
         //Create topology broadcast packet. This runs at the start of the slots
         if(sendBroadcast) {
 
-			if(__ratdma_get_offset && __topology_set_delays_flag) {
+			if(__ratdma_get_offset && __topology_set_delays_flag && !slot_start_flag) {
 				
+				slot_start = 1;
+
 				//Stop collecting delays
 				__topology_set_delays_flag(0);
 
 				//Get slot offset
 				s64 offset = __ratdma_get_offset();
+				total_offset+=offset;
+
+				printk(KERN_DEBUG "OFFSET: %lld\n", offset);
+				printk(KERN_DEBUG "TOTAL OFFSET: %lld\n", total_offset);
+
+				//Wait total offset, return NULL
+
 			}
 
             //Send broadcast with topology at the start of the slot and no more.
@@ -456,6 +471,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				__topology_set_delays_flag(1);
 
 			slot_end_flag = 1;
+			slot_start_flag = 0;
 
 		}
 
