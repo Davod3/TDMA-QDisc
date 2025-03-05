@@ -394,7 +394,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
 			if(__ratdma_get_offset && __topology_set_delays_flag && !slot_start_flag) {
 				
-				slot_start = 1;
+				slot_start_flag = 1;
 
 				//Stop collecting delays
 				__topology_set_delays_flag(0);
