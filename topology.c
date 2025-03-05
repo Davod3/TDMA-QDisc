@@ -328,7 +328,7 @@ void topology_get_delays_and_reset(void* copy){
 
 void topology_set_delays_flag(int value) {
 
-    printk(KERN_DEBUG "Set delays flag to: %d\n", value);
+    //printk(KERN_DEBUG "Set delays flag to: %d\n", value);
 
     if(value > 0) {
         delays_flag = 1;
@@ -552,7 +552,7 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
             ratdma_packet_delays->node_delays[received_node_id][i] = packet_delay;
             ratdma_packet_delays->delay_counters[received_node_id]++;
 
-            printk(KERN_DEBUG "[DELAY] %lld|%lld\n", received_node_id, packet_delay);
+            //printk(KERN_DEBUG "[DELAY] %lld|%lld\n", received_node_id, packet_delay);
 
         }
 
