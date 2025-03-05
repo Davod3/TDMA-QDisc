@@ -379,7 +379,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
 		//Recalculate slot structure with updated parameters
 		current_round = intdiv(now - q->slot_offset, q->frame_len);
-		round_start = current_round * q->frame_len; //+ total_offset;
+		round_start = (current_round * q->frame_len) + total_offset;
 		slot_start = q->slot_offset + round_start; //+ total_offset;
 		slot_end = slot_start + q->slot_len - slot_guard; //+ total_offset;
 
@@ -403,10 +403,13 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				s64 offset = __ratdma_get_offset();
 				total_offset+=offset;
 
-				printk(KERN_DEBUG "OFFSET: %lld\n", offset);
+				//printk(KERN_DEBUG "OFFSET: %lld\n", offset);
 				printk(KERN_DEBUG "TOTAL OFFSET: %lld\n", total_offset);
 
 				//Wait total offset, return NULL
+				qdisc_watchdog_schedule_ns(&q->watchdog, total_offset);
+
+				return NULL;
 
 			}
 
