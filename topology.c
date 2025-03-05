@@ -552,7 +552,7 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
             ratdma_packet_delays->node_delays[received_node_id][i] = packet_delay;
             ratdma_packet_delays->delay_counters[received_node_id]++;
 
-            //printk(KERN_DEBUG "[DELAY] %lld|%lld\n", received_node_id, packet_delay);
+            printk(KERN_DEBUG "[DELAY] %lld|%lld\n", received_node_id, packet_delay);
 
         }
 

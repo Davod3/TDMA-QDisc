@@ -119,6 +119,9 @@ static s64 get_average_delay(struct ratdma_packet_delays* delays, s64 reference_
 		total += delays->node_delays[reference_node_id][i];
 	}
 
+	printk(KERN_DEBUG "TOTAL: %lld\n", total);
+	printk(KERN_DEBUG "N_DELAYS: %lld\n", n_delays);
+
 	s64 avg_delay = intdiv(total, n_delays);
 
 	return avg_delay;
