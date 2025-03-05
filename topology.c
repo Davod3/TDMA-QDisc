@@ -540,9 +540,6 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
 
         //Calculate packet delay
         s64 packet_delay = mod((packet_arrival_time - expected_packet_arrival), frame_len);
-
-        //Save delay
-        //printk(KERN_DEBUG "[DELAY] %lld|%lld\n", received_node_id, packet_delay);
         
         //CRITICAL - DELAYS - LOCK
         mutex_lock(&packet_delays_mutex);
@@ -552,8 +549,10 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
         //Check if MAX_DELAYS has not been exceeded. Otherwise discard.
         if(i < MAX_DELAYS) {
 
-            ratdma_packet_delays->node_delays[received_node_id][i];
+            ratdma_packet_delays->node_delays[received_node_id][i] = packet_delay;
             ratdma_packet_delays->delay_counters[received_node_id]++;
+
+            //printk(KERN_DEBUG "[DELAY] %lld|%lld\n", received_node_id, packet_delay);
 
         }
 
