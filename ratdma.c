@@ -114,7 +114,7 @@ struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slo
 
 static s64 get_average_delay(struct ratdma_packet_delays* delays, s64 reference_node_id) {
 
-	s64 n_delays = delays->delay_counters[reference_node_id];
+	s64 n_delays = delays->delay_counters[reference_node_id] > MAX_DELAYS ? MAX_DELAYS : delays->delay_counters[reference_node_id];
 	s64 total = 0;
 
 	for(int i = 0; i < n_delays; i++) {

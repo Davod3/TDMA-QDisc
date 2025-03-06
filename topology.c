@@ -544,16 +544,16 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
         //CRITICAL - DELAYS - LOCK
         mutex_lock(&packet_delays_mutex);
 
-        s64 i = ratdma_packet_delays->delay_counters[received_node_id];
+        //Get total number of delays
+        s64 counter = ratdma_packet_delays->delay_counters[received_node_id];
+        
+        //Make sure i does not go over MAX_DELAYS
+        s64 i = mod(counter, MAX_DELAYS);
 
-        //Check if MAX_DELAYS has not been exceeded. Otherwise discard.
-        if(i < MAX_DELAYS) {
+        ratdma_packet_delays->node_delays[received_node_id][i] = packet_delay;
+        ratdma_packet_delays->delay_counters[received_node_id]++;
 
-            ratdma_packet_delays->node_delays[received_node_id][i] = packet_delay;
-            s64 counter = mod(i+1, MAX_DELAYS);
-            ratdma_packet_delays->delay_counters[received_node_id] = counter;
-
-            //printk(KERN_DEBUG "[DELAY] %lld|%lld\n", received_node_id, packet_delay);
+        //printk(KERN_DEBUG "[DELAY] %lld|%lld\n", received_node_id, packet_delay);
 
         }
 
