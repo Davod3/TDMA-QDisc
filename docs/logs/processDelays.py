@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.ticker as mticker
 
 MAX_ROUNDS = 10
-ROUND_OFFSET = 50
+ROUND_OFFSET = 0
 
 def process_delays(path):
     
@@ -35,9 +35,12 @@ def process_delays(path):
             elif '[DELAY]' in stripped_line:
 
                 if(round_counter >= ROUND_OFFSET):
+
                     split_line = stripped_line.split('[DELAY]')
 
-                    delay = int(split_line[1])
+                    #node_id = split_line[1].split('|')[0].strip()
+
+                    delay = int(split_line[1].split('|')[1].strip())
 
                     values[round_counter].append(delay)
 
@@ -62,7 +65,7 @@ def process_delays(path):
             ax.set_ylabel('Round ' + str(index))
             ax.set_xlabel('Packet Delays (s)')
             ax.grid(True, linestyle="--", alpha=0.5)
-            ax.axvline(x = np.median(values[index]), color = 'r',  linewidth=3, zorder=2)
+            ax.axvline(x = np.average(values[index]), color = 'r',  linewidth=3, zorder=2)
             ax.axvline(x = min(values[index]), color = 'g',  linewidth=3, zorder=2)
             ax.axvline(x = max(values[index]), color = 'b',  linewidth=3, zorder=2)
             ax.ticklabel_format(axis='x', style='sci', scilimits=(9,9))
@@ -74,6 +77,6 @@ def process_delays(path):
 
 if __name__ == '__main__':
 
-    process_delays('./delay-tests/2-nodes-50ms/drone2.txt')
+    process_delays('./ratdma-sync/2nodes-5seconds/drone2.txt')
 
     
