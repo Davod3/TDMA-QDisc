@@ -555,8 +555,6 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
 
         //printk(KERN_DEBUG "[DELAY] %lld|%lld\n", received_node_id, packet_delay);
 
-        }
-
         //CRITICAL - DELAYS - UNLOCK
         mutex_unlock(&packet_delays_mutex);
 
