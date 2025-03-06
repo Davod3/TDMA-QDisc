@@ -404,7 +404,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				total_offset+=offset;
 
 				//printk(KERN_DEBUG "OFFSET: %lld\n", offset);
-				printk(KERN_DEBUG "TOTAL OFFSET: %lld\n", total_offset);
+				//printk(KERN_DEBUG "TOTAL OFFSET: %lld\n", total_offset);
 
 				//Wait total offset, return NULL
 				qdisc_watchdog_schedule_ns(&q->watchdog, total_offset);
