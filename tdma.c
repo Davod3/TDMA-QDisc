@@ -402,12 +402,14 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				//Get slot offset
 				s64 offset = __ratdma_get_offset();
 				total_offset+=offset;
+				u64 wait_period = total_offset > 0 ? total_offset : 0;
 
-				//printk(KERN_DEBUG "OFFSET: %lld\n", offset);
-				//printk(KERN_DEBUG "TOTAL OFFSET: %lld\n", total_offset);
+				printk(KERN_DEBUG "OFFSET: %lld\n", offset);
+				printk(KERN_DEBUG "TOTAL OFFSET: %lld\n", total_offset);
+				printk(KERN_DEBUG "WAIT: %llu\n", wait_period);
 
-				//Wait total offset, return NULL
-				qdisc_watchdog_schedule_ns(&q->watchdog, total_offset);
+				//Wait wait period, return NULL
+				qdisc_watchdog_schedule_ns(&q->watchdog, wait_period);
 
 				return NULL;
 
