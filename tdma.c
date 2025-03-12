@@ -354,11 +354,8 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 	struct tdma_sched_data *q = qdisc_priv(sch);
 	struct sk_buff *skb;
 
-	//Update frame_len to take total_offset into account
-	s64 frame_len_offset = total_offset > 0 ? q->frame_len + total_offset : q->frame_len - total_offset;
-
 	s64 now = ktime_get_real_ns();
-	s64 current_round = intdiv(now - q->slot_offset, frame_len_offset);
+	s64 current_round = intdiv(now - q->slot_offset, q->frame_len);
 
     //Runs at the start of each round
 	if(previous_round != current_round) {
@@ -381,8 +378,8 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		slot_start_flag = 0;
 
 		//Recalculate slot structure with updated parameters
-		current_round = intdiv(now - q->slot_offset, frame_len_offset);
-		round_start = (current_round * frame_len_offset) + total_offset;
+		current_round = intdiv(now - q->slot_offset, q->frame_len);
+		round_start = (current_round * q->frame_len) + total_offset;
 		slot_start = q->slot_offset + round_start;
 		slot_end = slot_start + q->slot_len - slot_guard;
 
@@ -407,9 +404,9 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				total_offset+=offset;
 				u64 wait_period = total_offset > 0 ? total_offset : 0;
 
-				printk(KERN_DEBUG "OFFSET: %lld\n", offset);
-				printk(KERN_DEBUG "TOTAL OFFSET: %lld\n", total_offset);
-				printk(KERN_DEBUG "WAIT: %llu\n", wait_period);
+				printk(KERN_DEBUG "[OFFSET]: %lld\n", offset);
+				printk(KERN_DEBUG "[TOTAL OFFSET]: %lld\n", total_offset);
+				printk(KERN_DEBUG "[WAIT]: %llu\n", wait_period);
 
 				//Wait wait period, return NULL
 				qdisc_watchdog_schedule_ns(&q->watchdog, wait_period);
@@ -485,7 +482,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
     }
 
-	qdisc_watchdog_schedule_ns(&q->watchdog, frame_len_offset - (now - slot_start));
+	qdisc_watchdog_schedule_ns(&q->watchdog, q->frame_len - (now - slot_start));
 
 	return NULL;
 }
