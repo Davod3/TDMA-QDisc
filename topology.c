@@ -7,7 +7,7 @@
 #include <linux/tcp.h>
 #include <linux/udp.h>
 #include <net/ip.h> 
-#include <linux/mutex.h>
+#include <linux/spinlock.h>
 
 #define MAX_NODES 20
 #define MAX_AGE 30000000000
@@ -65,10 +65,10 @@ static struct ratdma_packet_delays* ratdma_packet_delays = NULL;
 static struct spanning_tree_t* spanning_tree = NULL;
 
 //Mutexes
-static DEFINE_MUTEX(topology_info_mutex);
-static DEFINE_MUTEX(slot_start_mutex);
-static DEFINE_MUTEX(spanning_tree_mutex);
-static DEFINE_MUTEX(packet_delays_mutex);
+static DEFINE_SPINLOCK(topology_info_lock);
+static DEFINE_SPINLOCK(slot_start_lock);
+static DEFINE_SPINLOCK(spanning_tree_lock);
+static DEFINE_SPINLOCK(packet_delays_lock);
 
 static s64 intdiv(s64 a, u64 b) {
 	return (((a * ((a >= 0) ? 1 : -1)) / b) * ((a >= 0) ? 1 : -1)) - ((!(a >= 0)) && (!(((a * ((a >= 0) ? 1 : -1)) % b) == 0)));
@@ -148,10 +148,10 @@ static void print_matrix(void) {
 void topology_update_spanning_tree(void) {
 
     //CRITICAL-TOPOLOGY-LOCK
-    mutex_lock(&topology_info_mutex);
+    spin_lock(&topology_info_lock);
 
     //CRITICAL-ST-LOCK
-    mutex_lock(&spanning_tree_mutex);
+    spin_lock(&spanning_tree_lock);
 
     //Delete previous ST
     if(spanning_tree){
@@ -229,25 +229,25 @@ void topology_update_spanning_tree(void) {
     //print_matrix();
 
     //CRITICAL-ST-UNLOCK
-    mutex_unlock(&spanning_tree_mutex);
+    spin_unlock(&spanning_tree_lock);
 
     //CRITICAL-TOPOLOGY-UNLOCK
-    mutex_unlock(&topology_info_mutex);
+    spin_unlock(&topology_info_lock);
 
 }
 
 s64 topology_get_reference_node(void){
 
     //CRITICAL-TOPOLOGY-LOCK
-    mutex_lock(&topology_info_mutex);
+    spin_lock(&topology_info_lock);
 
     s64 id = topology_info->myID;
     
     //CRITICAL-TOPOLOGY-UNLOCK
-    mutex_unlock(&topology_info_mutex);
+    spin_unlock(&topology_info_lock);
 
     //CRITICAL-ST-LOCK
-    mutex_lock(&spanning_tree_mutex);
+    spin_lock(&spanning_tree_lock);
 
     //printk(KERN_DEBUG "N_NODES_ST: %lld", spanning_tree->n_nodes);
 
@@ -301,7 +301,7 @@ s64 topology_get_reference_node(void){
     }
 
     //CRITICAL-ST-UNLOCK
-    mutex_unlock(&spanning_tree_mutex);
+    spin_unlock(&spanning_tree_lock);
 
     return parent_id == id ? -1 : parent_id;
 
@@ -310,7 +310,7 @@ s64 topology_get_reference_node(void){
 void topology_get_delays_and_reset(void* copy){
 
     //CRITICAL-DELAYS-LOCK
-    mutex_lock(&packet_delays_mutex);
+    spin_lock(&packet_delays_lock);
 
     //Copy delays to requesting module
     memcpy(copy, ratdma_packet_delays, sizeof(struct ratdma_packet_delays));
@@ -321,7 +321,7 @@ void topology_get_delays_and_reset(void* copy){
     }
 
     //CRITICAL-DELAYS-UNLOCK
-    mutex_unlock(&packet_delays_mutex);
+    spin_unlock(&packet_delays_lock);
 
 
 }
@@ -344,7 +344,7 @@ static void topology_parse(struct topology_info_t *topology_info_new) {
     //printk(KERN_DEBUG "Parsing topology packet, %lld ---- %lld\n", topology_info->myID, topology_info->activeNodes);
 
     //CRITICAL-TOPOLOGY-LOCK
-    mutex_lock(&topology_info_mutex);
+    spin_lock(&topology_info_lock);
 
     //Check if received packet is not mine for some reason
     if(topology_info->myID != topology_info_new->myID){
@@ -416,7 +416,7 @@ static void topology_parse(struct topology_info_t *topology_info_new) {
     }
 
     //CRITICAL-TOPOLOGY-UNLOCK
-    mutex_unlock(&topology_info_mutex);
+    spin_unlock(&topology_info_lock);
 
 }
 
@@ -468,7 +468,7 @@ static void quicksort(s64 arr[], s64 low, s64 high) {
 int topology_get_slot_id(void) {
 
     //CRITICAL-TOPOLOGY-LOCK
-    mutex_lock(&topology_info_mutex);
+    spin_lock(&topology_info_lock);
 
     s64 activeNodeIDS[topology_info->activeNodes];
     int foundNodes = 0;
@@ -495,14 +495,14 @@ int topology_get_slot_id(void) {
         if(currentID == topology_info->myID) {
 
             //CRITICAL-TOPOLOGY-UNLOCK
-            mutex_unlock(&topology_info_mutex);
+            spin_unlock(&topology_info_lock);
 
             return i;
         }
     }
 
     //CRITICAL-TOPOLOGY-UNLOCK
-    mutex_unlock(&topology_info_mutex);
+    spin_unlock(&topology_info_lock);
 
     return -1;
     
@@ -511,12 +511,12 @@ int topology_get_slot_id(void) {
 static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 packet_arrival_time){
 
     //CRITICAL-TOPOLOGY-LOCK
-    mutex_lock(&topology_info_mutex);
+    spin_lock(&topology_info_lock);
 
     s64 active_nodes = topology_info->activeNodes;
 
     //CRITICAL-TOPOLOGY-UNLOCK
-    mutex_unlock(&topology_info_mutex);
+    spin_unlock(&topology_info_lock);
 
     if(active_nodes > 1 && delays_flag) {
 
@@ -527,13 +527,13 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
         s64 frame_len = slot_len * active_nodes;
 
         //CRITICAL-SLOT_START-LOCK
-        mutex_lock(&slot_start_mutex);
+        spin_lock(&slot_start_lock);
 
         //Calculate expected slot start of node who sent the packet
         s64 expected_slot_start = mod((slot_start - ((topology_get_slot_id() - received_slot_id)*slot_len) + frame_len), frame_len);
 
         //CRITICAL-SLOT_START-UNLOCK
-        mutex_unlock(&slot_start_mutex);
+        spin_unlock(&slot_start_lock);
 
         //Calculate expected packet arrival time
         s64 expected_packet_arrival = mod( expected_slot_start + received_transmission_offset , frame_len);
@@ -542,7 +542,7 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
         s64 packet_delay = mod((packet_arrival_time - expected_packet_arrival + intdiv(frame_len, 2)), frame_len) - intdiv(frame_len, 2);
         
         //CRITICAL - DELAYS - LOCK
-        mutex_lock(&packet_delays_mutex);
+        spin_lock(&packet_delays_lock);
 
         //Get total number of delays
         s64 counter = ratdma_packet_delays->delay_counters[received_node_id];
@@ -556,7 +556,7 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
         //printk(KERN_DEBUG "[DELAY] %lld|%lld\n", received_node_id, packet_delay);
 
         //CRITICAL - DELAYS - UNLOCK
-        mutex_unlock(&packet_delays_mutex);
+        spin_unlock(&packet_delays_lock);
 
     }
 
@@ -565,12 +565,12 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
 void topology_set_slot_start(s64 slot_start_external) {
     
     //CRITICAL-SLOT_START-LOCK
-    mutex_lock(&slot_start_mutex);
+    spin_lock(&slot_start_lock);
 
     slot_start = slot_start_external;
     
     //CRITICAL-SLOT_START-UNLOCK
-    mutex_unlock(&slot_start_mutex);
+    spin_unlock(&slot_start_lock);
 }
 
 //TODO: REMOVE
@@ -764,7 +764,7 @@ static unsigned int hookIN(void *priv, struct sk_buff *skb, const struct nf_hook
 void topology_enable(s64 nodeID, s64 broadcast_port, char* dev_name, s64 slot_len_external) {
 
     //CRITICAL-TOPOLOGY-LOCK
-    mutex_lock(&topology_info_mutex);
+    spin_lock(&topology_info_lock);
 
     if(topology_info->active == 0){
 
@@ -792,19 +792,19 @@ void topology_enable(s64 nodeID, s64 broadcast_port, char* dev_name, s64 slot_le
     }
 
     //CRITICAL-TOPOLOGY-UNLOCK
-    mutex_unlock(&topology_info_mutex);
+    spin_unlock(&topology_info_lock);
 
 }
 
 uint8_t topology_is_active(void) {
 
     //CRITICAL-TOPOLOGY-LOCK
-    mutex_lock(&topology_info_mutex);
+    spin_lock(&topology_info_lock);
 
     uint8_t isActive = topology_info->active;
     
     //CRITICAL-TOPOLOGY-UNLOCK
-    mutex_unlock(&topology_info_mutex);
+    spin_unlock(&topology_info_lock);
 
     return isActive;
 }
@@ -851,7 +851,7 @@ void print_struct(void) {
 void* topology_get_info(void) {
 
     //CRITICAL-TOPOLOGY-LOCK
-    mutex_lock(&topology_info_mutex);
+    spin_lock(&topology_info_lock);
 
     s64 epoch = ktime_get_real_ns();
 
@@ -891,7 +891,7 @@ void* topology_get_info(void) {
     }
 
     //CRITICAL-TOPOLOGY-UNLOCK
-    mutex_unlock(&topology_info_mutex);
+    spin_unlock(&topology_info_lock);
     
     return (void*) topology_info; 
 }
@@ -903,12 +903,12 @@ size_t topology_get_info_size(void) {
 s64 topology_get_network_size(void) {
     
     //CRITICAL-TOPOLOGY-LOCK
-    mutex_lock(&topology_info_mutex);
+    spin_lock(&topology_info_lock);
 
     s64 network_size = topology_info->activeNodes;
     
     //CRITICAL-TOPOLOGY-UNLOCK
-    mutex_unlock(&topology_info_mutex);
+    spin_unlock(&topology_info_lock);
 
     return network_size;
 }
