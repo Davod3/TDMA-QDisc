@@ -31,7 +31,7 @@ struct ratdma_packet_annotations {
 #define MAX_NODES 20
 #define MAX_DELAYS 5000
 
-#define MAX_OFFSET 5000000 //MAX Offset per round in ns
+#define MAX_OFFSET 50000000 //MAX Offset per round in ns
 
 struct ratdma_packet_delays {
 

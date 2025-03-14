@@ -29,7 +29,7 @@
 #include <net/sch_generic.h>
 #include <net/pkt_cls.h>
 #include <net/pkt_sched.h>
-#include <net/gso.h>
+//#include <net/gso.h>
 
 #include <linux/init.h>
 #include <linux/sched.h>
@@ -354,8 +354,8 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 	struct tdma_sched_data *q = qdisc_priv(sch);
 	struct sk_buff *skb;
 
-	s64 now = ktime_get_real_ns() + total_offset;
-	s64 current_round = intdiv(now - q->slot_offset, q->frame_len);
+	s64 now = ktime_get_real_ns() - total_offset;
+	s64 current_round = intdiv(now, q->frame_len);
 
     //Runs at the start of each round
 	if(previous_round != current_round) {
@@ -378,7 +378,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		slot_start_flag = 0;
 
 		//Recalculate slot structure with updated parameters
-		current_round = intdiv(now - q->slot_offset, q->frame_len);
+		current_round = intdiv(now, q->frame_len);
 		round_start = (current_round * q->frame_len);// + total_offset;
 		slot_start = q->slot_offset + round_start;
 		slot_end = slot_start + q->slot_len - slot_guard;
