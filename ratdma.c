@@ -44,7 +44,7 @@ static s64 intdiv(s64 a, u64 b) {
 	return (((a * ((a >= 0) ? 1 : -1)) / b) * ((a >= 0) ? 1 : -1)) - ((!(a >= 0)) && (!(((a * ((a >= 0) ? 1 : -1)) % b) == 0)));
 }
 
-struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id){
+struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id, s64 total_offset){
 
 	skb_reset_mac_header(skb);
 
@@ -89,7 +89,7 @@ struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slo
 		opts[0] = TDMA_DATA_IP_OPT_TYPE; //Option Type
 		opts[1] = TDMA_DATA_IP_OPT_TOTAL_SIZE; //Options total size;
 		
-		s64 now = ktime_get_real_ns();
+		s64 now = ktime_get_real_ns() - total_offset;
 
 		struct ratdma_packet_annotations* annotations = (struct ratdma_packet_annotations*) (opts+2);
         annotations->transmission_offset = now - slot_start;

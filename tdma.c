@@ -29,7 +29,7 @@
 #include <net/sch_generic.h>
 #include <net/pkt_cls.h>
 #include <net/pkt_sched.h>
-//#include <net/gso.h>
+#include <net/gso.h>
 
 #include <linux/init.h>
 #include <linux/sched.h>
@@ -108,11 +108,11 @@ void (*__topology_update_spanning_tree)(void);
 void (*__topology_set_delays_flag)(int value);
 
 //Get functions from ratdma module
-extern struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id);
+extern struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id, s64 total_offset);
 extern s64 ratdma_get_offset(void);
 
 //Placeholders if ratdma module is not loaded
-struct sk_buff* (*__ratdma_annotate_skb)(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id);
+struct sk_buff* (*__ratdma_annotate_skb)(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id, s64 total_offset);
 s64 (*__ratdma_get_offset)(void);
 
 struct tdma_sched_data {
@@ -429,7 +429,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
                 }
 
 				if(__ratdma_annotate_skb) {
-					return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id);
+					return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id, total_offset);
 				} else {
 					return skb;
 				}
@@ -450,7 +450,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 			qdisc_bstats_update(sch, skb);
 
 			if(__ratdma_annotate_skb) {
-				return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id);
+				return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id, total_offset);
 			} else {
 				return skb;
 			}
