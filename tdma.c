@@ -354,7 +354,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 	struct tdma_sched_data *q = qdisc_priv(sch);
 	struct sk_buff *skb;
 
-	s64 now = ktime_get_real_ns();
+	s64 now = ktime_get_real_ns() + total_offset;
 	s64 current_round = intdiv(now - q->slot_offset, q->frame_len);
 
     //Runs at the start of each round
@@ -379,7 +379,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
 		//Recalculate slot structure with updated parameters
 		current_round = intdiv(now - q->slot_offset, q->frame_len);
-		round_start = (current_round * q->frame_len) + total_offset;
+		round_start = (current_round * q->frame_len);// + total_offset;
 		slot_start = q->slot_offset + round_start;
 		slot_end = slot_start + q->slot_len - slot_guard;
 
