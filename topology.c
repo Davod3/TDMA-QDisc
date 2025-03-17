@@ -226,7 +226,7 @@ void topology_update_spanning_tree(void) {
     spanning_tree->n_nodes = topology_info->activeNodes;
 
     //TODO - REMOVE
-    //print_matrix();
+    print_matrix();
 
     //CRITICAL-ST-UNLOCK
     spin_unlock(&spanning_tree_lock);
