@@ -130,6 +130,12 @@ struct tdma_sched_data {
 	struct qdisc_watchdog watchdog;	/* Watchdog timer */
 };
 
+static s64 mod(s64 a, s64 b)
+{
+    s64 r = a % b;
+    return r < 0 ? r + b : r;
+}
+
 static s64 intdiv(s64 a, u64 b) {
 	return (((a * ((a >= 0) ? 1 : -1)) / b) * ((a >= 0) ? 1 : -1)) - ((!(a >= 0)) && (!(((a * ((a >= 0) ? 1 : -1)) % b) == 0)));
 }
@@ -354,11 +360,12 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 	struct tdma_sched_data *q = qdisc_priv(sch);
 	struct sk_buff *skb;
 
-	s64 now = ktime_get_real_ns() - total_offset;
-	s64 current_round = intdiv(now, q->frame_len);
+	s64 now = ktime_get_real_ns();
+	s64 relative_timestamp = mod(now, q->frame_len); //[0, frame_len]
+	s64 current_round = intdiv(now, q->frame_len); //Number of rounds since start of epoch
 
-    //Runs at the start of each round
-	if(previous_round != current_round) {
+    //Runs at the start of each round.
+	if(previous_round  != current_round) {
 		previous_round = current_round;
 
 		//Round has changed, update variables
@@ -375,19 +382,32 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		//Set slot end flag to 0
 		slot_end_flag = 0;
 
+		//Set slot start flag to 0
 		slot_start_flag = 0;
 
 		//Recalculate slot structure with updated parameters
-		current_round = intdiv(now, q->frame_len);
-		round_start = (current_round * q->frame_len);// + total_offset;
-		slot_start = q->slot_offset + round_start;
-		slot_end = slot_start + q->slot_len - slot_guard;
+		//current_round = intdiv(now, q->frame_len);
+		//round_start = (current_round * q->frame_len);// + total_offset;
+		slot_start = mod(q->slot_offset + total_offset, q->frame_len);
+		slot_end = mod(slot_start + q->slot_len - slot_guard, q->frame_len);
 
 		__topology_set_slot_start(slot_start);
 	}
 
+	int8_t transmit_flag = 0;
+
+	if(slot_start < slot_end) {
+
+		transmit_flag = relative_timestamp > slot_start && relative_timestamp <= slot_end;
+
+	} else {
+
+		transmit_flag = relative_timestamp > slot_start || relative_timestamp <= slot_end;
+
+	}
+
     //Check if within slot
-    if ((slot_start <= now) && (now < slot_end)) {
+    if (transmit_flag) {
 
         //Create topology broadcast packet. This runs at the start of the slots
         if(sendBroadcast) {
@@ -482,7 +502,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
     }
 
-	qdisc_watchdog_schedule_ns(&q->watchdog, q->frame_len - (now - slot_start));
+	qdisc_watchdog_schedule_ns(&q->watchdog, q->frame_len - (relative_timestamp - slot_start));
 
 	return NULL;
 }

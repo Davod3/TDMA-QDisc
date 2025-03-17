@@ -89,7 +89,7 @@ struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slo
 		opts[0] = TDMA_DATA_IP_OPT_TYPE; //Option Type
 		opts[1] = TDMA_DATA_IP_OPT_TOTAL_SIZE; //Options total size;
 		
-		s64 now = ktime_get_real_ns() - total_offset;
+		s64 now = ktime_get_real_ns();// - total_offset;
 
 		struct ratdma_packet_annotations* annotations = (struct ratdma_packet_annotations*) (opts+2);
         annotations->transmission_offset = now - slot_start;
