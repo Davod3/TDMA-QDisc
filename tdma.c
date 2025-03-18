@@ -64,13 +64,15 @@ s64 self_configured = 0;
 s64 broadcast_port = 0;
 s64 clockless_sync = 0;
 s64 previous_round = 0;
-int sendBroadcast = 1;
+int send_broadcast_flag = 0;
 int8_t reset_flag = 0;
 s64 slot_start = 0;
 s64 slot_end = 0;
 s64 round_start = 0;
 uint8_t slot_end_flag = 0;
 uint8_t slot_start_flag = 0;
+uint8_t calculate_offsets_flag = 0;
+uint8_t single_node_flag = 1;
 s64 total_offset = 0;
 s64 slot_number = 0;
 
@@ -200,6 +202,9 @@ static void compute_tdma_parameters(struct tdma_sched_data *q) {
 	q->frame_len = q->slot_len * n_nodes;
 	q->slot_offset = q->slot_len * slot_id;
 	q->slot_id = slot_id;
+
+	//Check if single node
+	single_node_flag = (n_nodes == 1);
 
 }
 
@@ -373,18 +378,25 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		printk(KERN_DEBUG "[TDMA ROUND] %lld\n", current_round);
 		compute_tdma_parameters(q);
 
-		//Allow for a broadcast to be made when slot starts
-		sendBroadcast = 1;
+		if(single_node_flag){
 
-		//Start collecting delays again
-		if(__topology_set_delays_flag)
-			__topology_set_delays_flag(1);
+			//Start collecting delays again
+			if(__topology_set_delays_flag)
+				__topology_set_delays_flag(1);
 
-		//Set slot end flag to 0
-		slot_end_flag = 0;
+			//Set slot start flag to 0
+			slot_start_flag = 0;
 
-		//Set slot start flag to 0
-		slot_start_flag = 0;
+			//Set slot end flag to 0
+			slot_end_flag = 0;
+
+			//Allow for a broadcast to be made when slot starts
+			send_broadcast_flag = 0;
+
+			//Allow for offsets to be calculated when slot starts
+			calculate_offsets_flag = 0;
+
+		}
 
 		//Recalculate slot structure with updated parameters
 		//current_round = intdiv(now, q->frame_len);
@@ -410,13 +422,13 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
     //Check if within slot
     if (transmit_flag) {
 
-        //Create topology broadcast packet. This runs at the start of the slots
-        if(sendBroadcast) {
+        //Slot start procedure. Runs at the start of each slot
+        if(!slot_start_flag) {
 
-			if(__ratdma_get_offset && __topology_set_delays_flag && !slot_start_flag) {
+			if(__ratdma_get_offset && __topology_set_delays_flag && !calculate_offsets_flag) {
 
-				slot_start_flag = 1;
-				slot_number++;
+				//Do this only once per slot start
+				calculate_offsets_flag = 1;
 
 				//Stop collecting delays
 				__topology_set_delays_flag(0);
@@ -430,17 +442,35 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				printk(KERN_DEBUG "[TOTAL OFFSET]: %lld\n", total_offset);
 				printk(KERN_DEBUG "[WAIT]: %llu\n", wait_period);
 
-				//Wait wait period, return NULL
-				qdisc_watchdog_schedule_ns(&q->watchdog, wait_period);
+
+				//Check if there are packets in the queue
+				if (q->qdisc->ops->peek(q->qdisc)) {
+
+					//If so, wait until they can be transmitted
+					qdisc_watchdog_schedule_ns(&q->watchdog, wait_period);
+
+				} else {
+
+					//Queue is empty. Schedule follow up check.
+					if(!reset_flag){
+						__netif_schedule(sch);
+					}
+
+				}
 
 				return NULL;
 
 			}
 
-            //Send broadcast with topology at the start of the slot and no more.
-            sendBroadcast = 0;
+			//Slot start procedure has finished
+			slot_start_flag = 1;
+			slot_end_flag = 0;
+			slot_number++;
 
-            if(__topology_is_active && __topology_is_active()){
+            if(__topology_is_active && __topology_is_active() && !send_broadcast_flag){
+
+				//Send broadcast with topology at the start of the slot and no more.
+				send_broadcast_flag = 1;
 
                 struct sk_buff* skb = generate_topology_packet(qdisc_dev(sch)->name, q);
                 //printk(KERN_INFO "generate_topology_packet: Generated skb!\n");
@@ -488,10 +518,11 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
     } else {
 
+		//Slot end procedure. Occurs once when the slot ends.
 		if(!slot_end_flag){
 
 			//Slot has ended. Prepare to broadcast again when slot starts.
-			sendBroadcast = 1;
+			send_broadcast_flag = 1;
 
 			//Start collecting delays again
 			if(__topology_set_delays_flag)
