@@ -150,7 +150,7 @@ s64 ratdma_get_offset(s64 slot_len) {
 
 	kfree(delays);
 
-	s64 max_offset = slot_len / 10;
+	s64 max_offset = (slot_len * 10) / 100;
 
 	//Return offset value to TDMA 
 	if(offset > 0){
