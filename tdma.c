@@ -528,8 +528,14 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 			if(__topology_set_delays_flag)
 				__topology_set_delays_flag(1);
 
+			//Slot has finished
 			slot_end_flag = 1;
+
+			//Reset slot start
 			slot_start_flag = 0;
+
+			//Reset offset calculation
+			calculate_offsets_flag = 0;
 
 		}
 
