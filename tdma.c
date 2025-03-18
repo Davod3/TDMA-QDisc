@@ -401,9 +401,8 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		//Recalculate slot structure with updated parameters
 		//current_round = intdiv(now, q->frame_len);
 		//round_start = (current_round * q->frame_len);// + total_offset;
-		slot_start = mod(q->slot_offset + total_offset, q->frame_len);
-		slot_end = mod(slot_start + q->slot_len - slot_guard, q->frame_len);
-
+		//slot_start = mod(q->slot_offset + total_offset, q->frame_len);
+		//slot_end = mod(slot_start + q->slot_len - slot_guard, q->frame_len);
 		__topology_set_slot_start(slot_start);
 	}
 
@@ -440,8 +439,14 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
 				printk(KERN_DEBUG "[OFFSET]: %lld\n", offset);
 				printk(KERN_DEBUG "[TOTAL OFFSET]: %lld\n", total_offset);
-				printk(KERN_DEBUG "[WAIT]: %llu\n", wait_period);
+				//printk(KERN_DEBUG "[WAIT]: %llu\n", wait_period);
 
+				//Calculate new slot boundaries
+				slot_start = mod(q->slot_offset + total_offset, q->frame_len);
+				slot_end = mod(slot_start + q->slot_len - slot_guard, q->frame_len);
+
+				printk(KERN_DEBUG "[SLOT_START]: %lld\n", slot_start);
+				printk(KERN_DEBUG "[SLOT_END]: %lld\n", slot_end);
 
 				//Check if there are packets in the queue
 				if (q->qdisc->ops->peek(q->qdisc)) {
