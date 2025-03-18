@@ -31,8 +31,6 @@ struct ratdma_packet_annotations {
 #define MAX_NODES 20
 #define MAX_DELAYS 5000
 
-#define MAX_OFFSET 50000000 //MAX Offset per round in ns
-
 struct ratdma_packet_delays {
 
     s64 node_delays[MAX_NODES][MAX_DELAYS];
@@ -130,7 +128,7 @@ static s64 get_average_delay(struct ratdma_packet_delays* delays, s64 reference_
 
 }
 
-s64 ratdma_get_offset(void) {
+s64 ratdma_get_offset(s64 slot_len) {
 
 	printk(KERN_DEBUG "Getting offsets: \n");
 
@@ -152,11 +150,13 @@ s64 ratdma_get_offset(void) {
 
 	kfree(delays);
 
+	s64 max_offset = slot_len / 10;
+
 	//Return offset value to TDMA 
 	if(offset > 0){
-		return offset < MAX_OFFSET ? offset : MAX_OFFSET;
+		return offset < max_offset ? offset : max_offset;
 	} else {
-		return offset > -MAX_OFFSET ? offset : -MAX_OFFSET;
+		return offset > -max_offset ? offset : -max_offset;
 	}
 
 

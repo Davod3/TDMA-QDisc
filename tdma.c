@@ -109,11 +109,11 @@ void (*__topology_set_delays_flag)(int value);
 
 //Get functions from ratdma module
 extern struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id, s64 total_offset);
-extern s64 ratdma_get_offset(void);
+extern s64 ratdma_get_offset(s64 slot_len);
 
 //Placeholders if ratdma module is not loaded
 struct sk_buff* (*__ratdma_annotate_skb)(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id, s64 total_offset);
-s64 (*__ratdma_get_offset)(void);
+s64 (*__ratdma_get_offset)(s64 slot_len);
 
 struct tdma_sched_data {
 /* Parameters */
@@ -420,7 +420,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				__topology_set_delays_flag(0);
 
 				//Get slot offset
-				s64 offset = __ratdma_get_offset();
+				s64 offset = __ratdma_get_offset(q->slot_len);
 				total_offset+=offset;
 				u64 wait_period = total_offset > 0 ? total_offset : 0;
 
