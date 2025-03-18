@@ -522,7 +522,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		if(!slot_end_flag){
 
 			//Slot has ended. Prepare to broadcast again when slot starts.
-			send_broadcast_flag = 1;
+			send_broadcast_flag = 0;
 
 			//Start collecting delays again
 			if(__topology_set_delays_flag)
