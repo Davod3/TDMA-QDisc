@@ -21,6 +21,7 @@ struct ratdma_packet_annotations {
     s64 transmission_offset;    //Amount of time in ns from the start of the slot, to the moment the packet was sent
     s64 slot_id;                //ID of the slot used by the node to transmit the packet
     s64 node_id;                //ID of the node who transmitted the packet
+	s64 slot_number				//Sequential number of slots used so far
 };
 
 #define TDMA_DATA_IP_OPT_TYPE 30
@@ -42,7 +43,7 @@ static s64 intdiv(s64 a, u64 b) {
 	return (((a * ((a >= 0) ? 1 : -1)) / b) * ((a >= 0) ? 1 : -1)) - ((!(a >= 0)) && (!(((a * ((a >= 0) ? 1 : -1)) % b) == 0)));
 }
 
-struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id, s64 total_offset){
+struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id, s64 slot_number){
 
 	skb_reset_mac_header(skb);
 
@@ -93,6 +94,7 @@ struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slo
         annotations->transmission_offset = now - slot_start;
         annotations->slot_id = slot_id;
         annotations->node_id = node_id;
+		annotations->slot_number = slot_number;
 
 		//printk(KERN_DEBUG "Transmission Offset: %lld\n", annotations->transmission_offset);
 		

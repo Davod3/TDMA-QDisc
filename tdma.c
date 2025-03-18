@@ -72,6 +72,7 @@ s64 round_start = 0;
 uint8_t slot_end_flag = 0;
 uint8_t slot_start_flag = 0;
 s64 total_offset = 0;
+s64 slot_number = 0;
 
 //TODO: Is this necessary?
 EXPORT_SYMBOL(devname);
@@ -108,11 +109,11 @@ void (*__topology_update_spanning_tree)(void);
 void (*__topology_set_delays_flag)(int value);
 
 //Get functions from ratdma module
-extern struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id, s64 total_offset);
+extern struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id, s64 slot_number);
 extern s64 ratdma_get_offset(s64 slot_len);
 
 //Placeholders if ratdma module is not loaded
-struct sk_buff* (*__ratdma_annotate_skb)(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id, s64 total_offset);
+struct sk_buff* (*__ratdma_annotate_skb)(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id, s64 slot_number);
 s64 (*__ratdma_get_offset)(s64 slot_len);
 
 struct tdma_sched_data {
@@ -413,8 +414,9 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
         if(sendBroadcast) {
 
 			if(__ratdma_get_offset && __topology_set_delays_flag && !slot_start_flag) {
-				
+
 				slot_start_flag = 1;
+				slot_number++;
 
 				//Stop collecting delays
 				__topology_set_delays_flag(0);
@@ -449,7 +451,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
                 }
 
 				if(__ratdma_annotate_skb) {
-					return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id, total_offset);
+					return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id, slot_number);
 				} else {
 					return skb;
 				}
@@ -470,7 +472,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 			qdisc_bstats_update(sch, skb);
 
 			if(__ratdma_annotate_skb) {
-				return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id, total_offset);
+				return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id, slot_number);
 			} else {
 				return skb;
 			}

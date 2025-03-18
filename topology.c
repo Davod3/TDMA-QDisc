@@ -50,6 +50,7 @@ struct ratdma_packet_annotations {
     s64 transmission_offset;    //Amount of time in ns from the start of the slot, to the moment the packet was sent
     s64 slot_id;                //ID of the slot used by the node to transmit the packet
     s64 node_id;                //ID of the node who transmitted the packet
+    s64 slot_number				//Sequential number of slots used so far
 };
 
 struct ratdma_packet_delays {
@@ -226,7 +227,7 @@ void topology_update_spanning_tree(void) {
     spanning_tree->n_nodes = topology_info->activeNodes;
 
     //TODO - REMOVE
-    print_matrix();
+    //print_matrix();
 
     //CRITICAL-ST-UNLOCK
     spin_unlock(&spanning_tree_lock);
