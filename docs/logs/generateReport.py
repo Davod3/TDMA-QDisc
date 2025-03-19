@@ -135,12 +135,14 @@ def read_data(node_name):
     '''
 def build_average_offset_chart(data):
     
+    plt.clf()
+
     for node_name in data.keys():
         
         x = data[node_name]['average_offset_x']
         y = data[node_name]['average_offset_y']
 
-        plt.plot(x, y, marker='o', linestyle='-', color=node_colors[int(node_name.split('drone')[1])], label = node_name)
+        plt.plot(x, y, marker='o', linestyle='-', color=node_colors[int(node_name.split('drone')[1]) - 1], label = node_name)
     
     plt.xlabel("Round Number")
     plt.ylabel("Average Offset (ns)")
@@ -152,7 +154,23 @@ def build_average_offset_chart(data):
 
 
 def build_total_offset_chart(data):
-    return
+    
+    plt.clf()
+
+    for node_name in data.keys():
+
+        x = data[node_name]['total_offset_x']
+        y = data[node_name]['total_offset_y']
+
+        plt.plot(x, y, marker='o', linestyle='-', color=node_colors[int(node_name.split('drone')[1]) - 1], label = node_name)
+    
+    plt.xlabel("Round Number")
+    plt.ylabel("Total Offset (ns)")
+    plt.title("Total Offset per Round")
+    plt.legend()
+    plt.grid(True)
+
+    plt.savefig("./" + TEST_NAME + "/" + TEST_TYPE + "/total-offset.png", dpi=300, bbox_inches='tight')
 
 def build_charts():
 
@@ -165,6 +183,8 @@ def build_charts():
 
         node_data['average_offset_x'] = list()
         node_data['average_offset_y'] = list()
+        node_data['total_offset_x'] = list()
+        node_data['total_offset_y'] = list()
     
         for key in round_data.keys():
             
@@ -174,6 +194,9 @@ def build_charts():
                 node_data['average_offset_x'].append(key)
                 node_data['average_offset_y'].append(current_round_data['OFFSET'])
 
+            if 'TOTAL_OFFSET' in current_round_data.keys():
+                node_data['total_offset_x'].append(key)
+                node_data['total_offset_y'].append(current_round_data['TOTAL_OFFSET'])
     
     build_average_offset_chart(data)
     build_total_offset_chart(data)
