@@ -10,7 +10,7 @@ cd udp_throughput_testing
 
 sudo dmesg -C
 
-sudo dmesg -w | grep -E '\[TDMA ROUND\]|\[DELAY\]' > ../../docs/logs/kernel-log-latest.txt &
+sudo dmesg -w | grep -E '\[TDMA ROUND\]|\[DELAY\]|\[OFFSET\]|\[TOTAL OFFSET\]|\[SLOT_START\]|\[SLOT_END\]|\[PARENT\]' > ../../docs/logs/kernel-log-latest.txt &
 
 ./test_throughput_udp_drone$1.sh
 
@@ -22,4 +22,4 @@ cd docs/logs
 
 sudo pkill -f 'dmesg -w'
 
-./save_log.sh kernel-log-latest.txt ratdma-sync 2nodes-5seconds drone$1
+./save_log.sh kernel-log-latest.txt ratdma-sync 2nodes-1second drone$1
