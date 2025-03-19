@@ -7,15 +7,24 @@ import matplotlib.ticker as mticker
 
 TEST_NAME = 'ratdma-sync'
 TEST_TYPE = '2nodes-1second'
-NODE_NAME = 'drone2'
-PATH = './' + TEST_NAME + '/' + TEST_TYPE + '/' + NODE_NAME + '.txt'
+NODES = ['drone1', 'drone2']
+PATH = './' + TEST_NAME + '/' + TEST_TYPE + '/'
 MAX_ROUNDS = 10
 ROUND_OFFSET = 0
-round_data = dict()
+drone_data = dict()
 
-def read_data(path):
+node_colors = ['#0000ff', 
+               '#ff2c2c',
+               '#008000', 
+               '#fd3db5', 
+               '#ffde21', 
+               '#00ffff']
 
-    with open(path, "r") as file:
+def read_data(node_name):
+
+    drone_data[node_name] = round_data = dict()
+
+    with open(PATH + node_name + '.txt', "r") as file:
 
         round_counter = -1
 
@@ -124,10 +133,59 @@ def read_data(path):
     plt.tight_layout()
     plt.savefig('charts/packet-delays.png')'
     '''
+def build_average_offset_chart(data):
+    
+    for node_name in data.keys():
+        
+        x = data[node_name]['average_offset_x']
+        y = data[node_name]['average_offset_y']
+
+        plt.plot(x, y, marker='o', linestyle='-', color=node_colors[int(node_name.split('drone')[1])], label = node_name)
+    
+    plt.xlabel("Round Number")
+    plt.ylabel("Average Offset (ns)")
+    plt.title("Average Offset per Round")
+    plt.legend()
+    plt.grid(True)
+
+    plt.savefig("./" + TEST_NAME + "/" + TEST_TYPE + "/average-offset.png", dpi=300, bbox_inches='tight')
+
+
+def build_total_offset_chart(data):
+    return
+
+def build_charts():
+
+    data = dict()
+
+    for node_name in NODES:
+
+        round_data = drone_data[node_name]
+        node_data = data[node_name] = dict()
+
+        node_data['average_offset_x'] = list()
+        node_data['average_offset_y'] = list()
+    
+        for key in round_data.keys():
+            
+            current_round_data = round_data[key]
+
+            if 'OFFSET' in current_round_data.keys():
+                node_data['average_offset_x'].append(key)
+                node_data['average_offset_y'].append(current_round_data['OFFSET'])
+
+    
+    build_average_offset_chart(data)
+    build_total_offset_chart(data)
+
+        
+
 
 if __name__ == '__main__':
 
-    read_data(PATH)
+    for node_name in NODES:
+        read_data(node_name)
 
+    build_charts()
 
     
