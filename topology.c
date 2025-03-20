@@ -524,6 +524,7 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
         s64 received_slot_id = annotations->slot_id;
         s64 received_node_id = annotations->node_id;
         s64 received_transmission_offset = annotations->transmission_offset;
+        s64 slot_number = annotations->slot_number;
 
         s64 frame_len = slot_len * active_nodes;
 
@@ -554,7 +555,9 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
         ratdma_packet_delays->node_delays[received_node_id][i] = packet_delay;
         ratdma_packet_delays->delay_counters[received_node_id]++;
 
-        printk(KERN_DEBUG "[DELAY] %lld | %lld | %lld | %lld\n", received_node_id, received_slot_id, packet_arrival_time, packet_delay);
+        s64 packet_timestamp = mod(packet_arrival_time, frame_len);
+
+        printk(KERN_DEBUG "[DELAY] %lld | %lld | %lld | %lld | %lld\n", received_node_id, received_slot_id, packet_timestamp, packet_delay, slot_number);
 
         //CRITICAL - DELAYS - UNLOCK
         spin_unlock(&packet_delays_lock);

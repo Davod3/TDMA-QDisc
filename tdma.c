@@ -197,6 +197,7 @@ static void compute_tdma_parameters(struct tdma_sched_data *q) {
 	__topology_update_spanning_tree();
 
 	printk(KERN_DEBUG "[TDMA] Self-Configured (n_nodes --- slot_id --- port)=(%d --- %d -- %lld) \n", n_nodes, slot_id);
+	printk(KERN_DEBUG "[SLOT_ID]: %lld\n", slot_id);
 
 	//Compute TDMA Parameters based on Topology
 	q->frame_len = q->slot_len * n_nodes;
@@ -375,7 +376,6 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		previous_round = current_round;
 
 		//Round has changed, update variables
-		printk(KERN_DEBUG "[TDMA ROUND] %lld\n", current_round);
 		compute_tdma_parameters(q);
 
 		if(single_node_flag){
@@ -425,6 +425,8 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
         if(!slot_start_flag) {
 
 			if(__ratdma_get_offset && __topology_set_delays_flag && !calculate_offsets_flag) {
+
+				printk(KERN_DEBUG "[TDMA ROUND] %lld\n", slot_number);
 
 				//Do this only once per slot start
 				calculate_offsets_flag = 1;
