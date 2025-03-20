@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.ticker as mticker
 
+FRAME_LEN_NS = 2000000000
 TEST_NAME = 'ratdma-sync'
 TEST_TYPE = '2nodes-1second'
 NODES = ['drone1', 'drone2']
@@ -172,6 +173,55 @@ def build_total_offset_chart(data):
 
     plt.savefig("./" + TEST_NAME + "/" + TEST_TYPE + "/total-offset.png", dpi=300, bbox_inches='tight')
 
+def count_overlapped_packets(packet_arrival_times, slot_start, slot_end):
+
+    overlapped_packets = 0
+
+     #Check if packet received was within slot. Mimic mechanism in tdma.c/tdma_dequeue
+    if slot_start < slot_end:
+
+        for arrival_time in packet_arrival_times:
+
+            relative_arrival_time = arrival_time % FRAME_LEN_NS
+            
+            if relative_arrival_time > slot_start and relative_arrival_time <= slot_end:
+                overlapped_packets+=1
+
+    else:
+        
+        for arrival_time in packet_arrival_times:
+
+            relative_arrival_time = arrival_time % FRAME_LEN_NS
+            
+            if relative_arrival_time > slot_start or relative_arrival_time <= slot_end:
+                overlapped_packets+=1
+
+    return overlapped_packets
+    
+
+def build_overlap_chart(data):
+
+    plt.clf()
+
+    for node_name in data.keys():
+
+        overlap_y = list()
+
+        for i in data[node_name]['overlap_x']:
+
+            slot_start = data[node_name]['slot_start'][i-1]
+            slot_end = data[node_name]['slot_end'][i-1]
+            packet_arrival_times = data[node_name]['packet_arrival_time'][i-1]
+
+            overlapped_packets = count_overlapped_packets(packet_arrival_times, slot_start, slot_end)
+            overlap_y.append(overlapped_packets)
+
+            print(i, overlapped_packets)
+
+
+
+
+
 def build_charts():
 
     data = dict()
@@ -185,6 +235,10 @@ def build_charts():
         node_data['average_offset_y'] = list()
         node_data['total_offset_x'] = list()
         node_data['total_offset_y'] = list()
+        node_data['overlap_x'] = list()
+        node_data['slot_start'] = list()
+        node_data['slot_end'] = list()
+        node_data['packet_arrival_time'] = list()
     
         for key in round_data.keys():
             
@@ -197,9 +251,25 @@ def build_charts():
             if 'TOTAL_OFFSET' in current_round_data.keys():
                 node_data['total_offset_x'].append(key)
                 node_data['total_offset_y'].append(current_round_data['TOTAL_OFFSET'])
+
+            if 'SLOT_START' in current_round_data.keys():
+                node_data['overlap_x'].append(key)
+                node_data['slot_start'].append(current_round_data['SLOT_START'])
+            
+            if 'SLOT_END' in current_round_data.keys():
+                node_data['slot_end'].append(current_round_data['SLOT_END'])
+
+            if 'DELAY' in current_round_data.keys():
+
+                delay_data = current_round_data['DELAY']
+                node_data['packet_arrival_time'].append(delay_data['packet_arrival_time'])
+
+            else:
+                node_data['packet_arrival_time'].append([])
     
     build_average_offset_chart(data)
     build_total_offset_chart(data)
+    build_overlap_chart(data)
 
         
 
