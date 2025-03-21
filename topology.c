@@ -521,6 +521,9 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
     //CRITICAL-TOPOLOGY-UNLOCK
     spin_unlock(&topology_info_lock);
 
+    s64 packet_timestamp = mod(packet_arrival_time, slot_len * active_nodes);
+    printk(KERN_DEBUG "[RECEIVED_PACKET] %lld | %lld\n", annotations->slot_id, packet_timestamp);
+
     if(active_nodes > 1 && delays_flag) {
 
         s64 received_slot_id = annotations->slot_id;
@@ -556,8 +559,6 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
 
         ratdma_packet_delays->node_delays[received_node_id][i] = packet_delay;
         ratdma_packet_delays->delay_counters[received_node_id]++;
-
-        s64 packet_timestamp = mod(packet_arrival_time, frame_len);
 
         printk(KERN_DEBUG "[DELAY] %lld | %lld | %lld | %lld | %lld\n", received_node_id, received_slot_id, packet_timestamp, packet_delay, slot_number);
 
