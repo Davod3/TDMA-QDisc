@@ -333,8 +333,10 @@ void topology_set_delays_flag(int value) {
 
     if(value > 0) {
         delays_flag = 1;
+        printk('[DELAY_ON]\n');
     } else {
         delays_flag = 0;
+        printk('DELAY_OFF\n');
     }
 
 }

@@ -98,6 +98,15 @@ def read_data(node_name):
                 data = stripped_line.split('[PARENT]:')[1]
                 current_round_data['SLOT_START'] = int(data)
 
+            if '[SLOT_ID]' in stripped_line:
+                
+                if(round_counter in round_data.keys()):
+
+                    current_round_data = round_data[round_counter]
+
+                    data = stripped_line.split('[SLOT_ID]:')[1]
+                    current_round_data['SLOT_ID'] = int(data)
+
             
 
 
@@ -177,23 +186,21 @@ def count_overlapped_packets(packet_arrival_times, slot_start, slot_end):
 
     overlapped_packets = 0
 
-     #Check if packet received was within slot. Mimic mechanism in tdma.c/tdma_dequeue
+    #print(packet_arrival_times, slot_start, slot_end)
+
+    #Check if packet received was within slot. Mimic mechanism in tdma.c/tdma_dequeue
     if slot_start < slot_end:
 
         for arrival_time in packet_arrival_times:
-
-            relative_arrival_time = arrival_time % FRAME_LEN_NS
             
-            if relative_arrival_time > slot_start and relative_arrival_time <= slot_end:
+            if arrival_time > slot_start and arrival_time <= slot_end:
                 overlapped_packets+=1
 
     else:
         
         for arrival_time in packet_arrival_times:
-
-            relative_arrival_time = arrival_time % FRAME_LEN_NS
             
-            if relative_arrival_time > slot_start or relative_arrival_time <= slot_end:
+            if arrival_time > slot_start or arrival_time <= slot_end:
                 overlapped_packets+=1
 
     return overlapped_packets
@@ -219,7 +226,19 @@ def build_overlap_chart(data):
             print(i, overlapped_packets)
 
 
+def filter_packets_by_slot(packet_data_array, slot_id_array, slot_id, key):
+    
+    return_list = list()
 
+    for i in range(0, len(packet_data_array)):
+        
+        # Check if packet received is from desired slot
+        if slot_id_array[i] == slot_id:
+            return_list.append(packet_data_array[i])
+        #else:
+            #print(slot_id_array[i], slot_id ,key)
+
+    return return_list
 
 
 def build_charts():
@@ -261,8 +280,15 @@ def build_charts():
 
             if 'DELAY' in current_round_data.keys():
 
-                delay_data = current_round_data['DELAY']
-                node_data['packet_arrival_time'].append(delay_data['packet_arrival_time'])
+                previous_round_data = round_data[0 if key-1 < 0 else key-1]
+
+                if('DELAY' in previous_round_data.keys()):
+                    delay_data = previous_round_data['DELAY']
+                    results = filter_packets_by_slot(delay_data['packet_arrival_time'], delay_data['received_slot_id'], current_round_data['SLOT_ID'] - 1 , key)
+                else:
+                    results = []
+                
+                node_data['packet_arrival_time'].append(results)
 
             else:
                 node_data['packet_arrival_time'].append([])

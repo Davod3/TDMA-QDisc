@@ -447,8 +447,8 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				slot_start = mod(q->slot_offset + total_offset, q->frame_len);
 				slot_end = mod(slot_start + q->slot_len - slot_guard, q->frame_len);
 
-				printk(KERN_DEBUG "[SLOT_START]: %lld\n", slot_start);
-				printk(KERN_DEBUG "[SLOT_END]: %lld\n", slot_end);
+				//printk(KERN_DEBUG "[SLOT_START]: %lld\n", slot_start);
+				//printk(KERN_DEBUG "[SLOT_END]: %lld\n", slot_end);
 
 				//Check if there are packets in the queue
 				if (q->qdisc->ops->peek(q->qdisc)) {
@@ -475,6 +475,8 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 			slot_number++;
 
             if(__topology_is_active && __topology_is_active() && !send_broadcast_flag){
+
+				printk(KERN_DEBUG "[SLOT_START]: %lld\n", slot_number);
 
 				//Send broadcast with topology at the start of the slot and no more.
 				send_broadcast_flag = 1;
@@ -527,6 +529,8 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
 		//Slot end procedure. Occurs once when the slot ends.
 		if(!slot_end_flag){
+
+			printk(KERN_DEBUG "[SLOT_END]: %lld\n", slot_number);
 
 			//Slot has ended. Prepare to broadcast again when slot starts.
 			send_broadcast_flag = 0;
