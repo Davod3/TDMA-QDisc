@@ -336,7 +336,7 @@ void topology_set_delays_flag(int value) {
         printk("[DELAY_ON]\n");
     } else {
         delays_flag = 0;
-        printk("DELAY_OFF\n");
+        printk("[DELAY_OFF]\n");
     }
 
 }
