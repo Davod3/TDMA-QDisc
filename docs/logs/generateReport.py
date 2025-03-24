@@ -166,8 +166,9 @@ def build_average_offset_chart(data):
         plt.plot(x, y, marker='o', linestyle='-', color=node_colors[int(node_name.split('drone')[1]) - 1], label = node_name)
     
     plt.xlabel("Round Number")
-    plt.ylabel("Average Offset (ns)")
+    plt.ylabel("Average Offset (s)")
     plt.title("Average Offset per Round")
+    plt.ticklabel_format(axis='y', style='sci', scilimits=(9,9))
     plt.legend()
     plt.grid(True)
 
@@ -186,8 +187,9 @@ def build_total_offset_chart(data):
         plt.plot(x, y, marker='o', linestyle='-', color=node_colors[int(node_name.split('drone')[1]) - 1], label = node_name)
     
     plt.xlabel("Round Number")
-    plt.ylabel("Total Offset (ns)")
+    plt.ylabel("Total Offset (s)")
     plt.title("Total Offset per Round")
+    plt.ticklabel_format(axis='y', style='sci', scilimits=(9,9))
     plt.legend()
     plt.grid(True)
 
