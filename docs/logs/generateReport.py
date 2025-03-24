@@ -236,9 +236,10 @@ def get_overlapped_packets_percentage(packet_arrival_times, slot_start):
 
     if(len(packet_arrival_times) > 0):
         last_packet = packet_arrival_times[-1]
-        overlapped_delta = abs(last_packet - slot_start)
+        first_packet = packet_arrival_times[0]
+        overlapped_delta = abs(last_packet - first_packet)
         
-        overlapped_packets_percentage = (1 - (overlapped_delta / SLOT_LEN_MICRO)) * 100
+        overlapped_packets_percentage = (overlapped_delta / SLOT_LEN_MICRO) * 100
 
     return overlapped_packets_percentage
     
@@ -259,6 +260,7 @@ def build_overlap_chart(data):
 
             overlapped_packets = get_overlapped_packets_percentage(packet_arrival_times, slot_start)
             overlap_y.append(overlapped_packets)
+            #print(overlapped_packets, i)
 
         plt.plot(data[node_name]['overlap_x'], overlap_y, marker='o', linestyle='-', color=node_colors[int(node_name.split('drone')[1]) - 1], label = node_name)
 
