@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.ticker as mticker
 
-FRAME_LEN_NS = 2000000000
+SLOT_LEN_MICRO = 1000000
 TEST_NAME = 'ratdma-sync'
 TEST_TYPE = '2nodes-1second'
 NODES = ['drone1', 'drone2']
@@ -13,6 +13,8 @@ PATH = './' + TEST_NAME + '/' + TEST_TYPE + '/'
 MAX_ROUNDS = 10
 ROUND_OFFSET = 0
 drone_data = dict()
+
+CONSIDER_PACKETS_FLAG = False
 
 node_colors = ['#0000ff', 
                '#ff2c2c',
@@ -49,6 +51,7 @@ def read_data(node_name):
                     delay_data['received_slot_id'] = list()
                     delay_data['packet_arrival_time'] = list()
                     delay_data['delay'] = list()
+                    delay_data['round_sent'] = list()
                 
                 #Valid place to store data from parsed DELAYS
                 delay_data = current_round_data['DELAY']
@@ -62,6 +65,7 @@ def read_data(node_name):
                 delay_data['received_slot_id'].append(int(split_data[1].strip()))
                 delay_data['packet_arrival_time'].append(int(split_data[2].strip()))
                 delay_data['delay'].append(int(split_data[3].strip()))
+                delay_data['round_sent'].append(int(split_data[4].strip()))
 
             if '[OFFSET]' in stripped_line:
                 
@@ -79,17 +83,27 @@ def read_data(node_name):
 
             if '[SLOT_START]' in stripped_line:
 
+                CONSIDER_PACKETS_FLAG = True
+
                 current_round_data = round_data[round_counter]
 
-                data = stripped_line.split('[SLOT_START]:')[1]
-                current_round_data['SLOT_START'] = int(data)
+                data = stripped_line.split('[SLOT_START]:')[0]
+                clean_data = data.removeprefix('[ ').strip().removesuffix(']')
+                split_data = clean_data.split('.')
+                timestamp = int(str(split_data[0]) + str(split_data[1])) #Timestamp in microseconds
+                current_round_data['SLOT_START'] = int(timestamp)
 
             if '[SLOT_END]' in stripped_line:
+                
+                CONSIDER_PACKETS_FLAG = False
 
                 current_round_data = round_data[round_counter]
 
-                data = stripped_line.split('[SLOT_END]:')[1]
-                current_round_data['SLOT_END'] = int(data)
+                data = stripped_line.split('[SLOT_END]:')[0]
+                clean_data = data.removeprefix('[ ').strip().removesuffix(']')
+                split_data = clean_data.split('.')
+                timestamp = int(str(split_data[0]) + str(split_data[1])) #Timestamp in microseconds
+                current_round_data['SLOT_END'] = int(timestamp)
 
             if '[PARENT]' in stripped_line:
 
@@ -106,6 +120,40 @@ def read_data(node_name):
 
                     data = stripped_line.split('[SLOT_ID]:')[1]
                     current_round_data['SLOT_ID'] = int(data)
+
+            if '[RECEIVED_PACKET]' in stripped_line:
+
+                if(CONSIDER_PACKETS_FLAG):
+
+                    current_round_data = round_data[round_counter]
+
+                    #Init RECEIVED_PACKET entry if not yet available
+                    if 'RECEIVED_PACKET' not in current_round_data.keys():
+                        packet_data = current_round_data['RECEIVED_PACKET'] = dict()
+                        packet_data['received_slot_id'] = list()
+                        packet_data['timestamp'] = list()
+                        packet_data['relative_timestamp'] = list()
+                    
+
+                    #Valid place to store data from parsed RECEIVED_PACKETSs
+                    packet_data = current_round_data['RECEIVED_PACKET']
+                    
+                    #Parse
+                    split_line = stripped_line.split('[RECEIVED_PACKET]')
+                    
+                    #Timestamp
+                    clean_time = split_line[0].strip().removeprefix('[').removesuffix(']')
+                    split_time = clean_time.split('.')
+                    timestamp = int(str(split_time[0]) + str(split_time[1])) #Timestamp in microseconds
+                    
+                    #Slot id, Relative Timestamp
+                    data = split_line[1].split('|')
+                    
+                    #Save
+                    packet_data['received_slot_id'].append(int(data[0].strip()))
+                    packet_data['timestamp'].append(timestamp)
+                    packet_data['relative_timestamp'].append(int(data[1].strip()))
+
 
             
 
@@ -182,28 +230,17 @@ def build_total_offset_chart(data):
 
     plt.savefig("./" + TEST_NAME + "/" + TEST_TYPE + "/total-offset.png", dpi=300, bbox_inches='tight')
 
-def count_overlapped_packets(packet_arrival_times, slot_start, slot_end):
+def get_overlapped_packets_percentage(packet_arrival_times, slot_start):
 
-    overlapped_packets = 0
+    overlapped_packets_percentage = 0
 
-    #print(packet_arrival_times, slot_start, slot_end)
-
-    #Check if packet received was within slot. Mimic mechanism in tdma.c/tdma_dequeue
-    if slot_start < slot_end:
-
-        for arrival_time in packet_arrival_times:
-            
-            if arrival_time > slot_start and arrival_time <= slot_end:
-                overlapped_packets+=1
-
-    else:
+    if(len(packet_arrival_times) > 0):
+        last_packet = packet_arrival_times[-1]
+        overlapped_delta = abs(last_packet - slot_start)
         
-        for arrival_time in packet_arrival_times:
-            
-            if arrival_time > slot_start or arrival_time <= slot_end:
-                overlapped_packets+=1
+        overlapped_packets_percentage = (1 - (overlapped_delta / SLOT_LEN_MICRO)) * 100
 
-    return overlapped_packets
+    return overlapped_packets_percentage
     
 
 def build_overlap_chart(data):
@@ -216,17 +253,24 @@ def build_overlap_chart(data):
 
         for i in data[node_name]['overlap_x']:
 
-            slot_start = data[node_name]['slot_start'][i-1]
-            slot_end = data[node_name]['slot_end'][i-1]
-            packet_arrival_times = data[node_name]['packet_arrival_time'][i-1]
+            packet_arrival_times = data[node_name]['packet_arrival_time'][i]
 
-            overlapped_packets = count_overlapped_packets(packet_arrival_times, slot_start, slot_end)
+            slot_start = data[node_name]['slot_start'][i]
+
+            overlapped_packets = get_overlapped_packets_percentage(packet_arrival_times, slot_start)
             overlap_y.append(overlapped_packets)
 
-            print(i, overlapped_packets)
+        plt.plot(data[node_name]['overlap_x'], overlap_y, marker='o', linestyle='-', color=node_colors[int(node_name.split('drone')[1]) - 1], label = node_name)
 
+    plt.xlabel("Round Number")
+    plt.ylabel("Slot Overlap (%)")
+    plt.title("Slot Overlap per Round")
+    plt.legend()
+    plt.grid(True)
 
-def filter_packets_by_slot(packet_data_array, slot_id_array, slot_id, key):
+    plt.savefig("./" + TEST_NAME + "/" + TEST_TYPE + "/slot-overlap.png", dpi=300, bbox_inches='tight')
+
+def filter_packets_by_slot(packet_data_array, slot_id_array, slot_id, key, node_name):
     
     return_list = list()
 
@@ -236,7 +280,7 @@ def filter_packets_by_slot(packet_data_array, slot_id_array, slot_id, key):
         if slot_id_array[i] == slot_id:
             return_list.append(packet_data_array[i])
         #else:
-            #print(slot_id_array[i], slot_id ,key)
+            #print(slot_id_array[i], slot_id, key, node_name)
 
     return return_list
 
@@ -279,20 +323,32 @@ def build_charts():
                 node_data['slot_end'].append(current_round_data['SLOT_END'])
 
             if 'DELAY' in current_round_data.keys():
+                results = []
+                #previous_round_data = round_data[0 if key-1 < 0 else key-1]
 
-                previous_round_data = round_data[0 if key-1 < 0 else key-1]
-
-                if('DELAY' in previous_round_data.keys()):
-                    delay_data = previous_round_data['DELAY']
-                    results = filter_packets_by_slot(delay_data['packet_arrival_time'], delay_data['received_slot_id'], current_round_data['SLOT_ID'] - 1 , key)
-                else:
-                    results = []
+                #if('DELAY' in previous_round_data.keys()):
+                #    delay_data = previous_round_data['DELAY']
+                #    #results = filter_packets_by_slot(delay_data['packet_arrival_time'], delay_data['received_slot_id'], current_round_data['SLOT_ID'] - 1 , key)
+                #    results = []
+                #else:
+                #    results = []
                 
-                node_data['packet_arrival_time'].append(results)
+                #node_data['packet_arrival_time'].append(results)
 
+            #else:
+            #    node_data['packet_arrival_time'].append([])
+
+            if ('RECEIVED_PACKET' in current_round_data.keys()) and ('SLOT_ID' in current_round_data.keys()): 
+
+                packet_data = current_round_data['RECEIVED_PACKET']
+
+                results = filter_packets_by_slot(packet_data['timestamp'], packet_data['received_slot_id'], current_round_data['SLOT_ID'] - 1, key, node_name)
+
+                node_data['packet_arrival_time'].append(results)
+            
             else:
                 node_data['packet_arrival_time'].append([])
-    
+
     build_average_offset_chart(data)
     build_total_offset_chart(data)
     build_overlap_chart(data)
