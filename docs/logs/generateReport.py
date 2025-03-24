@@ -11,7 +11,7 @@ TEST_TYPE = '2nodes-1second'
 NODES = ['drone1', 'drone2']
 PATH = './' + TEST_NAME + '/' + TEST_TYPE + '/'
 MAX_ROUNDS = 10
-ROUND_OFFSET = 0
+ROUND_OFFSET = 1
 drone_data = dict()
 
 CONSIDER_PACKETS_FLAG = False
@@ -110,7 +110,7 @@ def read_data(node_name):
                 current_round_data = round_data[round_counter]
 
                 data = stripped_line.split('[PARENT]:')[1]
-                current_round_data['SLOT_START'] = int(data)
+                current_round_data['PARENT'] = int(data)
 
             if '[SLOT_ID]' in stripped_line:
                 
@@ -154,43 +154,6 @@ def read_data(node_name):
                     packet_data['timestamp'].append(timestamp)
                     packet_data['relative_timestamp'].append(int(data[1].strip()))
 
-
-            
-
-
-    
-
-    '''
-    fig, axes = plt.subplots(min(MAX_ROUNDS, round_counter), 1, figsize=(8, 15))
-
-    for i, ax in enumerate(axes):
-
-        index = i + ROUND_OFFSET
-
-        if index > round_counter:
-            break
-
-        if len(values[index]) > 0:
-    
-            minimum = min(values[index])
-            maximum = max(values[index])
-    
-            print(minimum, maximum)
-    
-            ax.hist(values[index], bins='auto', alpha=0.7)
-            ax.set_ylabel('Round ' + str(index))
-            ax.set_xlabel('Packet Delays (s)')
-            ax.grid(True, linestyle="--", alpha=0.5)
-            ax.axvline(x = np.average(values[index]), color = 'r',  linewidth=3, zorder=2)
-            ax.axvline(x = min(values[index]), color = 'g',  linewidth=3, zorder=2)
-            ax.axvline(x = max(values[index]), color = 'b',  linewidth=3, zorder=2)
-            ax.ticklabel_format(axis='x', style='sci', scilimits=(9,9))
-
-
-
-    plt.tight_layout()
-    plt.savefig('charts/packet-delays.png')'
-    '''
 def build_average_offset_chart(data):
     
     plt.clf()
@@ -286,6 +249,53 @@ def filter_packets_by_slot(packet_data_array, slot_id_array, slot_id, key, node_
 
     return return_list
 
+def build_delay_histograms(data):
+    
+    plt.clf()
+
+    for node_name in data.keys():
+
+        n_rounds = len(data[node_name]['packet_delay'])
+        values = data[node_name]['packet_delay']
+
+        fig, axes = plt.subplots(min(MAX_ROUNDS, n_rounds), 1, figsize=(8, 15))
+
+        for i, ax in enumerate(axes):
+
+            index = i + ROUND_OFFSET
+
+            if index > n_rounds:
+                break
+
+            if len(values[index]) > 0:
+    
+                minimum = min(values[index])
+                maximum = max(values[index])
+        
+                ax.hist(values[index], bins='auto', alpha=0.7)
+                ax.set_ylabel('Round ' + str(index))
+                ax.set_xlabel('Packet Delays (s)')
+                ax.grid(True, linestyle="--", alpha=0.5)
+                ax.axvline(x = np.average(values[index]), color = 'r',  linewidth=3, zorder=2)
+                ax.axvline(x = min(values[index]), color = 'g',  linewidth=3, zorder=2)
+                ax.axvline(x = max(values[index]), color = 'b',  linewidth=3, zorder=2)
+                ax.ticklabel_format(axis='x', style='sci', scilimits=(9,9))
+
+        plt.savefig("./" + TEST_NAME + "/" + TEST_TYPE + "/round-delay-hist-" + node_name + ".png", dpi=300, bbox_inches='tight')
+
+
+def filter_packets_by_parent(delays_array, sender_array, parent):
+    
+    return_list = list()
+
+    for i in range(0, len(delays_array)):
+        # Check if packet received is from parent
+        if sender_array[i] == parent:
+            return_list.append(delays_array[i])
+
+    
+    return return_list
+
 
 def build_charts():
 
@@ -304,6 +314,7 @@ def build_charts():
         node_data['slot_start'] = list()
         node_data['slot_end'] = list()
         node_data['packet_arrival_time'] = list()
+        node_data['packet_delay'] = list()
     
         for key in round_data.keys():
             
@@ -324,28 +335,16 @@ def build_charts():
             if 'SLOT_END' in current_round_data.keys():
                 node_data['slot_end'].append(current_round_data['SLOT_END'])
 
-            if 'DELAY' in current_round_data.keys():
-                results = []
-                #previous_round_data = round_data[0 if key-1 < 0 else key-1]
-
-                #if('DELAY' in previous_round_data.keys()):
-                #    delay_data = previous_round_data['DELAY']
-                #    #results = filter_packets_by_slot(delay_data['packet_arrival_time'], delay_data['received_slot_id'], current_round_data['SLOT_ID'] - 1 , key)
-                #    results = []
-                #else:
-                #    results = []
+            if 'DELAY' in current_round_data.keys() and 'PARENT' in current_round_data.keys():
                 
-                #node_data['packet_arrival_time'].append(results)
-
-            #else:
-            #    node_data['packet_arrival_time'].append([])
+                delay_data = current_round_data['DELAY']
+                results = filter_packets_by_parent(delay_data['delay'], delay_data['received_node_id'], current_round_data['PARENT'])
+                node_data['packet_delay'].append(results)
 
             if ('RECEIVED_PACKET' in current_round_data.keys()) and ('SLOT_ID' in current_round_data.keys()): 
 
                 packet_data = current_round_data['RECEIVED_PACKET']
-
                 results = filter_packets_by_slot(packet_data['timestamp'], packet_data['received_slot_id'], current_round_data['SLOT_ID'] - 1, key, node_name)
-
                 node_data['packet_arrival_time'].append(results)
             
             else:
@@ -354,6 +353,7 @@ def build_charts():
     build_average_offset_chart(data)
     build_total_offset_chart(data)
     build_overlap_chart(data)
+    build_delay_histograms(data)
 
         
 
