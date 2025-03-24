@@ -15,6 +15,7 @@ ROUND_OFFSET = 1
 drone_data = dict()
 
 CONSIDER_PACKETS_FLAG = False
+CONSIDER_DELAYS_FLAG = False
 
 node_colors = ['#0000ff', 
                '#ff2c2c',
@@ -41,31 +42,33 @@ def read_data(node_name):
                 round_data[round_counter] = dict()
 
             if '[DELAY]' in stripped_line:
-                
-                current_round_data = round_data[round_counter]
 
-                #Init DELAY entry if not yet available
-                if 'DELAY' not in current_round_data.keys():
-                    delay_data = current_round_data['DELAY'] = dict()
-                    delay_data['received_node_id'] = list()
-                    delay_data['received_slot_id'] = list()
-                    delay_data['packet_arrival_time'] = list()
-                    delay_data['delay'] = list()
-                    delay_data['round_sent'] = list()
-                
-                #Valid place to store data from parsed DELAYS
-                delay_data = current_round_data['DELAY']
+                if(CONSIDER_DELAYS_FLAG):
 
-                #Parse line
-                data = stripped_line.split('[DELAY]')[1]
-                split_data = data.split('|')
-                
-                #Save data
-                delay_data['received_node_id'].append(int(split_data[0].strip()))
-                delay_data['received_slot_id'].append(int(split_data[1].strip()))
-                delay_data['packet_arrival_time'].append(int(split_data[2].strip()))
-                delay_data['delay'].append(int(split_data[3].strip()))
-                delay_data['round_sent'].append(int(split_data[4].strip()))
+                    current_round_data = round_data[round_counter]
+
+                    #Init DELAY entry if not yet available
+                    if 'DELAY' not in current_round_data.keys():
+                        delay_data = current_round_data['DELAY'] = dict()
+                        delay_data['received_node_id'] = list()
+                        delay_data['received_slot_id'] = list()
+                        delay_data['packet_arrival_time'] = list()
+                        delay_data['delay'] = list()
+                        delay_data['round_sent'] = list()
+                    
+                    #Valid place to store data from parsed DELAYS
+                    delay_data = current_round_data['DELAY']
+
+                    #Parse line
+                    data = stripped_line.split('[DELAY]')[1]
+                    split_data = data.split('|')
+                    
+                    #Save data
+                    delay_data['received_node_id'].append(int(split_data[0].strip()))
+                    delay_data['received_slot_id'].append(int(split_data[1].strip()))
+                    delay_data['packet_arrival_time'].append(int(split_data[2].strip()))
+                    delay_data['delay'].append(int(split_data[3].strip()))
+                    delay_data['round_sent'].append(int(split_data[4].strip()))
 
             if '[OFFSET]' in stripped_line:
                 
@@ -153,6 +156,14 @@ def read_data(node_name):
                     packet_data['received_slot_id'].append(int(data[0].strip()))
                     packet_data['timestamp'].append(timestamp)
                     packet_data['relative_timestamp'].append(int(data[1].strip()))
+
+            if 'DELAY_ON' in stripped_line:
+
+                CONSIDER_DELAYS_FLAG = True
+
+            if 'DELAY_OFF' in stripped_line:
+
+                CONSIDER_DELAYS_FLAG = False
 
 def build_average_offset_chart(data):
     
