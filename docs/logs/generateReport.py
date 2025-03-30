@@ -272,6 +272,8 @@ def build_delay_histograms(data):
         values = data[node_name]['packet_delay']
 
         fig, axes = plt.subplots(min(MAX_ROUNDS, n_rounds), 1, figsize=(8, 15))
+        minimum = 0 if len(values[ROUND_OFFSET]) == 0 else min(values[ROUND_OFFSET])
+        maximum = 1 if len(values[ROUND_OFFSET]) == 0 else max(values[ROUND_OFFSET])
 
         for i, ax in enumerate(axes):
 
@@ -281,9 +283,6 @@ def build_delay_histograms(data):
                 break
 
             if len(values[index]) > 0:
-    
-                minimum = min(values[index])
-                maximum = max(values[index])
         
                 ax.hist(values[index], bins='auto', alpha=0.7)
                 ax.set_ylabel('Round ' + str(index))
@@ -293,6 +292,7 @@ def build_delay_histograms(data):
                 ax.axvline(x = min(values[index]), color = 'g',  linewidth=3, zorder=2)
                 ax.axvline(x = max(values[index]), color = 'b',  linewidth=3, zorder=2)
                 ax.ticklabel_format(axis='x', style='sci', scilimits=(9,9))
+                #ax.set_xlim(minimum, maximum)
 
         plt.savefig("./" + TEST_NAME + "/" + TEST_TYPE + "/round-delay-hist-" + node_name + ".png", dpi=300, bbox_inches='tight')
 
