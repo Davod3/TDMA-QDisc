@@ -29,7 +29,7 @@ then
     pids+=($!)
 
 else
-    iperf3 -c 10.10.10.1 -t 60 -p 5201 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    iperf3 -c 10.10.10.1 -t 60 -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
 fi
 
 # Wait for iperf3 clients to finish transmitting
