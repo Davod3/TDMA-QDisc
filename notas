@@ -1,11 +1,2 @@
-Usar 50ms em todos os gráficos
+Offset sem limite é equivalente ao overlap
 
-Gráfico throughput de cada nó ao longo do tempo (10 minutos). Mostrar desvio padrão
-
-Gráfico Boxplot todo throughput de cada nó VS número de nós (Com TDMA e sem TDMA)
-
-Gráfico throughput médio dos nós VS o número de nós. (Whiskers com desvio padrão, com TDMA e sem TDMA)
-
-Gráfico Throughput dos 6 nós ao longo do tempo CSMA
-
-Repetir CSMA durante 
