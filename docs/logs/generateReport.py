@@ -7,7 +7,7 @@ import matplotlib.ticker as mticker
 
 SLOT_LEN_MICRO = 1000000
 TEST_NAME = 'ratdma-sync'
-TEST_TYPE = '2nodes-1second'
+TEST_TYPE = '2nodes-50ms'
 NODES = ['drone1', 'drone2']
 PATH = './' + TEST_NAME + '/' + TEST_TYPE + '/'
 MAX_ROUNDS = 10
@@ -168,6 +168,7 @@ def read_data(node_name):
 def build_average_offset_chart(data):
     
     plt.clf()
+    plt.figure(figsize=(50,20))
 
     for node_name in data.keys():
         
