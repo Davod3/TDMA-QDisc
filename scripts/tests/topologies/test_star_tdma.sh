@@ -51,5 +51,5 @@ cd docs/logs
 
 sudo pkill -f 'dmesg -w'
 
-./save_log.sh kernel-log-latest.txt star-topology tdma drone$1-kernel
+./save_log.sh kernel-log-latest.txt star-topology tdma drone$1
 ./save_log.sh iperf-log-latest.txt star-topology tdma drone$1-throughput
