@@ -445,7 +445,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
 				//Calculate new slot boundaries
 				slot_start = mod(q->slot_offset + total_offset, q->frame_len);
-				slot_end = mod(slot_start + q->slot_len - slot_guard, q->frame_len);
+				slot_end = mod(slot_start + q->slot_len - 1, q->frame_len);
 
 				//printk(KERN_DEBUG "[SLOT_START]: %lld\n", slot_start);
 				//printk(KERN_DEBUG "[SLOT_END]: %lld\n", slot_end);
@@ -502,18 +502,24 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
         //Check if there is any packet to transmit
         if (q->qdisc->ops->peek(q->qdisc)) {
 
-			skb = qdisc_dequeue_peeked(q->qdisc);
-			if (unlikely(!skb))
-				return NULL;
-					
-			qdisc_qstats_backlog_dec(sch, skb);
-			sch->q.qlen--;
-			qdisc_bstats_update(sch, skb);
+			//If slot guard is enabled, check we still have not crossed it
+			if(relative_timestamp <= mod(slot_end - slot_guard, q->frame_len)) {
+				
+				skb = qdisc_dequeue_peeked(q->qdisc);
+			
+				if (unlikely(!skb))
+					return NULL;
+						
+				qdisc_qstats_backlog_dec(sch, skb);
+				sch->q.qlen--;
+				qdisc_bstats_update(sch, skb);
 
-			if(__ratdma_annotate_skb) {
-				return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id, slot_number);
-			} else {
-				return skb;
+				if(__ratdma_annotate_skb) {
+					return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id, slot_number);
+				} else {
+					return skb;
+				}
+
 			}
 
         } else {
