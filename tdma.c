@@ -410,11 +410,11 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
 	if(slot_start < slot_end) {
 
-		slot_flag = relative_timestamp > slot_start && relative_timestamp <= mod(slot_end - slot_guard, q->frame_len);
+		slot_flag = relative_timestamp > slot_start && relative_timestamp <= slot_end;
 
 	} else {
 
-		slot_flag = relative_timestamp > slot_start || relative_timestamp <= mod(slot_end - slot_guard, q->frame_len);
+		slot_flag = relative_timestamp > slot_start || relative_timestamp <= slot_end;
 
 	}
 
@@ -501,20 +501,24 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
         //Check if there is any packet to transmit
         if (q->qdisc->ops->peek(q->qdisc)) {
-				
-			skb = qdisc_dequeue_peeked(q->qdisc);
 			
-			if (unlikely(!skb))
-				return NULL;
-						
-			qdisc_qstats_backlog_dec(sch, skb);
-			sch->q.qlen--;
-			qdisc_bstats_update(sch, skb);
+			if(relative_timestamp <= mod(slot_end - slot_guard, q->frame_len)) {
 
-			if(__ratdma_annotate_skb) {
-				return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id, slot_number);
-			} else {
-				return skb;
+				skb = qdisc_dequeue_peeked(q->qdisc);
+				
+				if (unlikely(!skb))
+					return NULL;
+							
+				qdisc_qstats_backlog_dec(sch, skb);
+				sch->q.qlen--;
+				qdisc_bstats_update(sch, skb);
+
+				if(__ratdma_annotate_skb) {
+					return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id, slot_number);
+				} else {
+					return skb;
+				}
+
 			}
 
         } else {
