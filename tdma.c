@@ -410,11 +410,11 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
 	if(slot_start < slot_end) {
 
-		transmit_flag = relative_timestamp > slot_start && relative_timestamp <= slot_end;
+		transmit_flag = relative_timestamp > slot_start && relative_timestamp <= slot_end - slot_guard;
 
 	} else {
 
-		transmit_flag = relative_timestamp > slot_start || relative_timestamp <= slot_end;
+		transmit_flag = relative_timestamp > slot_start || relative_timestamp <= slot_end - slot_guard;
 
 	}
 
@@ -445,7 +445,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
 				//Calculate new slot boundaries
 				slot_start = mod(q->slot_offset + total_offset, q->frame_len);
-				slot_end = mod(slot_start + q->slot_len - slot_guard, q->frame_len);
+				slot_end = mod(slot_start + q->slot_len, q->frame_len);
 
 				//printk(KERN_DEBUG "[SLOT_START]: %lld\n", slot_start);
 				//printk(KERN_DEBUG "[SLOT_END]: %lld\n", slot_end);
