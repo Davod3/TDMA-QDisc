@@ -6,9 +6,9 @@ import numpy as np
 import matplotlib.ticker as mticker
 
 SLOT_LEN_MICRO = 1000000
-TEST_NAME = 'star-topology'
-TEST_TYPE = 'tdma'
-NODES = ['drone1', 'drone2', 'drone3', 'drone4', 'drone5', 'drone6']
+TEST_NAME = 'ratdma-sync'
+TEST_TYPE = '1node-50ms'
+NODES = ['2-drone1', '2-drone2']
 PATH = './' + TEST_NAME + '/' + TEST_TYPE + '/'
 MAX_ROUNDS = 10
 ROUND_OFFSET = 1
@@ -367,7 +367,7 @@ def build_charts():
     build_average_offset_chart(data)
     build_total_offset_chart(data)
     #build_overlap_chart(data)
-    build_delay_histograms(data)
+    #build_delay_histograms(data)
 
         
 

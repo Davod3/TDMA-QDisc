@@ -406,20 +406,20 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		__topology_set_slot_start(slot_start);
 	}
 
-	int8_t transmit_flag = 0;
+	int8_t slot_flag = 0;
 
 	if(slot_start < slot_end) {
 
-		transmit_flag = relative_timestamp > slot_start && relative_timestamp <= slot_end;
+		slot_flag = relative_timestamp > slot_start && relative_timestamp <= slot_end;
 
 	} else {
 
-		transmit_flag = relative_timestamp > slot_start || relative_timestamp <= slot_end;
+		slot_flag = relative_timestamp > slot_start || relative_timestamp <= slot_end;
 
 	}
 
     //Check if within slot
-    if (transmit_flag) {
+    if (slot_flag) {
 
         //Slot start procedure. Runs at the start of each slot
         if(!slot_start_flag) {
