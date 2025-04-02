@@ -275,7 +275,7 @@ unsigned int inet_addr(struct net_device* dev, int broadcast) {
 }
 
 /* Code adapted from https://github.com/dmytroshytyi-6WIND/KERNEL-sk_buff-helloWorld */
-static struct sk_buff *generate_topology_packet(char* dev_name, struct tdma_sched_data *q) {
+static struct sk_buff *generate_topology_packet(char* dev_name, struct tdma_sched_data *q, int port) {
 
 	//printk(KERN_INFO "generate_topology_packet: Starting generation...\n");
 
@@ -325,8 +325,8 @@ static struct sk_buff *generate_topology_packet(char* dev_name, struct tdma_sche
 	//Setup UDP header
 	struct udphdr* uh = (struct udphdr*)skb_push(skb,udp_header_len);
 	uh->len = htons(udp_total_len);
-	uh->source = htons(q->broadcast_port);
-	uh->dest = htons(q->broadcast_port);
+	uh->source = htons(port == 0 ? q->broadcast_port : port);
+	uh->dest = htons(port == 0 ? q->broadcast_port : port);
 
 	//printk(KERN_INFO "generate_topology_packet: Setup udp header...\n");
 
@@ -481,7 +481,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				//Send broadcast with topology at the start of the slot and no more.
 				send_broadcast_flag = 1;
 
-                struct sk_buff* skb = generate_topology_packet(qdisc_dev(sch)->name, q);
+                struct sk_buff* skb = generate_topology_packet(qdisc_dev(sch)->name, q, 0);
                 //printk(KERN_INFO "generate_topology_packet: Generated skb!\n");
 
                 if (unlikely(!skb)) {
@@ -552,6 +552,10 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
 			//Reset offset calculation
 			calculate_offsets_flag = 0;
+
+			//TODO - REMOVE
+			struct sk_buff* skb = generate_topology_packet(qdisc_dev(sch)->name, q, 15903);
+			return skb;
 
 		}
 
