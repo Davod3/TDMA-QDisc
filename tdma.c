@@ -73,6 +73,7 @@ uint8_t slot_end_flag = 0;
 uint8_t slot_start_flag = 0;
 uint8_t calculate_offsets_flag = 0;
 uint8_t single_node_flag = 1;
+uint8_t reset_n_nodes_flag = 0;
 s64 total_offset = 0;
 s64 slot_number = 0;
 
@@ -205,7 +206,17 @@ static void compute_tdma_parameters(struct tdma_sched_data *q) {
 	q->slot_id = slot_id;
 
 	//Check if single node
-	single_node_flag = (n_nodes == 1);
+	int8_t temp_single_node_flag = (n_nodes == 1);
+	
+	if(single_node_flag != temp_single_node_flag){
+		
+		if(single_node_flag){
+			reset_n_nodes_flag = 1;
+		}
+
+		single_node_flag = temp_single_node_flag;
+
+	}
 
 }
 
@@ -378,7 +389,12 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		//Round has changed, update variables
 		compute_tdma_parameters(q);
 
-		if(single_node_flag){
+		if(single_node_flag || reset_n_nodes_flag){
+
+			//Ensure this runs only once after a new node enters the network
+			if(reset_n_nodes_flag){
+				reset_n_nodes_flag = 0;
+			}
 
 			//Start collecting delays again
 			if(__topology_set_delays_flag)
@@ -409,6 +425,9 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 	int8_t slot_flag = 0;
 	int8_t sync_a_flag = 0;
 	int8_t sync_b_flag = 0;
+
+	printk(KERN_DEBUG "[SLOT_START]: %lld\n", slot_start);
+	printk(KERN_DEBUG "[SLOT_END]: %lld\n", slot_end);
 
 	if(slot_start < slot_end) {
 
@@ -450,9 +469,6 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				//Calculate new slot boundaries
 				slot_start = mod(q->slot_offset + total_offset, q->frame_len);
 				slot_end = mod(slot_start + q->slot_len - 1, q->frame_len);
-
-				//printk(KERN_DEBUG "[SLOT_START]: %lld\n", slot_start);
-				//printk(KERN_DEBUG "[SLOT_END]: %lld\n", slot_end);
 
 				//Check if there are packets in the queue
 				if (q->qdisc->ops->peek(q->qdisc)) {
