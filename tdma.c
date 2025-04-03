@@ -407,14 +407,18 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 	}
 
 	int8_t slot_flag = 0;
+	int8_t sync_a_flag = 0;
+	int8_t sync_b_flag = 0;
 
 	if(slot_start < slot_end) {
 
 		slot_flag = relative_timestamp > slot_start && relative_timestamp <= slot_end;
+		sync_a_flag = 1;
 
 	} else {
 
 		slot_flag = relative_timestamp > slot_start || relative_timestamp <= slot_end;
+		sync_b_flag = 1;
 
 	}
 
@@ -503,7 +507,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
         if (q->qdisc->ops->peek(q->qdisc)) {
 			
 			//If slot guard is enabled, extra check to make sure we don't cross it.
-			if(relative_timestamp <= mod(slot_end - slot_guard, q->frame_len) || relative_timestamp > slot_start) {
+			if(relative_timestamp <= mod(slot_end - slot_guard, q->frame_len) || ((relative_timestamp > slot_start) && sync_b_flag)) {
 
 				skb = qdisc_dequeue_peeked(q->qdisc);
 				
