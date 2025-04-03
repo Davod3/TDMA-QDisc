@@ -502,7 +502,8 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
         //Check if there is any packet to transmit
         if (q->qdisc->ops->peek(q->qdisc)) {
 			
-			if(relative_timestamp <= mod(slot_end - slot_guard, q->frame_len)) {
+			//If slot guard is enabled, extra check to make sure we don't cross it.
+			if(relative_timestamp <= mod(slot_end - slot_guard, q->frame_len) || relative_timestamp > slot_start) {
 
 				skb = qdisc_dequeue_peeked(q->qdisc);
 				
