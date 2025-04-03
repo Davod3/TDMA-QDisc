@@ -514,6 +514,8 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				sch->q.qlen--;
 				qdisc_bstats_update(sch, skb);
 
+				printk(KERN_DEBUG "PACKET SENT!!\n");
+
 				if(__ratdma_annotate_skb) {
 					return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id, slot_number);
 				} else {
