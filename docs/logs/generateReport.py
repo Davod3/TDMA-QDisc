@@ -8,7 +8,7 @@ import matplotlib.ticker as mticker
 SLOT_LEN_MICRO = 1000000
 TEST_NAME = 'ratdma-sync'
 TEST_TYPE = '1node-50ms'
-NODES = ['2-drone1', '2-drone2']
+NODES = ['new-1-drone1', 'new-1-drone2']
 PATH = './' + TEST_NAME + '/' + TEST_TYPE + '/'
 MAX_ROUNDS = 10
 ROUND_OFFSET = 1
