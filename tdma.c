@@ -547,10 +547,6 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 					return skb;
 				}
 
-			} else {
-
-				return NULL;
-				
 			}
 
         } else {
