@@ -68,6 +68,7 @@ int send_broadcast_flag = 0;
 int8_t reset_flag = 0;
 s64 slot_start = 0;
 s64 slot_end = 0;
+s64 actual_slot_end = 0; //Includes slot guard if it is present
 s64 round_start = 0;
 uint8_t slot_end_flag = 0;
 uint8_t slot_start_flag = 0;
@@ -423,21 +424,24 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 	}
 
 	int8_t slot_flag = 0;
-	int8_t sync_a_flag = 0;
-	int8_t sync_b_flag = 0;
+	int8_t transmit_flag = 0;
 
 	printk(KERN_DEBUG "[SLOT_START]: %lld\n", slot_start);
 	printk(KERN_DEBUG "[SLOT_END]: %lld\n", slot_end);
+	printk(KERN_DEBUG "[ACTUAL_SLOT_END]: %lld\n", actual_slot_end);
 
 	if(slot_start < slot_end) {
 
+		//Check if node is within slot boundaries
 		slot_flag = relative_timestamp > slot_start && relative_timestamp <= slot_end;
-		sync_a_flag = 1;
+
+		//Check if node can transmit (takes guard time into account)
+		transmit_flag = relative_timestamp > slot_start && relative_timestamp <= actual_slot_end;
 
 	} else {
 
 		slot_flag = relative_timestamp > slot_start || relative_timestamp <= slot_end;
-		sync_b_flag = 1;
+		transmit_flag = relative_timestamp > slot_start || relative_timestamp <= actual_slot_end;
 
 	}
 
@@ -469,6 +473,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				//Calculate new slot boundaries
 				slot_start = mod(q->slot_offset + total_offset, q->frame_len);
 				slot_end = mod(slot_start + q->slot_len - 1, q->frame_len);
+				actual_slot_end = mod(slot_end - slot_guard, q->frame_len);
 
 				//Check if there are packets in the queue
 				if (q->qdisc->ops->peek(q->qdisc)) {
@@ -521,9 +526,9 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
         //Check if there is any packet to transmit
         if (q->qdisc->ops->peek(q->qdisc)) {
-			
+
 			//If slot guard is enabled, extra check to make sure we don't cross it.
-			if(relative_timestamp <= mod(slot_end - slot_guard, q->frame_len) || ((relative_timestamp > slot_start) && sync_b_flag)) {
+			if(transmit_flag) {
 
 				skb = qdisc_dequeue_peeked(q->qdisc);
 				
@@ -542,6 +547,10 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 					return skb;
 				}
 
+			} else {
+
+				return NULL;
+				
 			}
 
         } else {
