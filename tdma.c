@@ -426,9 +426,9 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 	int8_t slot_flag = 0;
 	int8_t transmit_flag = 0;
 
-	printk(KERN_DEBUG "[SLOT_START]: %lld\n", slot_start);
-	printk(KERN_DEBUG "[SLOT_END]: %lld\n", slot_end);
-	printk(KERN_DEBUG "[ACTUAL_SLOT_END]: %lld\n", actual_slot_end);
+	//printk(KERN_DEBUG "[SLOT_START]: %lld\n", slot_start);
+	//printk(KERN_DEBUG "[SLOT_END]: %lld\n", slot_end);
+	//printk(KERN_DEBUG "[ACTUAL_SLOT_END]: %lld\n", actual_slot_end);
 
 	if(slot_start < slot_end) {
 
@@ -547,7 +547,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				sch->q.qlen--;
 				qdisc_bstats_update(sch, skb);
 
-				printk(KERN_DEBUG "PACKET SENT!!\n");
+				//printk(KERN_DEBUG "PACKET SENT!!\n");
 
 				if(__ratdma_annotate_skb) {
 					return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id, slot_number);
