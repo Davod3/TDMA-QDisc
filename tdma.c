@@ -435,13 +435,9 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		//Check if node is within slot boundaries
 		slot_flag = relative_timestamp > slot_start && relative_timestamp <= slot_end;
 
-		//Check if node can transmit (takes guard time into account)
-		transmit_flag = relative_timestamp > slot_start && relative_timestamp <= actual_slot_end;
-
 	} else {
 
 		slot_flag = relative_timestamp > slot_start || relative_timestamp <= slot_end;
-		transmit_flag = relative_timestamp > slot_start || relative_timestamp <= actual_slot_end;
 
 	}
 
@@ -528,6 +524,18 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
         if (q->qdisc->ops->peek(q->qdisc)) {
 
 			//If slot guard is enabled, extra check to make sure we don't cross it.
+			if(slot_start < actual_slot_end){
+
+				//Check if node can transmit (takes guard time into account)
+				transmit_flag = relative_timestamp > slot_start && relative_timestamp <= actual_slot_end;
+
+			} else {
+
+				transmit_flag = relative_timestamp > slot_start || relative_timestamp <= actual_slot_end;
+
+			}
+
+
 			if(transmit_flag) {
 
 				skb = qdisc_dequeue_peeked(q->qdisc);
