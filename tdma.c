@@ -198,8 +198,8 @@ static void compute_tdma_parameters(struct tdma_sched_data *q) {
 	s64 slot_id = __topology_get_slot_id(); //Get from topology module
 	__topology_update_spanning_tree();
 
-	printk(KERN_DEBUG "[TDMA] Self-Configured (n_nodes --- slot_id --- port)=(%d --- %d -- %lld) \n", n_nodes, slot_id);
-	printk(KERN_DEBUG "[SLOT_ID]: %lld\n", slot_id);
+	//printk(KERN_DEBUG "[TDMA] Self-Configured (n_nodes --- slot_id --- port)=(%d --- %d -- %lld) \n", n_nodes, slot_id);
+	//printk(KERN_DEBUG "[SLOT_ID]: %lld\n", slot_id);
 
 	//Compute TDMA Parameters based on Topology
 	q->frame_len = q->slot_len * n_nodes;
@@ -449,7 +449,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
 			if(__ratdma_get_offset && __topology_set_delays_flag && !calculate_offsets_flag) {
 
-				printk(KERN_DEBUG "[TDMA ROUND] %lld\n", slot_number);
+				//printk(KERN_DEBUG "[TDMA ROUND] %lld\n", slot_number);
 
 				//Do this only once per slot start
 				calculate_offsets_flag = 1;
@@ -462,8 +462,8 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				total_offset+=offset;
 				u64 wait_period = total_offset > 0 ? total_offset : 0;
 
-				printk(KERN_DEBUG "[OFFSET]: %lld\n", offset);
-				printk(KERN_DEBUG "[TOTAL OFFSET]: %lld\n", total_offset);
+				//printk(KERN_DEBUG "[OFFSET]: %lld\n", offset);
+				//printk(KERN_DEBUG "[TOTAL OFFSET]: %lld\n", total_offset);
 				//printk(KERN_DEBUG "[WAIT]: %llu\n", wait_period);
 
 				//Calculate new slot boundaries
@@ -497,7 +497,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
             if(__topology_is_active && __topology_is_active() && !send_broadcast_flag){
 
-				printk(KERN_DEBUG "[SLOT_START]: %lld\n", slot_number);
+				//printk(KERN_DEBUG "[SLOT_START]: %lld\n", slot_number);
 
 				//Send broadcast with topology at the start of the slot and no more.
 				send_broadcast_flag = 1;
@@ -571,7 +571,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		//Slot end procedure. Occurs once when the slot ends.
 		if(!slot_end_flag){
 
-			printk(KERN_DEBUG "[SLOT_END]: %lld\n", slot_number);
+			//printk(KERN_DEBUG "[SLOT_END]: %lld\n", slot_number);
 
 			//Slot has ended. Prepare to broadcast again when slot starts.
 			send_broadcast_flag = 0;
@@ -701,13 +701,13 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 			s64 possible_slot_guard = (qopt->slot_size * 30) / 100;
 			slot_guard = (possible_slot_guard <= MAX_SLOT_GUARD) ? possible_slot_guard : MAX_SLOT_GUARD;
 
-			printk(KERN_DEBUG "[TDMA] Using slot guard - %lld nanoseconds\n", slot_guard);
+			//printk(KERN_DEBUG "[TDMA] Using slot guard - %lld nanoseconds\n", slot_guard);
 
 		} else {
 
 			slot_guard = 0;
 
-			printk(KERN_DEBUG "[TDMA] Slot guard disabled! \n");
+			//printk(KERN_DEBUG "[TDMA] Slot guard disabled! \n");
 
 		}
 
@@ -727,7 +727,7 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 			//Check if module is available
 			if(__topology_enable && __topology_get_network_size && __topology_get_slot_id && __topology_get_info && __topology_get_info_size && __topology_set_slot_start && __topology_is_active && __topology_update_spanning_tree && __topology_set_delays_flag){
 
-				printk(KERN_DEBUG "[TDMA] Found topology symbols. Self-Configuring Network. \n");
+				//printk(KERN_DEBUG "[TDMA] Found topology symbols. Self-Configuring Network. \n");
 
 				q->broadcast_port = qopt->broadcast_port;
 				__topology_enable(qopt->node_id, qopt->broadcast_port, qdisc_dev(sch)->name, qopt->slot_size);
@@ -740,7 +740,7 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 			} else {
 
 				//Failed to get required symbols. Calculate manually.
-				printk(KERN_DEBUG "[TDMA] Failed to find topology symbols. Falling back to manual config. \n");
+				//printk(KERN_DEBUG "[TDMA] Failed to find topology symbols. Falling back to manual config. \n");
 
 				//Compute TDMA parameters manually
 				q->slot_len = qopt->slot_size;

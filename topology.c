@@ -558,14 +558,14 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
         ratdma_packet_delays->node_delays[received_node_id][i] = packet_delay;
         ratdma_packet_delays->delay_counters[received_node_id]++;
 
-        printk(KERN_DEBUG "[DELAY] %lld | %lld | %lld | %lld | %lld\n", received_node_id, received_slot_id, packet_timestamp, packet_delay, slot_number);
+        //printk(KERN_DEBUG "[DELAY] %lld | %lld | %lld | %lld | %lld\n", received_node_id, received_slot_id, packet_timestamp, packet_delay, slot_number);
 
         //CRITICAL - DELAYS - UNLOCK
         spin_unlock(&packet_delays_lock);
 
     }
 
-    printk(KERN_DEBUG "[RECEIVED_PACKET] %lld | %lld | %lld\n", annotations->slot_id, packet_timestamp, slot_number);
+    //printk(KERN_DEBUG "[RECEIVED_PACKET] %lld | %lld | %lld\n", annotations->slot_id, packet_timestamp, slot_number);
 
 }
 
