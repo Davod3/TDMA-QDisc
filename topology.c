@@ -544,7 +544,7 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
         s64 expected_packet_arrival = mod( expected_slot_start + received_transmission_offset , frame_len);
 
         //Calculate packet delay
-        s64 packet_delay = mod((packet_arrival_time - expected_packet_arrival + intdiv(frame_len, 2)), frame_len) - intdiv(frame_len, 2);
+        s64 packet_delay = mod((packet_timestamp - expected_packet_arrival + intdiv(frame_len, 2)), frame_len) - intdiv(frame_len, 2);
         
         //CRITICAL - DELAYS - LOCK
         spin_lock(&packet_delays_lock);
