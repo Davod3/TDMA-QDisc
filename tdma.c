@@ -420,7 +420,6 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		//round_start = (current_round * q->frame_len);// + total_offset;
 		//slot_start = mod(q->slot_offset + total_offset, q->frame_len);
 		//slot_end = mod(slot_start + q->slot_len - slot_guard, q->frame_len);
-		__topology_set_slot_start(slot_start);
 	}
 
 	int8_t slot_flag = 0;
@@ -470,6 +469,9 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				slot_start = mod(q->slot_offset + total_offset, q->frame_len);
 				slot_end = mod(slot_start + q->slot_len - 1, q->frame_len);
 				actual_slot_end = mod(slot_end - slot_guard, q->frame_len);
+				
+				//Set slot_start for next round of delay calculations
+				__topology_set_slot_start(slot_start);
 
 				//Check if there are packets in the queue
 				if (q->qdisc->ops->peek(q->qdisc)) {

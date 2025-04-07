@@ -98,7 +98,7 @@ struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slo
         annotations->node_id = node_id;
 		annotations->slot_number = slot_number;
 
-		printk(KERN_DEBUG "Transmission Offset: %lld\n", annotations->transmission_offset);
+		//printk(KERN_DEBUG "Transmission Offset: %lld\n", annotations->transmission_offset);
 		
 		for (size_t i = TDMA_DATA_IP_OPT_SIZE; i < TDMA_DATA_IP_OPT_TOTAL_SIZE; i++)
 		{
