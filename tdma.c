@@ -69,6 +69,7 @@ int8_t reset_flag = 0;
 s64 slot_start = 0;
 s64 slot_end = 0;
 s64 actual_slot_end = 0; //Includes slot guard if it is present
+s64 actual_slot_start = 0; //Includes slot guard if it is present
 s64 round_start = 0;
 uint8_t slot_end_flag = 0;
 uint8_t slot_start_flag = 0;
@@ -429,14 +430,14 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 	//printk(KERN_DEBUG "[SLOT_END]: %lld\n", slot_end);
 	//printk(KERN_DEBUG "[ACTUAL_SLOT_END]: %lld\n", actual_slot_end);
 
-	if(slot_start < slot_end) {
+	if(actual_slot_start < slot_end) {
 
 		//Check if node is within slot boundaries
-		slot_flag = relative_timestamp > slot_start && relative_timestamp <= slot_end;
+		slot_flag = relative_timestamp > actual_slot_start && relative_timestamp <= slot_end;
 
 	} else {
 
-		slot_flag = relative_timestamp > slot_start || relative_timestamp <= slot_end;
+		slot_flag = relative_timestamp > actual_slot_start || relative_timestamp <= slot_end;
 
 	}
 
@@ -464,12 +465,11 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				//printk(KERN_DEBUG "[OFFSET]: %lld\n", offset);
 				//printk(KERN_DEBUG "[TOTAL OFFSET]: %lld\n", total_offset);
 				//printk(KERN_DEBUG "[WAIT]: %llu\n", wait_period);
-				
-				s64 guarded_offset = total_offset > slot_guard ? total_offset - slot_guard : total_offset;
 
 				//Calculate new slot boundaries
 				slot_start = mod(q->slot_offset + total_offset, q->frame_len);
 				slot_end = mod(slot_start + q->slot_len - 1, q->frame_len);
+				actual_slot_start = total_offset == 0 ? slot_start : mod(slot_start - slot_guard, q->frame_len);
 				actual_slot_end = mod(slot_end - slot_guard, q->frame_len);
 				
 				//Set slot_start for next round of delay calculations
@@ -528,14 +528,14 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
         if (q->qdisc->ops->peek(q->qdisc)) {
 
 			//If slot guard is enabled, extra check to make sure we don't cross it.
-			if(slot_start < actual_slot_end){
+			if(actual_slot_start < actual_slot_end){
 
 				//Check if node can transmit (takes guard time into account)
-				transmit_flag = relative_timestamp > slot_start && relative_timestamp <= actual_slot_end;
+				transmit_flag = relative_timestamp > actual_slot_start && relative_timestamp <= actual_slot_end;
 
 			} else {
 
-				transmit_flag = relative_timestamp > slot_start || relative_timestamp <= actual_slot_end;
+				transmit_flag = relative_timestamp > actual_slot_start || relative_timestamp <= actual_slot_end;
 
 			}
 
