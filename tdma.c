@@ -464,6 +464,8 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				//printk(KERN_DEBUG "[OFFSET]: %lld\n", offset);
 				//printk(KERN_DEBUG "[TOTAL OFFSET]: %lld\n", total_offset);
 				//printk(KERN_DEBUG "[WAIT]: %llu\n", wait_period);
+				
+				s64 guarded_offset = total_offset > slot_guard ? total_offset - slot_guard : total_offset;
 
 				//Calculate new slot boundaries
 				slot_start = mod(q->slot_offset + total_offset, q->frame_len);
