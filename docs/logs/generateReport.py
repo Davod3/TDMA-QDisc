@@ -7,8 +7,8 @@ import matplotlib.ticker as mticker
 
 SLOT_LEN_MICRO = 1000000
 TEST_NAME = 'ratdma-sync'
-TEST_TYPE = '1node-50ms'
-NODES = ['1-drone2']
+TEST_TYPE = '2nodes-50ms'
+NODES = ['drone1','drone2']
 PATH = './' + TEST_NAME + '/' + TEST_TYPE + '/'
 MAX_ROUNDS = 10
 ROUND_OFFSET = 1
@@ -91,7 +91,7 @@ def read_data(node_name):
                 current_round_data = round_data[round_counter]
 
                 data = stripped_line.split('[SLOT_START]:')[0]
-                clean_data = data.removeprefix('[ ').strip().removesuffix(']')
+                clean_data = data.removeprefix('[').strip().removesuffix(']')
                 split_data = clean_data.split('.')
                 timestamp = int(str(split_data[0]) + str(split_data[1])) #Timestamp in microseconds
                 current_round_data['SLOT_START'] = int(timestamp)
@@ -103,7 +103,7 @@ def read_data(node_name):
                 current_round_data = round_data[round_counter]
 
                 data = stripped_line.split('[SLOT_END]:')[0]
-                clean_data = data.removeprefix('[ ').strip().removesuffix(']')
+                clean_data = data.removeprefix('[').strip().removesuffix(']')
                 split_data = clean_data.split('.')
                 timestamp = int(str(split_data[0]) + str(split_data[1])) #Timestamp in microseconds
                 current_round_data['SLOT_END'] = int(timestamp)
