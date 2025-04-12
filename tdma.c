@@ -470,7 +470,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				slot_start = mod(q->slot_offset + total_offset, q->frame_len);
 				slot_end = mod(slot_start + q->slot_len - 1, q->frame_len);
 				actual_slot_start = total_offset == 0 ? slot_start : mod(slot_start - slot_guard, q->frame_len);
-				actual_slot_end = mod(slot_end - slot_guard, q->frame_len);
+				actual_slot_end = total_offset == 0 ? mod(slot_end - slot_guard, q->frame_len) : mod(slot_end - (2*slot_guard), q->frame_len);
 				
 				//Set slot_start for next round of delay calculations
 				__topology_set_slot_start(slot_start);
