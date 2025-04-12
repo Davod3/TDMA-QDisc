@@ -144,7 +144,7 @@ s64 ratdma_get_offset(s64 slot_len) {
 
 	//Call Topology to get reference node
 	s64 reference_node_id = topology_get_reference_node();
-	//printk(KERN_DEBUG "[PARENT]: %lld\n", reference_node_id);
+	printk(KERN_DEBUG "[PARENT]: %lld\n", reference_node_id);
 
 	//I'm a top level node. Use no offset
 	if(reference_node_id < 0) {
