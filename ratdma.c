@@ -43,7 +43,13 @@ static s64 intdiv(s64 a, u64 b) {
 	return (((a * ((a >= 0) ? 1 : -1)) / b) * ((a >= 0) ? 1 : -1)) - ((!(a >= 0)) && (!(((a * ((a >= 0) ? 1 : -1)) % b) == 0)));
 }
 
-struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id, s64 slot_number, s64 now){
+static s64 mod(s64 a, s64 b)
+{
+    s64 r = a % b;
+    return r < 0 ? r + b : r;
+}
+
+struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id, s64 slot_number, s64 now, s64 slot_len){
 
 	skb_reset_mac_header(skb);
 
@@ -93,7 +99,7 @@ struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slo
 		s64 t_offset = now - slot_start;
 
 		struct ratdma_packet_annotations* annotations = (struct ratdma_packet_annotations*) (opts+2);
-        annotations->transmission_offset = t_offset < 0 ? -t_offset : t_offset;
+        annotations->transmission_offset = mod(t_offset, slot_len);
         annotations->slot_id = slot_id;
         annotations->node_id = node_id;
 		annotations->slot_number = slot_number;

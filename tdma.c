@@ -114,11 +114,11 @@ void (*__topology_update_spanning_tree)(void);
 void (*__topology_set_delays_flag)(int value);
 
 //Get functions from ratdma module
-extern struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id, s64 slot_number, s64 now);
+extern struct sk_buff* ratdma_annotate_skb(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id, s64 slot_number, s64 now, s64 slot_len);
 extern s64 ratdma_get_offset(s64 slot_len);
 
 //Placeholders if ratdma module is not loaded
-struct sk_buff* (*__ratdma_annotate_skb)(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id, s64 slot_number, s64 now);
+struct sk_buff* (*__ratdma_annotate_skb)(struct sk_buff* skb, s64 slot_start, s64 slot_id, s64 node_id, s64 slot_number, s64 now, s64 slot_len);
 s64 (*__ratdma_get_offset)(s64 slot_len);
 
 struct tdma_sched_data {
@@ -515,7 +515,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
                 }
 
 				if(__ratdma_annotate_skb) {
-					return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id, slot_number, relative_timestamp);
+					return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id, slot_number, relative_timestamp, q->slot_len);
 				} else {
 					return skb;
 				}
@@ -554,7 +554,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				//printk(KERN_DEBUG "PACKET SENT!!\n");
 
 				if(__ratdma_annotate_skb) {
-					return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id, slot_number, relative_timestamp);
+					return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id, slot_number, relative_timestamp, q->slot_len);
 				} else {
 					return skb;
 				}
