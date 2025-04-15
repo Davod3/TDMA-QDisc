@@ -162,6 +162,8 @@ def compute_overlap(path):
     check_overlap_flag[DRONE_5_ID] = False
     check_overlap_flag[DRONE_6_ID] = False
 
+    round_throughput = dict()
+
     round_counter = 0
 
     packet_counter = 0
@@ -170,7 +172,7 @@ def compute_overlap(path):
 
     for packet in PcapReader(path):
 
-        #if(packet_counter > 5000):
+        #if(packet_counter > 2000):
         #    break
 
         dot11 = packet['Dot11']
@@ -203,7 +205,13 @@ def compute_overlap(path):
                 packet_round = int.from_bytes(annotations, byteorder='little')
 
                 if wlan_source_address == node_wlan_sa[DRONE_1_ID]:
-                    
+
+                    #Save packet size
+                    if(round_counter in round_throughput.keys()):
+                        round_throughput[round_counter]+=len(packet)
+                    else:
+                        round_throughput[round_counter]=len(packet)
+
                     if(DRONE_1_ID in last_rounds.keys() and DRONE_1_ID in last_packet_timestamps.keys()):
                     
                         last_round = last_rounds[DRONE_1_ID]
@@ -246,6 +254,12 @@ def compute_overlap(path):
 
                 if wlan_source_address == node_wlan_sa[DRONE_2_ID]:
 
+                    #Save packet size
+                    if(round_counter in round_throughput.keys()):
+                        round_throughput[round_counter]+=len(packet)
+                    else:
+                        round_throughput[round_counter]=len(packet)
+
                     if(DRONE_2_ID in last_rounds.keys() and DRONE_2_ID in last_packet_timestamps.keys()):
                     
                         last_round = last_rounds[DRONE_2_ID]
@@ -281,6 +295,12 @@ def compute_overlap(path):
 
                 if wlan_source_address == node_wlan_sa[DRONE_3_ID]:
 
+                    #Save packet size
+                    if(round_counter in round_throughput.keys()):
+                        round_throughput[round_counter]+=len(packet)
+                    else:
+                        round_throughput[round_counter]=len(packet)
+
                     if(DRONE_3_ID in last_rounds.keys() and DRONE_3_ID in last_packet_timestamps.keys()):
                     
                         last_round = last_rounds[DRONE_3_ID]
@@ -314,6 +334,12 @@ def compute_overlap(path):
                         check_overlap_flag[DRONE_2_ID] = False
                 
                 if wlan_source_address == node_wlan_sa[DRONE_4_ID]:
+
+                    #Save packet size
+                    if(round_counter in round_throughput.keys()):
+                        round_throughput[round_counter]+=len(packet)
+                    else:
+                        round_throughput[round_counter]=len(packet)
 
                     if(DRONE_4_ID in last_rounds.keys() and DRONE_4_ID in last_packet_timestamps.keys()):
                     
@@ -349,6 +375,12 @@ def compute_overlap(path):
 
                 if wlan_source_address == node_wlan_sa[DRONE_5_ID]:
 
+                    #Save packet size
+                    if(round_counter in round_throughput.keys()):
+                        round_throughput[round_counter]+=len(packet)
+                    else:
+                        round_throughput[round_counter]=len(packet)
+
                     if(DRONE_5_ID in last_rounds.keys() and DRONE_5_ID in last_packet_timestamps.keys()):
                     
                         last_round = last_rounds[DRONE_5_ID]
@@ -382,6 +414,12 @@ def compute_overlap(path):
                         check_overlap_flag[DRONE_4_ID] = False
 
                 if wlan_source_address == node_wlan_sa[DRONE_6_ID]:
+
+                    #Save packet size
+                    if(round_counter in round_throughput.keys()):
+                        round_throughput[round_counter]+=len(packet)
+                    else:
+                        round_throughput[round_counter]=len(packet)
 
                     if(DRONE_6_ID in last_rounds.keys() and DRONE_6_ID in last_packet_timestamps.keys()):
                     
@@ -522,10 +560,31 @@ def compute_overlap(path):
 
     print('Done!')
 
-    plt.figure(figsize=(30,20))
+    y_throughput = list()
+    x_throughput = list() 
+
+    for key in round_throughput.keys():
+        value = round_throughput[key]
+        y_throughput.append(value)
+        x_throughput.append(key)
+
+    plt.figure(figsize=(20,15))
 
     plt.clf()
-    plt.plot(saved_overlap.keys(), y_data[DRONE_1_ID], marker='o', linestyle='-', color=node_colors[DRONE_1_ID], label = "Drone 1")
+    plt.plot(x_throughput[:-1], y_throughput[:-1], marker='o', linestyle='-', color="black", label = "Network Throughput")
+    plt.legend()
+    plt.grid()
+    plt.xlabel("Round Number")
+    plt.ylabel("Network Throughput (Bytes)")
+    plt.tight_layout()
+    plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'network-throughput.png')
+
+    plt.figure(figsize=(30,20))
+
+    overlap_x = list(saved_overlap.keys())[:-1]
+
+    plt.clf()
+    plt.plot(overlap_x, y_data[DRONE_1_ID][:-1], marker='o', linestyle='-', color=node_colors[DRONE_1_ID], label = "Drone 1")
     plt.legend()
     plt.grid()
     plt.xlabel("Round Number")
@@ -534,7 +593,7 @@ def compute_overlap(path):
     plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'slot-overlap-1.png')
 
     plt.clf()
-    plt.plot(saved_overlap.keys(), y_data[DRONE_2_ID], marker='o', linestyle='-', color=node_colors[DRONE_2_ID], label = "Drone 2")
+    plt.plot(overlap_x, y_data[DRONE_2_ID][:-1], marker='o', linestyle='-', color=node_colors[DRONE_2_ID], label = "Drone 2")
     plt.legend()
     plt.grid()
     plt.xlabel("Round Number")
@@ -543,7 +602,7 @@ def compute_overlap(path):
     plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'slot-overlap-2.png')
 
     plt.clf()
-    plt.plot(saved_overlap.keys(), y_data[DRONE_3_ID], marker='o', linestyle='-', color=node_colors[DRONE_3_ID], label = "Drone 3")
+    plt.plot(overlap_x, y_data[DRONE_3_ID][:-1], marker='o', linestyle='-', color=node_colors[DRONE_3_ID], label = "Drone 3")
     plt.legend()
     plt.grid()
     plt.xlabel("Round Number")
@@ -552,7 +611,7 @@ def compute_overlap(path):
     plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'slot-overlap-3.png')
 
     plt.clf()
-    plt.plot(saved_overlap.keys(), y_data[DRONE_4_ID], marker='o', linestyle='-', color=node_colors[DRONE_4_ID], label = "Drone 4")
+    plt.plot(overlap_x, y_data[DRONE_4_ID][:-1], marker='o', linestyle='-', color=node_colors[DRONE_4_ID], label = "Drone 4")
     plt.legend()
     plt.grid()
     plt.xlabel("Round Number")
@@ -561,7 +620,7 @@ def compute_overlap(path):
     plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'slot-overlap-4.png')
 
     plt.clf()
-    plt.plot(saved_overlap.keys(), y_data[DRONE_5_ID], marker='o', linestyle='-', color=node_colors[DRONE_5_ID], label = "Drone 5")
+    plt.plot(overlap_x, y_data[DRONE_5_ID][:-1], marker='o', linestyle='-', color=node_colors[DRONE_5_ID], label = "Drone 5")
     plt.legend()
     plt.grid()
     plt.xlabel("Round Number")
@@ -570,7 +629,7 @@ def compute_overlap(path):
     plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'slot-overlap-5.png')
 
     plt.clf()
-    plt.plot(saved_overlap.keys(), y_data[DRONE_6_ID], marker='o', linestyle='-', color=node_colors[DRONE_6_ID], label = "Drone 6")
+    plt.plot(overlap_x, y_data[DRONE_6_ID][:-1], marker='o', linestyle='-', color=node_colors[DRONE_6_ID], label = "Drone 6")
     plt.legend()
     plt.grid()
     plt.xlabel("Round Number")
@@ -579,12 +638,12 @@ def compute_overlap(path):
     plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'slot-overlap-6.png')
 
     plt.clf()
-    plt.plot(saved_overlap.keys(), y_data[DRONE_1_ID], marker='o', linestyle='-', color=node_colors[DRONE_1_ID], label = "Drone 1")
-    plt.plot(saved_overlap.keys(), y_data[DRONE_2_ID], marker='o', linestyle='-', color=node_colors[DRONE_2_ID], label = "Drone 2")
-    plt.plot(saved_overlap.keys(), y_data[DRONE_3_ID], marker='o', linestyle='-', color=node_colors[DRONE_3_ID], label = "Drone 3")
-    plt.plot(saved_overlap.keys(), y_data[DRONE_4_ID], marker='o', linestyle='-', color=node_colors[DRONE_4_ID], label = "Drone 4")
-    plt.plot(saved_overlap.keys(), y_data[DRONE_5_ID], marker='o', linestyle='-', color=node_colors[DRONE_5_ID], label = "Drone 5")
-    plt.plot(saved_overlap.keys(), y_data[DRONE_6_ID], marker='o', linestyle='-', color=node_colors[DRONE_6_ID], label = "Drone 6")
+    plt.plot(overlap_x, y_data[DRONE_1_ID][:-1], marker='o', linestyle='-', color=node_colors[DRONE_1_ID], label = "Drone 1")
+    plt.plot(overlap_x, y_data[DRONE_2_ID][:-1], marker='o', linestyle='-', color=node_colors[DRONE_2_ID], label = "Drone 2")
+    plt.plot(overlap_x, y_data[DRONE_3_ID][:-1], marker='o', linestyle='-', color=node_colors[DRONE_3_ID], label = "Drone 3")
+    plt.plot(overlap_x, y_data[DRONE_4_ID][:-1], marker='o', linestyle='-', color=node_colors[DRONE_4_ID], label = "Drone 4")
+    plt.plot(overlap_x, y_data[DRONE_5_ID][:-1], marker='o', linestyle='-', color=node_colors[DRONE_5_ID], label = "Drone 5")
+    plt.plot(overlap_x, y_data[DRONE_6_ID][:-1], marker='o', linestyle='-', color=node_colors[DRONE_6_ID], label = "Drone 6")
     plt.legend()
     plt.grid()
     plt.xlabel("Round Number")
