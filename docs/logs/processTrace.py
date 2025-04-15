@@ -530,6 +530,7 @@ def compute_overlap(path):
     plt.grid()
     plt.xlabel("Round Number")
     plt.ylabel("Overlap Length (ms) ")
+    plt.tight_layout()
     plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'slot-overlap-1.png')
 
     plt.clf()
@@ -538,6 +539,7 @@ def compute_overlap(path):
     plt.grid()
     plt.xlabel("Round Number")
     plt.ylabel("Overlap Length (ms) ")
+    plt.tight_layout()
     plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'slot-overlap-2.png')
 
     plt.clf()
@@ -546,6 +548,7 @@ def compute_overlap(path):
     plt.grid()
     plt.xlabel("Round Number")
     plt.ylabel("Overlap Length (ms) ")
+    plt.tight_layout()
     plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'slot-overlap-3.png')
 
     plt.clf()
@@ -554,6 +557,7 @@ def compute_overlap(path):
     plt.grid()
     plt.xlabel("Round Number")
     plt.ylabel("Overlap Length (ms) ")
+    plt.tight_layout()
     plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'slot-overlap-4.png')
 
     plt.clf()
@@ -562,6 +566,7 @@ def compute_overlap(path):
     plt.grid()
     plt.xlabel("Round Number")
     plt.ylabel("Overlap Length (ms) ")
+    plt.tight_layout()
     plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'slot-overlap-5.png')
 
     plt.clf()
@@ -570,8 +575,22 @@ def compute_overlap(path):
     plt.grid()
     plt.xlabel("Round Number")
     plt.ylabel("Overlap Length (ms) ")
+    plt.tight_layout()
     plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'slot-overlap-6.png')
 
+    plt.clf()
+    plt.plot(saved_overlap.keys(), y_data[DRONE_1_ID], marker='o', linestyle='-', color=node_colors[DRONE_1_ID], label = "Drone 1")
+    plt.plot(saved_overlap.keys(), y_data[DRONE_2_ID], marker='o', linestyle='-', color=node_colors[DRONE_2_ID], label = "Drone 2")
+    plt.plot(saved_overlap.keys(), y_data[DRONE_3_ID], marker='o', linestyle='-', color=node_colors[DRONE_3_ID], label = "Drone 3")
+    plt.plot(saved_overlap.keys(), y_data[DRONE_4_ID], marker='o', linestyle='-', color=node_colors[DRONE_4_ID], label = "Drone 4")
+    plt.plot(saved_overlap.keys(), y_data[DRONE_5_ID], marker='o', linestyle='-', color=node_colors[DRONE_5_ID], label = "Drone 5")
+    plt.plot(saved_overlap.keys(), y_data[DRONE_6_ID], marker='o', linestyle='-', color=node_colors[DRONE_6_ID], label = "Drone 6")
+    plt.legend()
+    plt.grid()
+    plt.xlabel("Round Number")
+    plt.ylabel("Overlap Length (ms) ")
+    plt.tight_layout()
+    plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'slot-overlap.png')
 
 
 
