@@ -182,3 +182,6 @@ cd .. # Root Folder
 cd docs/logs
 
 ./save_log.sh iperf-log-latest.txt tree-topology csma drone$1-throughput
+
+sudo sysctl -w net.ipv4.conf.all.send_redirects=1
+sudo sysctl -w net.ipv4.conf.wlan0.send_redirects=1
