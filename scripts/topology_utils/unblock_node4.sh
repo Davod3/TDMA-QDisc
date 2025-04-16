@@ -1,5 +1,4 @@
 #!/bin/bash
 
-# Avoid using as this will block NTP packets.
-
-sudo iptables -A INPUT -s 10.10.10.4 -j ACCEPT
+#Delete current rule
+sudo ip neigh del 10.10.10.4 dev wlan0

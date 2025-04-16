@@ -6,6 +6,9 @@ cd .. # Tests Folder
 
 cd .. # Scripts Folder
 
+sudo sysctl -w net.ipv4.conf.all.send_redirects=0
+sudo sysctl -w net.ipv4.conf.wlan0.send_redirects=0
+
 if [ $1 -eq '1' ]; then
 
     #Block packets from grandchildren nodes
@@ -21,12 +24,12 @@ if [ $1 -eq '1' ]; then
     #iperf3 -c 10.10.10.1 -t 60 -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
 
     #Check routes with tracepath
-    tracepath -4 10.10.10.1
-    tracepath -4 10.10.10.2
-    tracepath -4 10.10.10.3
-    tracepath -4 10.10.10.4
-    tracepath -4 10.10.10.5
-    tracepath -4 10.10.10.6
+    ping 10.10.10.1
+    ping 10.10.10.2
+    ping 10.10.10.3
+    ping 10.10.10.4
+    ping 10.10.10.5
+    ping 10.10.10.6
 
     #Remove new routes
     sudo ip route del 10.10.10.4
@@ -50,12 +53,12 @@ if [ $1 -eq '2' ]; then
     sudo route add -host 10.10.10.6 gw 10.10.10.1 wlan0
 
     #Check routes with tracepath
-    tracepath -4 10.10.10.1
-    tracepath -4 10.10.10.2
-    tracepath -4 10.10.10.3
-    tracepath -4 10.10.10.4
-    tracepath -4 10.10.10.5
-    tracepath -4 10.10.10.6
+    ping 10.10.10.1
+    ping 10.10.10.2
+    ping 10.10.10.3
+    ping 10.10.10.4
+    ping 10.10.10.5
+    ping 10.10.10.6
 
     sudo ip route del 10.10.10.3
     sudo ip route del 10.10.10.6
@@ -76,12 +79,12 @@ if [ $1 -eq '3' ]; then
     sudo route add -host 10.10.10.5 gw 10.10.10.1 wlan0
 
     #Check routes with tracepath
-    tracepath -4 10.10.10.1
-    tracepath -4 10.10.10.2
-    tracepath -4 10.10.10.3
-    tracepath -4 10.10.10.4
-    tracepath -4 10.10.10.5
-    tracepath -4 10.10.10.6
+    ping 10.10.10.1
+    ping 10.10.10.2
+    ping 10.10.10.3
+    ping 10.10.10.4
+    ping 10.10.10.5
+    ping 10.10.10.6
 
     sudo ip route del 10.10.10.2
     sudo ip route del 10.10.10.4
@@ -106,12 +109,12 @@ if [ $1 -eq '4' ]; then
     sudo route add -host 10.10.10.6 gw 10.10.10.2 wlan0
 
     #Check routes with tracepath
-    tracepath -4 10.10.10.1
-    tracepath -4 10.10.10.2
-    tracepath -4 10.10.10.3
-    tracepath -4 10.10.10.4
-    tracepath -4 10.10.10.5
-    tracepath -4 10.10.10.6
+    ping 10.10.10.1
+    ping 10.10.10.2
+    ping 10.10.10.3
+    ping 10.10.10.4
+    ping 10.10.10.5
+    ping 10.10.10.6
 
     sudo ip route del 10.10.10.5
     sudo ip route del 10.10.10.1
@@ -138,12 +141,12 @@ if [ $1 -eq '5' ]; then
     sudo route add -host 10.10.10.6 gw 10.10.10.2 wlan0
 
     #Check routes with tracepath
-    tracepath -4 10.10.10.1
-    tracepath -4 10.10.10.2
-    tracepath -4 10.10.10.3
-    tracepath -4 10.10.10.4
-    tracepath -4 10.10.10.5
-    tracepath -4 10.10.10.6
+    ping 10.10.10.1
+    ping 10.10.10.2
+    ping 10.10.10.3
+    ping 10.10.10.4
+    ping 10.10.10.5
+    ping 10.10.10.6
 
     sudo ip route del 10.10.10.1
     sudo ip route del 10.10.10.4
@@ -171,12 +174,12 @@ if [ $1 -eq '6' ]; then
     sudo route add -host 10.10.10.5 gw 10.10.10.3 wlan0
 
     #Check routes with tracepath
-    tracepath -4 10.10.10.1
-    tracepath -4 10.10.10.2
-    tracepath -4 10.10.10.3
-    tracepath -4 10.10.10.4
-    tracepath -4 10.10.10.5
-    tracepath -4 10.10.10.6
+    ping 10.10.10.1
+    ping 10.10.10.2
+    ping 10.10.10.3
+    ping 10.10.10.4
+    ping 10.10.10.5
+    ping 10.10.10.6
 
     sudo ip route del 10.10.10.1
     sudo ip route del 10.10.10.2

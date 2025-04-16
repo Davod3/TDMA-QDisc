@@ -1,5 +1,7 @@
 #!/bin/bash
 
-# Avoid using as this will block NTP packets.
+#Delete current rule
+sudo ip neigh del 10.10.10.1 dev wlan0
 
-sudo iptables -A INPUT -s 10.10.10.1 -j DROP
+#Add bogus permanent rule
+sudo ip neigh add 10.10.10.1 lladdr 00:00:00:00:00:00 dev wlan0 nud permanent
