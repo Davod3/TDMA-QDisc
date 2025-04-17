@@ -60,7 +60,7 @@ struct ratdma_packet_delays {
 
 };
 
-static struct nf_hook_ops* nfho_in, *nfho_out = NULL;
+static struct nf_hook_ops* nfho_in = NULL; //*nfho_out = NULL;
 static struct topology_info_t* topology_info = NULL;
 static struct ratdma_packet_delays* ratdma_packet_delays = NULL;
 static struct spanning_tree_t* spanning_tree = NULL;
@@ -719,8 +719,21 @@ static unsigned int hookIN(void *priv, struct sk_buff *skb, const struct nf_hook
             unsigned char* opts = (unsigned char*)(iph + 1); //Start of options field
 
             if(opts[0] == TDMA_DATA_IP_OPT_TYPE){
+                
                 //TDMA Options are present. Parse them
                 parseIPOptions((struct ratdma_packet_annotations*) (opts + 2), packet_arrival_time);
+
+                //Make sure packet is continuous memory block
+                if (skb_linearize(skb) < 0)
+                    return NF_ACCEPT;
+                
+                //Make sure packet is writable
+                if (skb_ensure_writable(skb, skb->len))
+                    return NF_ACCEPT;
+
+                //Remove IP Options from header
+                int opt_len = opts[1];
+                removeIPOptions(skb, opt_len);
             }
 
         }
@@ -932,11 +945,13 @@ static int __init topology_init(void) {
     nfho_in->priority = NF_IP_PRI_FIRST;
 
     //Initialize netfilter hook - OUT
+    /*
     nfho_out = (struct nf_hook_ops*)kcalloc(1, sizeof(struct nf_hook_ops), GFP_KERNEL);
     nfho_out->hook = (nf_hookfn*) hookOUT;
     nfho_out->hooknum = NF_INET_POST_ROUTING;
     nfho_out->pf = PF_INET;
     nfho_out->priority = NF_IP_PRI_FIRST;
+    */
 
     //Initialize topology info struct
     topology_info = (struct topology_info_t*)kcalloc(1, sizeof(struct topology_info_t), GFP_KERNEL);
@@ -948,9 +963,11 @@ static int __init topology_init(void) {
     //Initialize ratdma delays struct
     ratdma_packet_delays = (struct ratdma_packet_delays*)kcalloc(1, sizeof(struct ratdma_packet_delays), GFP_KERNEL);
 
-    int ret_in = nf_register_net_hook(&init_net, nfho_in), ret_out = nf_register_net_hook(&init_net, nfho_out);
+    int ret_in = nf_register_net_hook(&init_net, nfho_in); //ret_out = nf_register_net_hook(&init_net, nfho_out);
     
-    return ret_in ? ret_in : ret_out;
+    //return ret_in ? ret_in : ret_out;
+
+    return ret_in;
 
 }
 
@@ -961,8 +978,8 @@ static void __exit topology_exit(void) {
     kfree(nfho_in);
 
     //Clear outgoing packet hook
-    nf_unregister_net_hook(&init_net, nfho_out);
-    kfree(nfho_out);
+    //nf_unregister_net_hook(&init_net, nfho_out);
+    //kfree(nfho_out);
 
     //Clear data structures
     kfree(topology_info);
