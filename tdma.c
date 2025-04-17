@@ -200,7 +200,7 @@ static void compute_tdma_parameters(struct tdma_sched_data *q) {
 	__topology_update_spanning_tree();
 
 	//printk(KERN_DEBUG "[TDMA] Self-Configured (n_nodes --- slot_id --- port)=(%d --- %d -- %lld) \n", n_nodes, slot_id);
-	printk(KERN_DEBUG "[SLOT_ID]: %lld\n", slot_id);
+	//printk(KERN_DEBUG "[SLOT_ID]: %lld\n", slot_id);
 
 	//Compute TDMA Parameters based on Topology
 	q->frame_len = q->slot_len * n_nodes;
@@ -462,8 +462,8 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				total_offset+=offset;
 				u64 wait_period = total_offset > 0 ? total_offset : 0;
 
-				printk(KERN_DEBUG "[OFFSET]: %lld\n", offset);
-				printk(KERN_DEBUG "[TOTAL OFFSET]: %lld\n", total_offset);
+				//printk(KERN_DEBUG "[OFFSET]: %lld\n", offset);
+				//printk(KERN_DEBUG "[TOTAL OFFSET]: %lld\n", total_offset);
 				//printk(KERN_DEBUG "[WAIT]: %llu\n", wait_period);
 
 				//Calculate new slot boundaries
@@ -501,7 +501,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 
             if(__topology_is_active && __topology_is_active() && !send_broadcast_flag){
 
-				printk(KERN_DEBUG "[SLOT_START]: %lld\n", slot_number);
+				//printk(KERN_DEBUG "[SLOT_START]: %lld\n", slot_number);
 
 				//Send broadcast with topology at the start of the slot and no more.
 				send_broadcast_flag = 1;
@@ -575,7 +575,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 		//Slot end procedure. Occurs once when the slot ends.
 		if(!slot_end_flag){
 
-			printk(KERN_DEBUG "[SLOT_END]: %lld\n", slot_number);
+			//printk(KERN_DEBUG "[SLOT_END]: %lld\n", slot_number);
 
 			//Slot has ended. Prepare to broadcast again when slot starts.
 			send_broadcast_flag = 0;

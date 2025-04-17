@@ -60,7 +60,7 @@ struct ratdma_packet_delays {
 
 };
 
-static struct nf_hook_ops* nfho_in = NULL; //*nfho_out = NULL;
+static struct nf_hook_ops* nfho_in = NULL;
 static struct topology_info_t* topology_info = NULL;
 static struct ratdma_packet_delays* ratdma_packet_delays = NULL;
 static struct spanning_tree_t* spanning_tree = NULL;
@@ -227,7 +227,7 @@ void topology_update_spanning_tree(void) {
     spanning_tree->n_nodes = topology_info->activeNodes;
 
     //TODO - REMOVE
-    //print_matrix();
+    print_matrix();
 
     //CRITICAL-ST-UNLOCK
     spin_unlock(&spanning_tree_lock);
@@ -333,10 +333,10 @@ void topology_set_delays_flag(int value) {
 
     if(value > 0) {
         delays_flag = 1;
-        printk("[DELAY_ON]\n");
+        //printk("[DELAY_ON]\n");
     } else {
         delays_flag = 0;
-        printk("[DELAY_OFF]\n");
+        //printk("[DELAY_OFF]\n");
     }
 
 }
@@ -558,14 +558,14 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
         ratdma_packet_delays->node_delays[received_node_id][i] = packet_delay;
         ratdma_packet_delays->delay_counters[received_node_id]++;
 
-        printk(KERN_DEBUG "[DELAY] %lld | %lld | %lld | %lld | %lld\n", received_node_id, received_slot_id, packet_timestamp, packet_delay, slot_number);
+        //printk(KERN_DEBUG "[DELAY] %lld | %lld | %lld | %lld | %lld\n", received_node_id, received_slot_id, packet_timestamp, packet_delay, slot_number);
 
         //CRITICAL - DELAYS - UNLOCK
         spin_unlock(&packet_delays_lock);
 
     }
 
-    printk(KERN_DEBUG "[RECEIVED_PACKET] %lld | %lld | %lld\n", annotations->slot_id, packet_timestamp, slot_number);
+    //printk(KERN_DEBUG "[RECEIVED_PACKET] %lld | %lld | %lld\n", annotations->slot_id, packet_timestamp, slot_number);
 
 }
 
@@ -944,15 +944,6 @@ static int __init topology_init(void) {
     nfho_in->pf = PF_INET;                     //Protocol to capture. IPv4
     nfho_in->priority = NF_IP_PRI_FIRST;
 
-    //Initialize netfilter hook - OUT
-    /*
-    nfho_out = (struct nf_hook_ops*)kcalloc(1, sizeof(struct nf_hook_ops), GFP_KERNEL);
-    nfho_out->hook = (nf_hookfn*) hookOUT;
-    nfho_out->hooknum = NF_INET_POST_ROUTING;
-    nfho_out->pf = PF_INET;
-    nfho_out->priority = NF_IP_PRI_FIRST;
-    */
-
     //Initialize topology info struct
     topology_info = (struct topology_info_t*)kcalloc(1, sizeof(struct topology_info_t), GFP_KERNEL);
 
@@ -963,9 +954,7 @@ static int __init topology_init(void) {
     //Initialize ratdma delays struct
     ratdma_packet_delays = (struct ratdma_packet_delays*)kcalloc(1, sizeof(struct ratdma_packet_delays), GFP_KERNEL);
 
-    int ret_in = nf_register_net_hook(&init_net, nfho_in); //ret_out = nf_register_net_hook(&init_net, nfho_out);
-    
-    //return ret_in ? ret_in : ret_out;
+    int ret_in = nf_register_net_hook(&init_net, nfho_in);
 
     return ret_in;
 
@@ -976,10 +965,6 @@ static void __exit topology_exit(void) {
     //Clear incoming packet hook
     nf_unregister_net_hook(&init_net, nfho_in);
     kfree(nfho_in);
-
-    //Clear outgoing packet hook
-    //nf_unregister_net_hook(&init_net, nfho_out);
-    //kfree(nfho_out);
 
     //Clear data structures
     kfree(topology_info);
