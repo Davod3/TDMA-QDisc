@@ -15,6 +15,10 @@ initial_offset_s=10
 
 echo "Starting..."
 
+sudo dmesg -C
+
+sudo dmesg -w | grep -E '\[TDMA ROUND\]|\[DELAY\]|\[OFFSET\]|\[TOTAL OFFSET\]|\[SLOT_START\]|\[SLOT_END\]|\[PARENT\]|\[SLOT_ID\]|\[DELAY_ON\]|\[DELAY_OFF\]|\[RECEIVED_PACKET\]' > ../docs/logs/kernel-log-latest.txt &
+
 if [ $1 -eq '1' ]; then
 
     #Block packets from grandchildren nodes
@@ -27,7 +31,7 @@ if [ $1 -eq '1' ]; then
     sudo route add -host 10.10.10.5 gw 10.10.10.2 wlan0
     sudo route add -host 10.10.10.6 gw 10.10.10.3 wlan0
 
-    #iperf3 -c 10.10.10.1 -t 60 -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    ./utils/add_qdisc.sh test-config-drone$1
 
     #Check routes with tracepath
     #ping 10.10.10.1
@@ -42,6 +46,8 @@ if [ $1 -eq '1' ]; then
 
     #Sleep goes here
     sleep $test_guard_s
+
+    ./utils/remove_qdisc.sh wlan0
 
     #Remove new routes
     sudo ip route del 10.10.10.4
@@ -64,11 +70,15 @@ if [ $1 -eq '2' ]; then
     sudo route add -host 10.10.10.3 gw 10.10.10.1 wlan0
     sudo route add -host 10.10.10.6 gw 10.10.10.1 wlan0
 
+    ./utils/add_qdisc.sh test-config-drone$1
+
     #Fill logs with nothing
     echo "None" > ../docs/logs/iperf-log-latest.txt
 
     #Sleep goes here
     sleep $test_guard_s
+
+    ./utils/remove_qdisc.sh wlan0
 
     sudo ip route del 10.10.10.3
     sudo ip route del 10.10.10.6
@@ -88,11 +98,15 @@ if [ $1 -eq '3' ]; then
     sudo route add -host 10.10.10.4 gw 10.10.10.1 wlan0
     sudo route add -host 10.10.10.5 gw 10.10.10.1 wlan0
 
+    ./utils/add_qdisc.sh test-config-drone$1
+
     #Fill logs with nothing
     echo "None" > ../docs/logs/iperf-log-latest.txt
 
     #Sleep goes here
     sleep $test_guard_s
+
+    ./utils/remove_qdisc.sh wlan0
 
     sudo ip route del 10.10.10.2
     sudo ip route del 10.10.10.4
@@ -116,8 +130,12 @@ if [ $1 -eq '4' ]; then
     sudo route add -host 10.10.10.3 gw 10.10.10.2 wlan0
     sudo route add -host 10.10.10.6 gw 10.10.10.2 wlan0
 
+    ./utils/add_qdisc.sh test-config-drone$1
+
     sleep $initial_offset_s
     iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+
+    ./utils/remove_qdisc.sh wlan0
 
     sudo ip route del 10.10.10.5
     sudo ip route del 10.10.10.1
@@ -143,8 +161,12 @@ if [ $1 -eq '5' ]; then
     sudo route add -host 10.10.10.3 gw 10.10.10.2 wlan0
     sudo route add -host 10.10.10.6 gw 10.10.10.2 wlan0
 
+    ./utils/add_qdisc.sh test-config-drone$1
+
     sleep $initial_offset_s
     iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+
+    ./utils/remove_qdisc.sh wlan0
 
     sudo ip route del 10.10.10.1
     sudo ip route del 10.10.10.4
@@ -171,8 +193,12 @@ if [ $1 -eq '6' ]; then
     sudo route add -host 10.10.10.4 gw 10.10.10.3 wlan0
     sudo route add -host 10.10.10.5 gw 10.10.10.3 wlan0
 
+    ./utils/add_qdisc.sh test-config-drone$1
+
     sleep $initial_offset_s
     iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+
+    ./utils/remove_qdisc.sh wlan0
 
     sudo ip route del 10.10.10.1
     sudo ip route del 10.10.10.2
@@ -190,7 +216,10 @@ cd .. # Root Folder
 
 cd docs/logs
 
-./save_log.sh iperf-log-latest.txt tree-topology csma drone$1-throughput
+sudo pkill -f 'dmesg -w'
+
+./save_log.sh kernel-log-latest.txt tree-topology tdma drone$1
+./save_log.sh iperf-log-latest.txt tree-topology tdma drone$1-throughput
 
 sudo sysctl -w net.ipv4.conf.all.send_redirects=1
 sudo sysctl -w net.ipv4.conf.wlan0.send_redirects=1
