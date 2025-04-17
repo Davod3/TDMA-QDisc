@@ -1,6 +1,7 @@
 #!/bin/bash
 
-sudo ebtables -D INPUT -s d8:3a:dd:96:7a:78 -d FF:FF:FF:FF:FF:FF -j DROP
+sudo tc qdisc del dev wlan0 clsact
+sudo tc filter del dev wlan0 ingress
 
 #Delete current rule
 sudo ip neigh del 10.10.10.5 dev wlan0

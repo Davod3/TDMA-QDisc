@@ -1,7 +1,8 @@
 #!/bin/bash
 
 #Block broadcasts coming from Node 1
-sudo ebtables -A INPUT -s d8:3a:dd:96:6e:12 -d FF:FF:FF:FF:FF:FF -j DROP
+sudo tc qdisc add dev wlan0 clsact
+sudo tc filter add dev wlan0 ingress protocol all flower src_mac d8:3a:dd:96:6e:12 dst_mac ff:ff:ff:ff:ff:ff action drop
 
 #Delete current rule
 sudo ip neigh del 10.10.10.6 dev wlan0
