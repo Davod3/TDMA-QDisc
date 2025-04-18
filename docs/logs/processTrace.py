@@ -31,6 +31,13 @@ node_colors = ['#0000ff',
 tdma_round_len_ms = 300
 offset = 35
 
+#GLOBAL VARS
+first_packets_timestamp_ms = dict()
+last_rounds = dict()
+first_packet_flags = dict()
+round_counter = 0
+saved_positions = dict()
+
 def format_key(key):
 
     #drone1 -> Drone 1
@@ -651,12 +658,165 @@ def compute_overlap(path):
     plt.tight_layout()
     plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'slot-overlap.png')
 
+def position_process_packet(packet_timestamp_ms, packet_round, reference_node, me):
+    
+    global first_packets_timestamp_ms
+    global last_rounds
+    global first_packet_flags
+    global round_counter
+    global saved_positions
+
+    position = 0
+
+    if(reference_node in first_packet_flags.keys() and first_packet_flags[reference_node]):
+
+        #First packet of Reference Node is available. Check my last first packet and calculate position
+        if(me in first_packet_flags.keys() and first_packet_flags[me]):
+            
+            if(me != reference_node):
+                first_packet_flags[me] = False
+                position = first_packets_timestamp_ms[me] - first_packets_timestamp_ms[reference_node]
+            else:
+                position = 0
+
+            if(round_counter in saved_positions.keys()):
+
+                saved_positions[round_counter][me] = position
+                
+            else:
+
+                saved_positions[round_counter] = dict()
+                saved_positions[round_counter][me] = position
+
+                    
+
+            
+
+    if(me in first_packets_timestamp_ms.keys() and me in last_rounds.keys() and me in first_packet_flags.keys()):
+        
+        last_round = last_rounds[me]
+
+        if(packet_round != last_round):
+            #Round has changed. Current packet should be new first
+            first_packets_timestamp_ms[me] = packet_timestamp_ms
+            last_rounds[me] = packet_round
+            first_packet_flags[me] = True
+
+            #If round changes and i'm reference node, update round counter
+            if me == reference_node:
+                round_counter+=1
+
+    else:
+        last_rounds[me] = packet_round
+        first_packets_timestamp_ms[me] = packet_timestamp_ms
+        first_packet_flags[me] = True
+
+    return
 
 
+def compute_position(path):
+
+    first_packet_time_ms = 0
+    packet_counter = 0
+
+    global saved_positions
+
+    for packet in PcapReader(path):
+
+        #if(packet_counter > 2000):
+        #    break
+
+        dot11 = packet['Dot11']
+
+        if dot11.type != 2:
+            continue
+
+        timestamp_ms = packet.time * 1000
+
+        if not first_packet_time_ms:
+            first_packet_time_ms = timestamp_ms
+
+        relative_timestamp_ms = timestamp_ms - first_packet_time_ms
+        
+        if IP in packet:
+            ip_layer = packet[IP]
+            ip_header_raw = bytes(ip_layer)[:ip_layer.ihl * 4]
+            
+            #Check if packet is annotaded
+            if(ip_layer.ihl == 14):
+
+                print(packet_counter)
+                packet_counter+=1
+
+                wlan_source_address = dot11.addr2
+
+                options = ip_header_raw[20:]
+                annotations = options[-10:-2]
+
+                packet_round = int.from_bytes(annotations, byteorder='little')
+
+                if wlan_source_address == node_wlan_sa[DRONE_1_ID]:
+                    position_process_packet(relative_timestamp_ms, packet_round, DRONE_1_ID, DRONE_1_ID)
+                if wlan_source_address == node_wlan_sa[DRONE_2_ID]:
+                    position_process_packet(relative_timestamp_ms, packet_round, DRONE_1_ID, DRONE_2_ID)
+                if wlan_source_address == node_wlan_sa[DRONE_3_ID]:
+                    position_process_packet(relative_timestamp_ms, packet_round, DRONE_1_ID, DRONE_3_ID)
+                if wlan_source_address == node_wlan_sa[DRONE_4_ID]:
+                    position_process_packet(relative_timestamp_ms, packet_round, DRONE_1_ID, DRONE_4_ID)
+                if wlan_source_address == node_wlan_sa[DRONE_5_ID]:
+                    position_process_packet(relative_timestamp_ms, packet_round, DRONE_1_ID, DRONE_5_ID)
+                if wlan_source_address == node_wlan_sa[DRONE_6_ID]:
+                    position_process_packet(relative_timestamp_ms, packet_round, DRONE_1_ID, DRONE_6_ID)
+
+
+    position_data = dict()
+
+    #For each round recorded
+    for key in saved_positions.keys():
+
+        round_data = saved_positions[key]
+
+        #Grab data for each node
+        for i in range(0, len(node_colors)):
+            
+            #If node data not yet initialized, init
+            if i not in position_data.keys():
+                position_data[i] = list()
+
+            #If node has data for this round, save it
+            if(i in round_data.keys()):
+                position = round_data[i]
+                position_data[i].append(position)
+            else:
+                #Else, just consider the position 0
+                position_data[i].append(0)
+
+    overlap_x = range(0, len(list(saved_positions.keys())))[:-1]
+
+    #position_data should now be a dict with a key for each node and a value corresponding to a list of positions over rounds. Plot it
+    plt.figure(figsize=(15,10))
+    plt.clf()
+    plt.plot(overlap_x, position_data[DRONE_1_ID][:-1], marker='o', linestyle='-', color=node_colors[DRONE_1_ID], label = "Drone 1")
+    plt.plot(overlap_x, position_data[DRONE_2_ID][:-1], marker='o', linestyle='-', color=node_colors[DRONE_2_ID], label = "Drone 2")
+    plt.plot(overlap_x, position_data[DRONE_3_ID][:-1], marker='o', linestyle='-', color=node_colors[DRONE_3_ID], label = "Drone 3")
+    plt.plot(overlap_x, position_data[DRONE_4_ID][:-1], marker='o', linestyle='-', color=node_colors[DRONE_4_ID], label = "Drone 4")
+    plt.plot(overlap_x, position_data[DRONE_5_ID][:-1], marker='o', linestyle='-', color=node_colors[DRONE_5_ID], label = "Drone 5")
+    plt.plot(overlap_x, position_data[DRONE_6_ID][:-1], marker='o', linestyle='-', color=node_colors[DRONE_6_ID], label = "Drone 6")
+    plt.legend()
+    plt.grid()
+    plt.xlabel("Round Number")
+    plt.ylabel("Relative Slot Position (ms) ")
+    plt.tight_layout()
+    plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'slot-position.png')
+
+
+        
 
 if __name__ == '__main__':
 
     #process_pcap('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
 
-    compute_overlap('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
+    #compute_overlap('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
+
+    compute_position('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
 
