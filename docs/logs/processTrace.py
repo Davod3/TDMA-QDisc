@@ -2,6 +2,7 @@ from scapy.all import PcapReader
 from scapy.layers.dot11 import *
 import math
 import matplotlib.pyplot as plt
+import os
 
 TEST_NAME = "star-topology"
 TEST_TYPE = "tdma"
@@ -40,6 +41,20 @@ saved_positions = dict()
 node1_first_packet_ms = None
 throughput_round_data = dict()
 throughput_round_counter = 0
+
+#Throughput Regex
+pattern = r'\b(\d+(?:\.\d+)?)\s*(\w+Bytes)\b'
+
+def convert_to_bytes(data, unit):
+
+    if unit == 'KBytes':
+        #Convert from KBytes to Bytes
+        return float(data) * 1000
+    elif unit == 'MBytes':
+        #Convert from MBytes to Bytes
+        return float(data) * 1_000_000
+    else:
+        return float(data)
 
 def format_key(key):
 
@@ -392,17 +407,65 @@ def tdma_network_throughput(tdma_path):
 
 
 def csma_network_throughput(csma_path):
-    return
+    
+    file_list = os.listdir(csma_path)
+    file_list.sort()
+    values = list()
+    
+    node_data = dict()
+    files = list()
+
+    for file in file_list:
+         
+        #Ignore throughput from drone1
+        if 'throughput' in file and '1' not in file:
+            f = open(csma_path + '/' + file, "r")
+            values = list()
+            files.append(file)
+
+            for l in f:
+                if 'sec' in l and '%' not in l:
+                    
+                    matches = re.findall(pattern, l)
+                    
+                    converted_value = 0
+
+                    if len(matches) != 0:
+                        (value, unit) = matches[0] #(data, unit) tuple
+                        converted_value = convert_to_bytes(value, unit)
+                        
+                    values.append(converted_value)
+
+            node_data[file] = values
+            
+    csma_x = list()
+    csma_y = list()
+
+    for i in range(0, len(node_data[files[0]])):
+
+        total = 0
+
+        for file in files:
+            total+=node_data[file][i]
+
+        csma_y.append(total)
+        csma_x.append(i*1000)
+
+    return (csma_x,csma_y)         
+    
+    
+
 
 def compare_throughput(tdma_path, csma_path):
     
     #These functions should simply return a tuple with x and y data for the plots
     (tdma_x, tdma_y) = tdma_network_throughput(tdma_path)
-    csma_data = csma_network_throughput(csma_path)
+    (csma_x, csma_y) = csma_network_throughput(csma_path)
 
     plt.figure(figsize=(15,10))
     plt.clf()
     plt.plot(tdma_x, tdma_y, marker='o', linestyle='-', color="red", label = "TDMA Throughput")
+    plt.plot(csma_x[1:-1], csma_y[1:-1], marker='o', linestyle='-', color="blue", label = "CSMA Throughput")
 
     plt.legend()
     plt.grid()
