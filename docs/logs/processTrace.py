@@ -37,6 +37,9 @@ last_rounds = dict()
 first_packet_flags = dict()
 round_counter = 0
 saved_positions = dict()
+node1_first_packet_ms = None
+throughput_round_data = dict()
+throughput_round_counter = 0
 
 def format_key(key):
 
@@ -311,12 +314,109 @@ def compute_position(path):
     plt.tight_layout()
     plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'slot-position.png')
 
+def tdma_count_packet(me, relative_timestamp_ms, packet):
 
+    global node1_first_packet_ms
+    global throughput_round_data
+    global throughput_round_counter
+
+    #Sets the first time a packet from Node 1 was received 
+    if node1_first_packet_ms == None and me == DRONE_1_ID:
+        node1_first_packet_ms = relative_timestamp_ms
+
+    #If packet is received within tdma_round_len of Node 1, then count it
+    if relative_timestamp_ms - node1_first_packet_ms <= tdma_round_len_ms:
+
+        #If round has value, increment, else, init
+        if throughput_round_counter in throughput_round_data.keys():
+            throughput_round_data[throughput_round_counter]+=len(packet)
+        else:
+            throughput_round_data[throughput_round_counter]=len(packet)
+    
+    else:
+
+        #If packet is received outside tdma_round_len of Node 1, check if packet is from Node1. If so, increase round and reset time
+        if me == DRONE_1_ID:
+            node1_first_packet_ms = relative_timestamp_ms
+            throughput_round_counter+=1
+
+
+def tdma_network_throughput(tdma_path):
+    
+    first_packet_time_ms = 0
+
+    global throughput_round_data
+    throughput_packet_counter = 0
+
+    for packet in PcapReader(tdma_path):
+
+        dot11 = packet['Dot11']
+
+        if dot11.type != 2:
+            continue
+
+        timestamp_ms = packet.time * 1000
+
+        if not first_packet_time_ms:
+            first_packet_time_ms = timestamp_ms
+
+        relative_timestamp_ms = timestamp_ms - first_packet_time_ms
+        wlan_source_address = dot11.addr2
+
+        print(throughput_packet_counter)
+        throughput_packet_counter+=1
+
+        if wlan_source_address == node_wlan_sa[DRONE_1_ID]:
+            tdma_count_packet(DRONE_1_ID, relative_timestamp_ms, packet)
+        if wlan_source_address == node_wlan_sa[DRONE_2_ID]:
+            tdma_count_packet(DRONE_2_ID, relative_timestamp_ms, packet)
+        if wlan_source_address == node_wlan_sa[DRONE_3_ID]:
+            tdma_count_packet(DRONE_3_ID, relative_timestamp_ms, packet)
+        if wlan_source_address == node_wlan_sa[DRONE_4_ID]:
+            tdma_count_packet(DRONE_4_ID, relative_timestamp_ms, packet)
+        if wlan_source_address == node_wlan_sa[DRONE_5_ID]:
+            tdma_count_packet(DRONE_5_ID, relative_timestamp_ms, packet)
+        if wlan_source_address == node_wlan_sa[DRONE_6_ID]:
+            tdma_count_packet(DRONE_6_ID, relative_timestamp_ms, packet)
+
+    tdma_x = list()
+    tdma_y = list()
+
+    for key in throughput_round_data.keys():
+
+        time_sample_ms = key * tdma_round_len_ms
+        tdma_x.append(time_sample_ms)
+        tdma_y.append(throughput_round_data[key])
+
+    return (tdma_x, tdma_y)
+
+
+def csma_network_throughput(csma_path):
+    return
+
+def compare_throughput(tdma_path, csma_path):
+    
+    #These functions should simply return a tuple with x and y data for the plots
+    (tdma_x, tdma_y) = tdma_network_throughput(tdma_path)
+    csma_data = csma_network_throughput(csma_path)
+
+    plt.figure(figsize=(15,10))
+    plt.clf()
+    plt.plot(tdma_x, tdma_y, marker='o', linestyle='-', color="red", label = "TDMA Throughput")
+
+    plt.legend()
+    plt.grid()
+    plt.xlabel("Sample Time (ms)")
+    plt.ylabel("Network Throughput (Bytes / Sample Time)")
+    plt.tight_layout()
+    plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'network-throughput.png')
         
 
 if __name__ == '__main__':
 
-    process_pcap('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
+    #process_pcap('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
 
-    compute_position('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
+    #compute_position('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
+
+    compare_throughput('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME, './' + TEST_NAME +'/csma')
 
