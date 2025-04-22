@@ -253,7 +253,8 @@ s64 topology_get_reference_node(void){
     //printk(KERN_DEBUG "N_NODES_ST: %lld", spanning_tree->n_nodes);
 
     s64 node_levels[spanning_tree->n_nodes];
-    uint8_t picked_nodes[MAX_NODES];
+    uint8_t picked_nodes[MAX_NODES] = {0};
+    int my_level = 0;
 
     //Order the nodes by level (Assumes each level will only have one node)
     //While there are still nodes left, do this
@@ -286,16 +287,23 @@ s64 topology_get_reference_node(void){
         node_levels[i] = current_winner;
         picked_nodes[current_winner] = 1;
 
+        //Save my level
+        if(current_winner == id) {
+            my_level = i;
+        }
+
     }
 
     s64 parent_id = id;
 
     //node_levels now contains info about each node in the network. Pick my parent
-    for(s64 i = id - 1; i >= 0; i--){
+    for(s64 i = my_level - 1; i >= 0; i--){
+
+        s64 possible_parent = node_levels[i];
 
         //Pick a parent in a higher level with whom i have a connection
-        if(spanning_tree->spanning_tree[id][i]){
-            parent_id = i;
+        if(spanning_tree->spanning_tree[id][possible_parent]){
+            parent_id = possible_parent;
             break;
         }
 
