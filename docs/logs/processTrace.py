@@ -326,6 +326,7 @@ def compute_position(path):
     plt.grid()
     plt.xlabel("Round Number")
     plt.ylabel("Relative Slot Position (ms) ")
+    plt.title("Slot start positions relative to Drone 1")
     plt.tight_layout()
     plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'slot-position.png')
 
@@ -471,6 +472,7 @@ def compare_throughput(tdma_path, csma_path):
     plt.grid()
     plt.xlabel("Sample Time (ms)")
     plt.ylabel("Network Throughput (Bytes / Sample Time)")
+    plt.title("Total Network Throughput - TDMA vs CSMA")
     plt.tight_layout()
     plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'network-throughput.png')
         
@@ -479,7 +481,7 @@ if __name__ == '__main__':
 
     #process_pcap('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
 
-    #compute_position('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
+    compute_position('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
 
     compare_throughput('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME, './' + TEST_NAME +'/csma')
 

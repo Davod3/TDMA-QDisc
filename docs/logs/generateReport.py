@@ -168,7 +168,7 @@ def read_data(node_name):
 def build_average_offset_chart(data):
     
     plt.clf()
-    plt.figure(figsize=(50,20))
+    plt.figure(figsize=(20,10))
 
     for node_name in data.keys():
         
@@ -190,6 +190,7 @@ def build_average_offset_chart(data):
 def build_total_offset_chart(data):
     
     plt.clf()
+    plt.figure(figsize=(20,10))
 
     for node_name in data.keys():
 
@@ -200,7 +201,7 @@ def build_total_offset_chart(data):
     
     plt.xlabel("Round Number")
     plt.ylabel("Total Offset (s)")
-    plt.title("Total Offset per Round")
+    plt.title("Total offset used by each node relative to its parent per round")
     plt.ticklabel_format(axis='y', style='sci', scilimits=(9,9))
     plt.legend()
     plt.grid(True)
@@ -364,10 +365,10 @@ def build_charts():
             else:
                 node_data['packet_arrival_time'].append([])
 
-    build_average_offset_chart(data)
+    #build_average_offset_chart(data)
     build_total_offset_chart(data)
     #build_overlap_chart(data)
-    build_delay_histograms(data)
+    #build_delay_histograms(data)
 
         
 
