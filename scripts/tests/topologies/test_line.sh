@@ -34,16 +34,16 @@ if [ $1 -eq '1' ]; then
 
     sleep $initial_offset_s
 
-    iperf3 -c 10.10.10.3 -t $test_duration_s -p 5201 -u &
-    pids+=($!)
+    iperf3 -c 10.10.10.3 -t $test_duration_s -p 5201 -u > ../docs/logs/iperf-log-latest.txt
+    #pids+=($!)
 
     #Fill logs with nothing
-    echo "None" > ../docs/logs/iperf-log-latest.txt
+    #echo "None" > ../docs/logs/iperf-log-latest.txt
 
     # Wait for iperf3 clients to finish transmitting
-    for pid in "${pids[@]}"; do
-        wait "$pid"
-    done
+    #for pid in "${pids[@]}"; do
+    #    wait "$pid"
+    #done
 
     #Sleep goes here
     #sleep $test_guard_s
@@ -80,11 +80,12 @@ if [ $1 -eq '3' ]; then
 
     ./utils/add_qdisc.sh test-config-drone$1
 
-    #Fill logs with nothing
-    echo "None" > ../docs/logs/iperf-log-latest.txt
+    sleep $initial_offset_s
+
+    iperf3 -c 10.10.10.1 -t $test_duration_s -p 5201 -u > ../docs/logs/iperf-log-latest.txt
 
     #Sleep goes here
-    sleep $test_guard_s
+    #sleep $test_guard_s
 
     ./utils/remove_qdisc.sh wlan0
 
