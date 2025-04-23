@@ -515,7 +515,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
                 }
 
 				if(__ratdma_annotate_skb) {
-					return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id, slot_number, relative_timestamp, q->slot_len);
+					return __ratdma_annotate_skb(skb, actual_slot_start, q->slot_id, q->node_id, slot_number, relative_timestamp, q->slot_len);
 				} else {
 					return skb;
 				}
@@ -554,7 +554,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				//printk(KERN_DEBUG "PACKET SENT!!\n");
 
 				if(__ratdma_annotate_skb) {
-					return __ratdma_annotate_skb(skb, slot_start, q->slot_id, q->node_id, slot_number, relative_timestamp, q->slot_len);
+					return __ratdma_annotate_skb(skb, actual_slot_start, q->slot_id, q->node_id, slot_number, relative_timestamp, q->slot_len);
 				} else {
 					return skb;
 				}
