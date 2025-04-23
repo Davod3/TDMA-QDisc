@@ -152,7 +152,7 @@ if [ $1 -eq '4' ]; then
     ./utils/add_qdisc.sh test-config-drone$1
 
     sleep $initial_offset_s
-    iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 5M -u > ../docs/logs/iperf-log-latest.txt
 
     ./utils/remove_qdisc.sh wlan0
 
@@ -183,7 +183,7 @@ if [ $1 -eq '5' ]; then
     ./utils/add_qdisc.sh test-config-drone$1
 
     sleep $initial_offset_s
-    iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 5M -u > ../docs/logs/iperf-log-latest.txt
 
     ./utils/remove_qdisc.sh wlan0
 
@@ -215,7 +215,7 @@ if [ $1 -eq '6' ]; then
     ./utils/add_qdisc.sh test-config-drone$1
 
     sleep $initial_offset_s
-    iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 5M -u > ../docs/logs/iperf-log-latest.txt
 
     ./utils/remove_qdisc.sh wlan0
 
