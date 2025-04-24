@@ -13,6 +13,9 @@ test_duration_s=60
 test_guard_s=$((test_duration_s + 25))
 initial_offset_s=10
 
+#Array to store iperf3 process ids
+pids=()
+
 echo "Starting..."
 
 if [ $1 -eq '1' ]; then
@@ -27,21 +30,24 @@ if [ $1 -eq '1' ]; then
     sudo route add -host 10.10.10.5 gw 10.10.10.2 wlan0
     sudo route add -host 10.10.10.6 gw 10.10.10.3 wlan0
 
-    #iperf3 -c 10.10.10.1 -t 60 -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    sleep $initial_offset_s
 
-    #Check routes with tracepath
-    #ping 10.10.10.1
-    #ping 10.10.10.2
-    #ping 10.10.10.3
-    #ping 10.10.10.4
-    #ping 10.10.10.5
-    #ping 10.10.10.6
+    iperf3 -c 10.10.10.4 -t $test_duration_s -p 5201 -u -b 1M &
+    pids+=($!)
+        
+    iperf3 -c 10.10.10.5 -t $test_duration_s -p 5201 -u -b 1M &
+    pids+=($!)
+
+    iperf3 -c 10.10.10.6 -t $test_duration_s -p 5201 -u -b 1M &
+    pids+=($!)
 
     #Fill logs with nothing
     echo "None" > ../docs/logs/iperf-log-latest.txt
 
-    #Sleep goes here
-    sleep $test_guard_s
+    # Wait for iperf3 clients to finish transmitting
+    for pid in "${pids[@]}"; do
+        wait "$pid"
+    done
 
     #Remove new routes
     sudo ip route del 10.10.10.4
@@ -117,7 +123,7 @@ if [ $1 -eq '4' ]; then
     sudo route add -host 10.10.10.6 gw 10.10.10.2 wlan0
 
     sleep $initial_offset_s
-    iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 2M -u > ../docs/logs/iperf-log-latest.txt
 
     sudo ip route del 10.10.10.5
     sudo ip route del 10.10.10.1
@@ -144,7 +150,7 @@ if [ $1 -eq '5' ]; then
     sudo route add -host 10.10.10.6 gw 10.10.10.2 wlan0
 
     sleep $initial_offset_s
-    iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 2M -u > ../docs/logs/iperf-log-latest.txt
 
     sudo ip route del 10.10.10.1
     sudo ip route del 10.10.10.4
@@ -172,7 +178,7 @@ if [ $1 -eq '6' ]; then
     sudo route add -host 10.10.10.5 gw 10.10.10.3 wlan0
 
     sleep $initial_offset_s
-    iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 2M -u > ../docs/logs/iperf-log-latest.txt
 
     sudo ip route del 10.10.10.1
     sudo ip route del 10.10.10.2
