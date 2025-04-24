@@ -17,6 +17,8 @@ sudo dmesg -w | grep -E '\[TDMA ROUND\]|\[DELAY\]|\[OFFSET\]|\[TOTAL OFFSET\]|\[
 
 if [ $1 -eq $parent_node ]; then
 
+    ./utils/add_qdisc.sh test-config-drone$1
+
     iperf3 -c 10.10.10.2 -t 60 -p 5201 -u &
     pids+=($!)
         
@@ -31,6 +33,13 @@ if [ $1 -eq $parent_node ]; then
 
     iperf3 -c 10.10.10.6 -t 60 -p 5201 -u &
     pids+=($!)
+
+    # Wait for iperf3 clients to finish transmitting
+    for pid in "${pids[@]}"; do
+        wait "$pid"
+    done
+
+    ./utils/remove_qdisc.sh wlan0
 
 fi
 
@@ -133,11 +142,6 @@ if [ $1 -eq '6' ]; then
     ./topology_utils/unblock_node2.sh
 
 fi
-
-# Wait for iperf3 clients to finish transmitting
-for pid in "${pids[@]}"; do
-    wait "$pid"
-done
 
 cd .. # Root Folder
 
