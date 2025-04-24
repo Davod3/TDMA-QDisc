@@ -950,7 +950,7 @@ static int __init topology_init(void) {
     nfho_in->hook = (nf_hookfn*) hookIN;     //Hook function
     nfho_in->hooknum = NF_INET_PRE_ROUTING;    //Incoming packets. Pre-Routing.
     nfho_in->pf = PF_INET;                     //Protocol to capture. IPv4
-    nfho_in->priority = NF_IP_PRI_FIRST;
+    nfho_in->priority = NF_IP_PRI_LAST;
 
     //Initialize topology info struct
     topology_info = (struct topology_info_t*)kcalloc(1, sizeof(struct topology_info_t), GFP_KERNEL);

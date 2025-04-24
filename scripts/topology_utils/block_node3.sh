@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #Block broadcasts coming from Node 1
-sudo tc qdisc add dev wlan0 clsact
-sudo tc filter add dev wlan0 ingress protocol all flower src_mac d8:3a:dd:e0:9c:d4 dst_mac ff:ff:ff:ff:ff:ff action drop
-
+#sudo tc qdisc add dev wlan0 clsact
+#sudo tc filter add dev wlan0 ingress protocol all flower src_mac d8:3a:dd:e0:9c:d4 dst_mac ff:ff:ff:ff:ff:ff action drop
+sudo iptables -t raw -I PREROUTING -s 10.10.10.3 -m addrtype --dst-type BROADCAST -j DROP
 
 #Delete current rule
 sudo ip neigh del 10.10.10.3 dev wlan0
