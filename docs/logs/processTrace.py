@@ -4,7 +4,7 @@ import math
 import matplotlib.pyplot as plt
 import os
 
-TEST_NAME = "star-topology"
+TEST_NAME = "tree-topology"
 TEST_TYPE = "tdma"
 TRACE_NAME = "trace-6nodes.pcapng.gz"
 
@@ -470,12 +470,12 @@ def compare_throughput(tdma_path, csma_path):
     
     #These functions should simply return a tuple with x and y data for the plots
     (tdma_x, tdma_y) = tdma_network_throughput(tdma_path)
-    #(csma_x, csma_y) = csma_network_throughput(csma_path)
+    (csma_x, csma_y) = csma_network_throughput(csma_path)
 
     plt.figure(figsize=(15,10))
     plt.clf()
     plt.plot(tdma_x, tdma_y, marker='o', linestyle='-', color="red", label = "TDMA Throughput")
-    #plt.plot(csma_x[1:-1], csma_y[1:-1], marker='o', linestyle='-', color="blue", label = "CSMA Throughput")
+    plt.plot(csma_x[5:-5], csma_y[5:-5], marker='o', linestyle='-', color="blue", label = "CSMA Throughput")
 
     plt.legend()
     plt.grid()
@@ -490,7 +490,7 @@ if __name__ == '__main__':
 
     #process_pcap('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
 
-    #compute_position('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
+    compute_position('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
 
     compare_throughput('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME, './' + TEST_NAME +'/csma')
 
