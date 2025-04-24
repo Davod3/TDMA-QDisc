@@ -28,6 +28,8 @@ if [ $1 -eq $parent_node ]; then
     iperf3 -c 10.10.10.6 -t 60 -p 5201 -u &
     pids+=($!)
 
+    echo "None" > ../docs/logs/iperf-log-latest.txt
+
 fi
 
 if [ $1 -eq '2' ]; then
