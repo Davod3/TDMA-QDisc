@@ -25,9 +25,9 @@ node_wlan_sa = ['d8:3a:dd:34:b7:cd',
 node_colors = ['#0000ff', 
                '#ff2c2c',
                '#008000', 
-               '#fd3db5', 
+               '#d211bd', 
                '#ffde21', 
-               '#00ffff']
+               '#ff7800']
 
 tdma_round_len_ms = 300
 offset = 35
@@ -340,6 +340,9 @@ def tdma_count_packet(me, relative_timestamp_ms, packet):
     if node1_first_packet_ms == None and me == DRONE_1_ID:
         node1_first_packet_ms = relative_timestamp_ms
 
+    if(node1_first_packet_ms == None and me != DRONE_1_ID):
+        return
+
     #If packet is received within tdma_round_len of Node 1, then count it
     if relative_timestamp_ms - node1_first_packet_ms <= tdma_round_len_ms:
 
@@ -419,25 +422,31 @@ def csma_network_throughput(csma_path):
     for file in file_list:
          
         #Ignore throughput from drone1
-        if 'throughput' in file and '1' not in file:
+        if 'throughput' in file:
             f = open(csma_path + '/' + file, "r")
             values = list()
-            files.append(file)
 
-            for l in f:
-                if 'sec' in l and '%' not in l:
-                    
-                    matches = re.findall(pattern, l)
-                    
-                    converted_value = 0
+            first_line = f.readline()    
 
-                    if len(matches) != 0:
-                        (value, unit) = matches[0] #(data, unit) tuple
-                        converted_value = convert_to_bytes(value, unit)
+            if 'None' not in first_line:
+                
+                files.append(file)
+
+                for l in f:
+
+                    if 'sec' in l and '%' not in l:
+
+                        matches = re.findall(pattern, l)
                         
-                    values.append(converted_value)
+                        converted_value = 0
 
-            node_data[file] = values
+                        if len(matches) != 0:
+                            (value, unit) = matches[0] #(data, unit) tuple
+                            converted_value = convert_to_bytes(value, unit)
+                            
+                        values.append(converted_value)
+
+                node_data[file] = values
             
     csma_x = list()
     csma_y = list()
@@ -461,12 +470,12 @@ def compare_throughput(tdma_path, csma_path):
     
     #These functions should simply return a tuple with x and y data for the plots
     (tdma_x, tdma_y) = tdma_network_throughput(tdma_path)
-    (csma_x, csma_y) = csma_network_throughput(csma_path)
+    #(csma_x, csma_y) = csma_network_throughput(csma_path)
 
     plt.figure(figsize=(15,10))
     plt.clf()
     plt.plot(tdma_x, tdma_y, marker='o', linestyle='-', color="red", label = "TDMA Throughput")
-    plt.plot(csma_x[1:-1], csma_y[1:-1], marker='o', linestyle='-', color="blue", label = "CSMA Throughput")
+    #plt.plot(csma_x[1:-1], csma_y[1:-1], marker='o', linestyle='-', color="blue", label = "CSMA Throughput")
 
     plt.legend()
     plt.grid()
@@ -481,7 +490,7 @@ if __name__ == '__main__':
 
     #process_pcap('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
 
-    compute_position('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
+    #compute_position('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
 
     compare_throughput('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME, './' + TEST_NAME +'/csma')
 

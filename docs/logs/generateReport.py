@@ -20,9 +20,9 @@ CONSIDER_DELAYS_FLAG = False
 node_colors = ['#0000ff', 
                '#ff2c2c',
                '#008000', 
-               '#fd3db5', 
+               '#d211bd', 
                '#ffde21', 
-               '#00ffff']
+               '#ff7800']
 
 def read_data(node_name):
 

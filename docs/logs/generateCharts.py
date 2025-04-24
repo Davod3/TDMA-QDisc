@@ -35,7 +35,7 @@ pattern = r'\b\d+(?:\.\d+)?\s*(?:bits|Kbits|Mbits)\/sec\b'
 alpha = 0.05
 
 # Node Colors
-node_colors = ['#0000ff', '#ff2c2c','#008000', '#fd3db5', '#ffde21', '#00ffff']
+node_colors = ['#0000ff', '#ff2c2c','#008000', '#d211bd', '#ffde21', '#ff7800']
 
 def format_key(key):
 
