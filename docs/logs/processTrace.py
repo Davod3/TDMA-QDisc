@@ -4,7 +4,7 @@ import math
 import matplotlib.pyplot as plt
 import os
 
-TEST_NAME = "star-topology"
+TEST_NAME = "tree-topology"
 TEST_TYPE = "tdma"
 TRACE_NAME = "trace-6nodes.pcapng.gz"
 
