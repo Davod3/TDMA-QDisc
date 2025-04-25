@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.ticker as mticker
 
 SLOT_LEN_MICRO = 1000000
-TEST_NAME = 'tree-topology'
+TEST_NAME = 'star-topology'
 TEST_TYPE = 'tdma'
 NODES = ['drone1','drone2', 'drone3', 'drone4', 'drone5', 'drone6']
 PATH = './' + TEST_NAME + '/' + TEST_TYPE + '/'
