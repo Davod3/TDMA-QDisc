@@ -32,6 +32,8 @@ struct ratdma_packet_annotations {
 #define MAX_NODES 20
 #define MAX_DELAYS 5000
 
+s64 previous_offset = 0;
+
 struct ratdma_packet_delays {
 
     s64 node_delays[MAX_NODES][MAX_DELAYS];
@@ -163,13 +165,23 @@ s64 ratdma_get_offset(s64 slot_len) {
 	s64 max_offset = (slot_len * 25) / 100;
 	//s64 max_offset = 1000000; //ns
 
+	//Low-Pass Filter
+	s64 previous_component = (previous_offset * 80) / 100;
+	s64 current_component = (offset * 20) / 100;
+	s64 smooth_offset = previous_component + current_component;
+
+	s64 return_value = 0;
+
 	//Return offset value to TDMA 
-	if(offset > 0){
-		return offset < max_offset ? offset : max_offset;
+	if(smooth_offset > 0){
+		return_value = smooth_offset < max_offset ? smooth_offset : max_offset;
 	} else {
-		return offset > -max_offset ? offset : -max_offset;
+		return_value = smooth_offset > -max_offset ? smooth_offset : -max_offset;
 	}
 
+	previous_offset = return_value;
+
+	return return_value;
 
 }
 
