@@ -4,7 +4,7 @@ import math
 import matplotlib.pyplot as plt
 import os
 
-TEST_NAME = "tree-topology"
+TEST_NAME = "star-topology"
 TEST_TYPE = "tdma"
 TRACE_NAME = "trace-6nodes.pcapng.gz"
 
@@ -410,9 +410,9 @@ def tdma_network_throughput(tdma_path):
     return (tdma_x, tdma_y)
 
 
-def csma_network_throughput(csma_path):
+def read_iperf_logs(iperf_log_path):
     
-    file_list = os.listdir(csma_path)
+    file_list = os.listdir(iperf_log_path)
     file_list.sort()
     values = list()
     
@@ -422,8 +422,8 @@ def csma_network_throughput(csma_path):
     for file in file_list:
          
         #Ignore throughput from drone1
-        if 'throughput' in file:
-            f = open(csma_path + '/' + file, "r")
+        if 'throughput' in file and 'drone' in file:
+            f = open(iperf_log_path + '/' + file, "r")
             values = list()
 
             first_line = f.readline()    
@@ -448,8 +448,8 @@ def csma_network_throughput(csma_path):
 
                 node_data[file] = values
             
-    csma_x = list()
-    csma_y = list()
+    x = list()
+    y = list()
 
     for i in range(0, len(node_data[files[0]])):
 
@@ -458,10 +458,10 @@ def csma_network_throughput(csma_path):
         for file in files:
             total+=node_data[file][i]
 
-        csma_y.append(total)
-        csma_x.append(i*1000)
+        y.append(total)
+        x.append(i)
 
-    return (csma_x,csma_y)         
+    return (x,y)         
     
     
 
@@ -469,19 +469,20 @@ def csma_network_throughput(csma_path):
 def compare_throughput(tdma_path, csma_path):
     
     #These functions should simply return a tuple with x and y data for the plots
-    (tdma_x, tdma_y) = tdma_network_throughput(tdma_path)
-    (csma_x, csma_y) = csma_network_throughput(csma_path)
+    (tdma_x, tdma_y) = read_iperf_logs(tdma_path)
+    (csma_x, csma_y) = read_iperf_logs(csma_path)
 
     plt.figure(figsize=(15,10))
     plt.clf()
-    plt.plot(tdma_x, tdma_y, marker='o', linestyle='-', color="red", label = "TDMA Throughput")
+    plt.plot(tdma_x[5:-5], tdma_y[5:-5], marker='o', linestyle='-', color="red", label = "TDMA Throughput")
     plt.plot(csma_x[5:-5], csma_y[5:-5], marker='o', linestyle='-', color="blue", label = "CSMA Throughput")
 
     plt.legend()
     plt.grid()
-    plt.xlabel("Sample Time (ms)")
-    plt.ylabel("Network Throughput (Bytes / Sample Time)")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Network Throughput (MBytes / S)")
     plt.title("Total Network Throughput - TDMA vs CSMA")
+    plt.ticklabel_format(axis='y', style='sci', scilimits=(6,6))
     plt.tight_layout()
     plt.savefig('./' + TEST_NAME +'/' + TEST_TYPE + '/' + 'network-throughput.png')
         
@@ -492,5 +493,5 @@ if __name__ == '__main__':
 
     compute_position('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
 
-    compare_throughput('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME, './' + TEST_NAME +'/csma')
+    compare_throughput('./' + TEST_NAME +'/tdma' , './' + TEST_NAME +'/csma')
 
