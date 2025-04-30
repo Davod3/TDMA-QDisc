@@ -399,8 +399,8 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 			}
 
 			//Start collecting delays again
-			if(__topology_set_delays_flag)
-				__topology_set_delays_flag(1);
+			//if(__topology_set_delays_flag)
+			//	__topology_set_delays_flag(1);
 
 			//Set slot start flag to 0
 			slot_start_flag = 0;
@@ -461,6 +461,8 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				s64 offset = __ratdma_get_offset(q->slot_len);
 				total_offset+=offset;
 				u64 wait_period = total_offset > 0 ? total_offset : 0;
+
+				__topology_set_delays_flag(1);
 
 				printk(KERN_DEBUG "[OFFSET]: %lld\n", offset);
 				printk(KERN_DEBUG "[TOTAL OFFSET]: %lld\n", total_offset);
@@ -581,8 +583,8 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 			send_broadcast_flag = 0;
 
 			//Start collecting delays again
-			if(__topology_set_delays_flag)
-				__topology_set_delays_flag(1);
+			//if(__topology_set_delays_flag)
+			//	__topology_set_delays_flag(1);
 
 			//Slot has finished
 			slot_end_flag = 1;
