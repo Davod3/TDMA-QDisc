@@ -9,7 +9,7 @@ cd .. # Scripts Folder
 sudo sysctl -w net.ipv4.conf.all.send_redirects=0
 sudo sysctl -w net.ipv4.conf.wlan0.send_redirects=0
 
-test_duration_s=60
+test_duration_s=100
 test_guard_s=$((test_duration_s + 25))
 initial_offset_s=10
 
@@ -91,6 +91,8 @@ if [ $1 -eq '2' ]; then
     sudo route add -host 10.10.10.3 gw 10.10.10.1 wlan0
     sudo route add -host 10.10.10.6 gw 10.10.10.1 wlan0
 
+    sleep 5
+
     ./utils/add_qdisc.sh test-config-drone$1
 
     #Fill logs with nothing
@@ -123,6 +125,8 @@ if [ $1 -eq '3' ]; then
     sudo route add -host 10.10.10.2 gw 10.10.10.1 wlan0
     sudo route add -host 10.10.10.4 gw 10.10.10.1 wlan0
     sudo route add -host 10.10.10.5 gw 10.10.10.1 wlan0
+
+    sleep 10
 
     ./utils/add_qdisc.sh test-config-drone$1
 
@@ -160,6 +164,8 @@ if [ $1 -eq '4' ]; then
     sudo route add -host 10.10.10.1 gw 10.10.10.2 wlan0
     sudo route add -host 10.10.10.3 gw 10.10.10.2 wlan0
     sudo route add -host 10.10.10.6 gw 10.10.10.2 wlan0
+
+    sleep 15
 
     ./utils/add_qdisc.sh test-config-drone$1
 
@@ -205,6 +211,8 @@ if [ $1 -eq '5' ]; then
     sudo route add -host 10.10.10.3 gw 10.10.10.2 wlan0
     sudo route add -host 10.10.10.6 gw 10.10.10.2 wlan0
 
+    sleep 20
+
     ./utils/add_qdisc.sh test-config-drone$1
 
     sleep $initial_offset_s
@@ -249,6 +257,8 @@ if [ $1 -eq '6' ]; then
     sudo route add -host 10.10.10.2 gw 10.10.10.3 wlan0
     sudo route add -host 10.10.10.4 gw 10.10.10.3 wlan0
     sudo route add -host 10.10.10.5 gw 10.10.10.3 wlan0
+
+    sleep 25
 
     ./utils/add_qdisc.sh test-config-drone$1
 
