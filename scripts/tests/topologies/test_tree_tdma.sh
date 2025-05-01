@@ -52,7 +52,7 @@ if [ $1 -eq '1' ]; then
     iperf3 -c 10.10.10.5 -t $test_duration_s -p 5201 -u -b 1.5M > ../docs/logs/iperf-log-latest-5.txt &
     pids+=($!)
 
-    iperf3 -c 10.10.10.6 -t $test_duration_s -p 5201 -u -b 5M > ../docs/logs/iperf-log-latest-6.txt &
+    iperf3 -c 10.10.10.6 -t $test_duration_s -p 5201 -u -b 1.5M > ../docs/logs/iperf-log-latest-6.txt &
     pids+=($!)
 
     #Fill logs with nothing
@@ -170,10 +170,10 @@ if [ $1 -eq '4' ]; then
     ./utils/add_qdisc.sh test-config-drone$1
 
     sleep $initial_offset_s
-    #iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 3M -u > ../docs/logs/iperf-log-latest-1.txt &
+    iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 2M -u > ../docs/logs/iperf-log-latest-1.txt &
     pids+=($!)
 
-    #iperf3 -c 10.10.10.2 -t $test_duration_s -p 520$1 -b 3M -u > ../docs/logs/iperf-log-latest-2.txt &
+    iperf3 -c 10.10.10.2 -t $test_duration_s -p 520$1 -b 2M -u > ../docs/logs/iperf-log-latest-2.txt &
     pids+=($!)
 
     echo "None" > ../docs/logs/iperf-log-latest-3.txt
@@ -216,10 +216,10 @@ if [ $1 -eq '5' ]; then
     ./utils/add_qdisc.sh test-config-drone$1
 
     sleep $initial_offset_s
-    #iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 3M -u > ../docs/logs/iperf-log-latest-1.txt &
+    iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 2M -u > ../docs/logs/iperf-log-latest-1.txt &
     pids+=($!)
 
-    #iperf3 -c 10.10.10.2 -t $test_duration_s -p 520$1 -b 3M -u > ../docs/logs/iperf-log-latest-2.txt &
+    iperf3 -c 10.10.10.2 -t $test_duration_s -p 520$1 -b 2M -u > ../docs/logs/iperf-log-latest-2.txt &
     pids+=($!)
 
     echo "None" > ../docs/logs/iperf-log-latest-3.txt
@@ -263,10 +263,10 @@ if [ $1 -eq '6' ]; then
     ./utils/add_qdisc.sh test-config-drone$1
 
     sleep $initial_offset_s
-    iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 5M -u > ../docs/logs/iperf-log-latest-1.txt &
+    iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 2M -u > ../docs/logs/iperf-log-latest-1.txt &
     pids+=($!)
 
-    iperf3 -c 10.10.10.3 -t $test_duration_s -p 520$1 -b 5M -u > ../docs/logs/iperf-log-latest-3.txt &
+    iperf3 -c 10.10.10.3 -t $test_duration_s -p 520$1 -b 2M -u > ../docs/logs/iperf-log-latest-3.txt &
     pids+=($!)
 
     echo "None" > ../docs/logs/iperf-log-latest-2.txt
