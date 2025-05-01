@@ -460,7 +460,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				//Get slot offset
 				s64 offset = __ratdma_get_offset(q->slot_len);
 				total_offset+=offset;
-				u64 wait_period = total_offset > 0 ? total_offset : 0;
+				u64 wait_period = offset > 0 ? offset : 0;
 
 				printk(KERN_DEBUG "[OFFSET]: %lld\n", offset);
 				printk(KERN_DEBUG "[TOTAL OFFSET]: %lld\n", total_offset);
@@ -473,7 +473,7 @@ static struct sk_buff *tdma_dequeue(struct Qdisc *sch)
 				actual_slot_end = total_offset == 0 ? mod(slot_end - slot_guard, q->frame_len) : mod(slot_end - (2*slot_guard), q->frame_len);
 				
 				//Set slot_start for next round of delay calculations
-				__topology_set_slot_start(slot_start);
+				__topology_set_slot_start(actual_slot_start);
 
 				//Check if there are packets in the queue
 				if (q->qdisc->ops->peek(q->qdisc)) {
