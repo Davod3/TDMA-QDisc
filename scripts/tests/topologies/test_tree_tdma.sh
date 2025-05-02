@@ -9,7 +9,7 @@ cd .. # Scripts Folder
 sudo sysctl -w net.ipv4.conf.all.send_redirects=0
 sudo sysctl -w net.ipv4.conf.wlan0.send_redirects=0
 
-test_duration_s=100
+test_duration_s=60
 test_guard_s=$((test_duration_s + 25))
 initial_offset_s=10
 
@@ -46,19 +46,17 @@ if [ $1 -eq '1' ]; then
 
     sleep $initial_offset_s
 
-    iperf3 -c 10.10.10.4 -t $test_duration_s -p 5201 -u -b 2M > ../docs/logs/iperf-log-latest-4.txt &
+    iperf3 -c 10.10.10.4 -t $test_duration_s -p 5201 -u -b 1M &
     pids+=($!)
         
-    iperf3 -c 10.10.10.5 -t $test_duration_s -p 5201 -u -b 2M > ../docs/logs/iperf-log-latest-5.txt &
+    iperf3 -c 10.10.10.5 -t $test_duration_s -p 5201 -u -b 1M &
     pids+=($!)
 
-    iperf3 -c 10.10.10.6 -t $test_duration_s -p 5201 -u -b 4M > ../docs/logs/iperf-log-latest-6.txt &
+    iperf3 -c 10.10.10.6 -t $test_duration_s -p 5201 -u -b 1M &
     pids+=($!)
 
     #Fill logs with nothing
-    echo "None" > ../docs/logs/iperf-log-latest-1.txt
-    echo "None" > ../docs/logs/iperf-log-latest-2.txt
-    echo "None" > ../docs/logs/iperf-log-latest-3.txt
+    echo "None" > ../docs/logs/iperf-log-latest.txt
 
     # Wait for iperf3 clients to finish transmitting
     for pid in "${pids[@]}"; do
@@ -91,17 +89,10 @@ if [ $1 -eq '2' ]; then
     sudo route add -host 10.10.10.3 gw 10.10.10.1 wlan0
     sudo route add -host 10.10.10.6 gw 10.10.10.1 wlan0
 
-    sleep 5
-
     ./utils/add_qdisc.sh test-config-drone$1
 
     #Fill logs with nothing
-    echo "None" > ../docs/logs/iperf-log-latest-1.txt
-    echo "None" > ../docs/logs/iperf-log-latest-2.txt
-    echo "None" > ../docs/logs/iperf-log-latest-3.txt
-    echo "None" > ../docs/logs/iperf-log-latest-4.txt
-    echo "None" > ../docs/logs/iperf-log-latest-5.txt
-    echo "None" > ../docs/logs/iperf-log-latest-6.txt
+    echo "None" > ../docs/logs/iperf-log-latest.txt
 
     #Sleep goes here
     sleep $test_guard_s
@@ -126,17 +117,10 @@ if [ $1 -eq '3' ]; then
     sudo route add -host 10.10.10.4 gw 10.10.10.1 wlan0
     sudo route add -host 10.10.10.5 gw 10.10.10.1 wlan0
 
-    sleep 10
-
     ./utils/add_qdisc.sh test-config-drone$1
 
     #Fill logs with nothing
-    echo "None" > ../docs/logs/iperf-log-latest-1.txt
-    echo "None" > ../docs/logs/iperf-log-latest-2.txt
-    echo "None" > ../docs/logs/iperf-log-latest-3.txt
-    echo "None" > ../docs/logs/iperf-log-latest-4.txt
-    echo "None" > ../docs/logs/iperf-log-latest-5.txt
-    echo "None" > ../docs/logs/iperf-log-latest-6.txt
+    echo "None" > ../docs/logs/iperf-log-latest.txt
 
     #Sleep goes here
     sleep $test_guard_s
@@ -165,28 +149,10 @@ if [ $1 -eq '4' ]; then
     sudo route add -host 10.10.10.3 gw 10.10.10.2 wlan0
     sudo route add -host 10.10.10.6 gw 10.10.10.2 wlan0
 
-    sleep 15
-
     ./utils/add_qdisc.sh test-config-drone$1
 
     sleep $initial_offset_s
-    #iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 2M -u > ../docs/logs/iperf-log-latest-1.txt &
-    #pids+=($!)
-
-    #iperf3 -c 10.10.10.2 -t $test_duration_s -p 520$1 -b 2M -u > ../docs/logs/iperf-log-latest-2.txt &
-    #pids+=($!)
-
-    #REMOVE
-    sleep $test_guard_s
-
-    echo "None" > ../docs/logs/iperf-log-latest-3.txt
-    echo "None" > ../docs/logs/iperf-log-latest-4.txt
-    echo "None" > ../docs/logs/iperf-log-latest-5.txt
-    echo "None" > ../docs/logs/iperf-log-latest-6.txt
-
-    for pid in "${pids[@]}"; do
-        wait "$pid"
-    done
+    iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 2M -u > ../docs/logs/iperf-log-latest.txt
 
     ./utils/remove_qdisc.sh wlan0
 
@@ -214,28 +180,10 @@ if [ $1 -eq '5' ]; then
     sudo route add -host 10.10.10.3 gw 10.10.10.2 wlan0
     sudo route add -host 10.10.10.6 gw 10.10.10.2 wlan0
 
-    sleep 20
-
     ./utils/add_qdisc.sh test-config-drone$1
 
     sleep $initial_offset_s
-    #iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 2M -u > ../docs/logs/iperf-log-latest-1.txt &
-    #pids+=($!)
-
-    #iperf3 -c 10.10.10.2 -t $test_duration_s -p 520$1 -b 2M -u > ../docs/logs/iperf-log-latest-2.txt &
-    #pids+=($!)
-
-    #REMOVE
-    sleep $test_guard_s
-
-    echo "None" > ../docs/logs/iperf-log-latest-3.txt
-    echo "None" > ../docs/logs/iperf-log-latest-4.txt
-    echo "None" > ../docs/logs/iperf-log-latest-5.txt
-    echo "None" > ../docs/logs/iperf-log-latest-6.txt
-
-    for pid in "${pids[@]}"; do
-        wait "$pid"
-    done
+    iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 2M -u > ../docs/logs/iperf-log-latest.txt
 
     ./utils/remove_qdisc.sh wlan0
 
@@ -264,29 +212,10 @@ if [ $1 -eq '6' ]; then
     sudo route add -host 10.10.10.4 gw 10.10.10.3 wlan0
     sudo route add -host 10.10.10.5 gw 10.10.10.3 wlan0
 
-    sleep 25
-
     ./utils/add_qdisc.sh test-config-drone$1
 
     sleep $initial_offset_s
-    #iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 2M -u > ../docs/logs/iperf-log-latest-1.txt &
-    #pids+=($!)
-
-    #iperf3 -c 10.10.10.3 -t $test_duration_s -p 520$1 -b 2M -u > ../docs/logs/iperf-log-latest-3.txt &
-    #pids+=($!)
-
-    #REMOVE
-    sleep $test_guard_s
-
-    echo "None" > ../docs/logs/iperf-log-latest-2.txt
-    echo "None" > ../docs/logs/iperf-log-latest-4.txt
-    echo "None" > ../docs/logs/iperf-log-latest-5.txt
-    echo "None" > ../docs/logs/iperf-log-latest-6.txt
-
-    # Wait for iperf3 clients to finish transmitting
-    for pid in "${pids[@]}"; do
-        wait "$pid"
-    done
+    iperf3 -c 10.10.10.1 -t $test_duration_s -p 520$1 -b 2M -u > ../docs/logs/iperf-log-latest.txt
 
     ./utils/remove_qdisc.sh wlan0
 
@@ -309,12 +238,7 @@ cd docs/logs
 sudo pkill -f 'dmesg -w'
 
 ./save_log.sh kernel-log-latest.txt tree-topology tdma drone$1
-./save_log.sh iperf-log-latest-1.txt tree-topology tdma drone$1-throughput-1
-./save_log.sh iperf-log-latest-2.txt tree-topology tdma drone$1-throughput-2
-./save_log.sh iperf-log-latest-3.txt tree-topology tdma drone$1-throughput-3
-./save_log.sh iperf-log-latest-4.txt tree-topology tdma drone$1-throughput-4
-./save_log.sh iperf-log-latest-5.txt tree-topology tdma drone$1-throughput-5
-./save_log.sh iperf-log-latest-6.txt tree-topology tdma drone$1-throughput-6
+./save_log.sh iperf-log-latest.txt tree-topology tdma drone$1-throughput
 
 sudo sysctl -w net.ipv4.conf.all.send_redirects=1
 sudo sysctl -w net.ipv4.conf.wlan0.send_redirects=1
