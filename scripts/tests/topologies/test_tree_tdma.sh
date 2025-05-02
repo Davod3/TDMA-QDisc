@@ -46,13 +46,13 @@ if [ $1 -eq '1' ]; then
 
     sleep $initial_offset_s
 
-    iperf3 -c 10.10.10.4 -t $test_duration_s -p 5201 -u -b 2.5M > ../docs/logs/iperf-log-latest-4.txt &
+    iperf3 -c 10.10.10.4 -t $test_duration_s -p 5201 -u -b 2M > ../docs/logs/iperf-log-latest-4.txt &
     pids+=($!)
         
-    iperf3 -c 10.10.10.5 -t $test_duration_s -p 5201 -u -b 2.5M > ../docs/logs/iperf-log-latest-5.txt &
+    iperf3 -c 10.10.10.5 -t $test_duration_s -p 5201 -u -b 2M > ../docs/logs/iperf-log-latest-5.txt &
     pids+=($!)
 
-    iperf3 -c 10.10.10.6 -t $test_duration_s -p 5201 -u -b 5M > ../docs/logs/iperf-log-latest-6.txt &
+    iperf3 -c 10.10.10.6 -t $test_duration_s -p 5201 -u -b 4M > ../docs/logs/iperf-log-latest-6.txt &
     pids+=($!)
 
     #Fill logs with nothing
