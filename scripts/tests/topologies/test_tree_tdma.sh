@@ -88,8 +88,6 @@ if [ $1 -eq '2' ]; then
 
     ./utils/add_qdisc.sh test-config-drone$1
 
-    sleep $initial_offset_s
-
     iperf3 -c 10.10.10.4 -t $test_duration_s -p 5201 -u -b 3M &
     pids+=($!)
         
@@ -105,7 +103,7 @@ if [ $1 -eq '2' ]; then
     done
 
     #Sleep goes here
-    sleep $test_guard_s
+    sleep $initial_offset_s
 
     ./utils/remove_qdisc.sh wlan0
 
@@ -129,8 +127,6 @@ if [ $1 -eq '3' ]; then
 
     ./utils/add_qdisc.sh test-config-drone$1
 
-    sleep $initial_offset_s
-
     iperf3 -c 10.10.10.6 -t $test_duration_s -p 5201 -u -b 5M &
     pids+=($!)
 
@@ -143,7 +139,7 @@ if [ $1 -eq '3' ]; then
     done
 
     #Sleep goes here
-    sleep $test_guard_s
+    sleep $initial_offset_s
 
     ./utils/remove_qdisc.sh wlan0
 
@@ -173,7 +169,6 @@ if [ $1 -eq '4' ]; then
 
     sleep $initial_offset_s
     iperf3 -c 10.10.10.2 -t $test_duration_s -p 520$1 -b 5M -u > ../docs/logs/iperf-log-latest.txt
-    #sleep $test_guard_s
 
     ./utils/remove_qdisc.sh wlan0
 
@@ -205,7 +200,6 @@ if [ $1 -eq '5' ]; then
 
     sleep $initial_offset_s
     iperf3 -c 10.10.10.2 -t $test_duration_s -p 520$1 -b 5M -u > ../docs/logs/iperf-log-latest.txt
-    sleep $test_guard_s
 
     ./utils/remove_qdisc.sh wlan0
 
@@ -238,7 +232,6 @@ if [ $1 -eq '6' ]; then
 
     sleep $initial_offset_s
     iperf3 -c 10.10.10.3 -t $test_duration_s -p 520$1 -b 5M -u > ../docs/logs/iperf-log-latest.txt
-    #sleep $test_guard_s
 
     ./utils/remove_qdisc.sh wlan0
 
