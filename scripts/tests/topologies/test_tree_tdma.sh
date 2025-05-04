@@ -46,14 +46,17 @@ if [ $1 -eq '1' ]; then
 
     sleep $initial_offset_s
 
-    iperf3 -c 10.10.10.2 -t $test_duration_s -p 5201 -u -b 5M &
+    iperf3 -c 10.10.10.2 -t $test_duration_s -p 5201 -u -b 5M > ../docs/logs/iperf-log-latest-2.txt &
     pids+=($!)
         
-    iperf3 -c 10.10.10.3 -t $test_duration_s -p 5201 -u -b 5M &
+    iperf3 -c 10.10.10.3 -t $test_duration_s -p 5201 -u -b 5M > ../docs/logs/iperf-log-latest-3.txt &
     pids+=($!)
 
     #Fill logs with nothing
-    echo "None" > ../docs/logs/iperf-log-latest.txt
+    echo "None" > ../docs/logs/iperf-log-latest-1.txt
+    echo "None" > ../docs/logs/iperf-log-latest-4.txt
+    echo "None" > ../docs/logs/iperf-log-latest-5.txt
+    echo "None" > ../docs/logs/iperf-log-latest-6.txt
 
     # Wait for iperf3 clients to finish transmitting
     for pid in "${pids[@]}"; do
@@ -88,14 +91,17 @@ if [ $1 -eq '2' ]; then
 
     ./utils/add_qdisc.sh test-config-drone$1
 
-    iperf3 -c 10.10.10.4 -t $test_duration_s -p 5201 -u -b 5M &
+    iperf3 -c 10.10.10.4 -t $test_duration_s -p 5201 -u -b 5M > ../docs/logs/iperf-log-latest-4.txt &
     pids+=($!)
         
-    iperf3 -c 10.10.10.5 -t $test_duration_s -p 5201 -u -b 5M &
+    iperf3 -c 10.10.10.5 -t $test_duration_s -p 5201 -u -b 5M > ../docs/logs/iperf-log-latest-5.txt &
     pids+=($!)
 
     #Fill logs with nothing
-    echo "None" > ../docs/logs/iperf-log-latest.txt
+    echo "None" > ../docs/logs/iperf-log-latest-1.txt
+    echo "None" > ../docs/logs/iperf-log-latest-2.txt
+    echo "None" > ../docs/logs/iperf-log-latest-3.txt
+    echo "None" > ../docs/logs/iperf-log-latest-6.txt
 
     # Wait for iperf3 clients to finish transmitting
     for pid in "${pids[@]}"; do
@@ -127,11 +133,15 @@ if [ $1 -eq '3' ]; then
 
     ./utils/add_qdisc.sh test-config-drone$1
 
-    iperf3 -c 10.10.10.6 -t $test_duration_s -p 5201 -u -b 0 &
+    iperf3 -c 10.10.10.6 -t $test_duration_s -p 5201 -u -b 0 > ../docs/logs/iperf-log-latest-6.txt &
     pids+=($!)
 
     #Fill logs with nothing
-    echo "None" > ../docs/logs/iperf-log-latest.txt
+    echo "None" > ../docs/logs/iperf-log-latest-1.txt
+    echo "None" > ../docs/logs/iperf-log-latest-2.txt
+    echo "None" > ../docs/logs/iperf-log-latest-3.txt
+    echo "None" > ../docs/logs/iperf-log-latest-4.txt
+    echo "None" > ../docs/logs/iperf-log-latest-5.txt
 
     # Wait for iperf3 clients to finish transmitting
     for pid in "${pids[@]}"; do
@@ -168,7 +178,14 @@ if [ $1 -eq '4' ]; then
     ./utils/add_qdisc.sh test-config-drone$1
 
     sleep $initial_offset_s
-    iperf3 -c 10.10.10.2 -t $test_duration_s -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    iperf3 -c 10.10.10.2 -t $test_duration_s -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest-2.txt
+
+    #Fill logs with nothing
+    echo "None" > ../docs/logs/iperf-log-latest-1.txt
+    echo "None" > ../docs/logs/iperf-log-latest-6.txt
+    echo "None" > ../docs/logs/iperf-log-latest-3.txt
+    echo "None" > ../docs/logs/iperf-log-latest-4.txt
+    echo "None" > ../docs/logs/iperf-log-latest-5.txt
 
     ./utils/remove_qdisc.sh wlan0
 
@@ -199,7 +216,14 @@ if [ $1 -eq '5' ]; then
     ./utils/add_qdisc.sh test-config-drone$1
 
     sleep $initial_offset_s
-    iperf3 -c 10.10.10.2 -t $test_duration_s -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    iperf3 -c 10.10.10.2 -t $test_duration_s -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest-2.txt
+
+    #Fill logs with nothing
+    echo "None" > ../docs/logs/iperf-log-latest-1.txt
+    echo "None" > ../docs/logs/iperf-log-latest-6.txt
+    echo "None" > ../docs/logs/iperf-log-latest-3.txt
+    echo "None" > ../docs/logs/iperf-log-latest-4.txt
+    echo "None" > ../docs/logs/iperf-log-latest-5.txt
 
     ./utils/remove_qdisc.sh wlan0
 
@@ -231,7 +255,14 @@ if [ $1 -eq '6' ]; then
     ./utils/add_qdisc.sh test-config-drone$1
 
     sleep $initial_offset_s
-    iperf3 -c 10.10.10.3 -t $test_duration_s -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    iperf3 -c 10.10.10.3 -t $test_duration_s -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest-3.txt
+
+    #Fill logs with nothing
+    echo "None" > ../docs/logs/iperf-log-latest-1.txt
+    echo "None" > ../docs/logs/iperf-log-latest-6.txt
+    echo "None" > ../docs/logs/iperf-log-latest-2.txt
+    echo "None" > ../docs/logs/iperf-log-latest-4.txt
+    echo "None" > ../docs/logs/iperf-log-latest-5.txt
 
     ./utils/remove_qdisc.sh wlan0
 
@@ -254,7 +285,13 @@ cd docs/logs
 sudo pkill -f 'dmesg -w'
 
 ./save_log.sh kernel-log-latest.txt tree-topology tdma drone$1
-./save_log.sh iperf-log-latest.txt tree-topology tdma drone$1-throughput
+
+./save_log.sh iperf-log-latest-1.txt tree-topology tdma drone$1-throughput-1
+./save_log.sh iperf-log-latest-2.txt tree-topology tdma drone$1-throughput-2
+./save_log.sh iperf-log-latest-3.txt tree-topology tdma drone$1-throughput-3
+./save_log.sh iperf-log-latest-4.txt tree-topology tdma drone$1-throughput-4
+./save_log.sh iperf-log-latest-5.txt tree-topology tdma drone$1-throughput-5
+./save_log.sh iperf-log-latest-6.txt tree-topology tdma drone$1-throughput-6
 
 sudo sysctl -w net.ipv4.conf.all.send_redirects=1
 sudo sysctl -w net.ipv4.conf.wlan0.send_redirects=1
