@@ -133,7 +133,7 @@ if [ $1 -eq '3' ]; then
 
     ./utils/add_qdisc.sh test-config-drone$1
 
-    iperf3 -c 10.10.10.6 -t $test_duration_s -p 5201 -u -b 0 > ../docs/logs/iperf-log-latest-6.txt &
+    iperf3 -c 10.10.10.6 -t $test_duration_s -p 5201 -u -b 10M > ../docs/logs/iperf-log-latest-6.txt &
     pids+=($!)
 
     #Fill logs with nothing
@@ -178,7 +178,7 @@ if [ $1 -eq '4' ]; then
     ./utils/add_qdisc.sh test-config-drone$1
 
     sleep $initial_offset_s
-    iperf3 -c 10.10.10.2 -t $test_duration_s -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest-2.txt
+    iperf3 -c 10.10.10.2 -t $test_duration_s -p 520$1 -b 10M -u > ../docs/logs/iperf-log-latest-2.txt
 
     #Fill logs with nothing
     echo "None" > ../docs/logs/iperf-log-latest-1.txt
@@ -216,7 +216,7 @@ if [ $1 -eq '5' ]; then
     ./utils/add_qdisc.sh test-config-drone$1
 
     sleep $initial_offset_s
-    iperf3 -c 10.10.10.2 -t $test_duration_s -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest-2.txt
+    iperf3 -c 10.10.10.2 -t $test_duration_s -p 520$1 -b 10M -u > ../docs/logs/iperf-log-latest-2.txt
 
     #Fill logs with nothing
     echo "None" > ../docs/logs/iperf-log-latest-1.txt
@@ -255,7 +255,7 @@ if [ $1 -eq '6' ]; then
     ./utils/add_qdisc.sh test-config-drone$1
 
     sleep $initial_offset_s
-    iperf3 -c 10.10.10.3 -t $test_duration_s -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest-3.txt
+    iperf3 -c 10.10.10.3 -t $test_duration_s -p 520$1 -b 10M -u > ../docs/logs/iperf-log-latest-3.txt
 
     #Fill logs with nothing
     echo "None" > ../docs/logs/iperf-log-latest-1.txt
