@@ -46,10 +46,10 @@ if [ $1 -eq '1' ]; then
 
     sleep $initial_offset_s
 
-    iperf3 -c 10.10.10.2 -t $test_duration_s -p 5201 -u -b 5M > ../docs/logs/iperf-log-latest-2.txt &
+    iperf3 -c 10.10.10.2 -t $test_duration_s -p 5201 -u -b 3M > ../docs/logs/iperf-log-latest-2.txt &
     pids+=($!)
         
-    iperf3 -c 10.10.10.3 -t $test_duration_s -p 5201 -u -b 5M > ../docs/logs/iperf-log-latest-3.txt &
+    iperf3 -c 10.10.10.3 -t $test_duration_s -p 5201 -u -b 3M > ../docs/logs/iperf-log-latest-3.txt &
     pids+=($!)
 
     #Fill logs with nothing
@@ -91,10 +91,10 @@ if [ $1 -eq '2' ]; then
 
     ./utils/add_qdisc.sh test-config-drone$1
 
-    iperf3 -c 10.10.10.4 -t $test_duration_s -p 5201 -u -b 5M > ../docs/logs/iperf-log-latest-4.txt &
+    iperf3 -c 10.10.10.4 -t $test_duration_s -p 5201 -u -b 3M > ../docs/logs/iperf-log-latest-4.txt &
     pids+=($!)
         
-    iperf3 -c 10.10.10.5 -t $test_duration_s -p 5201 -u -b 5M > ../docs/logs/iperf-log-latest-5.txt &
+    iperf3 -c 10.10.10.5 -t $test_duration_s -p 5201 -u -b 3M > ../docs/logs/iperf-log-latest-5.txt &
     pids+=($!)
 
     #Fill logs with nothing
