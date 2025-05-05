@@ -243,12 +243,12 @@ cd .. # Root Folder
 
 cd docs/logs
 
-./save_log.sh iperf-log-latest-1.txt tree-topology tdma drone$1-throughput-1
-./save_log.sh iperf-log-latest-2.txt tree-topology tdma drone$1-throughput-2
-./save_log.sh iperf-log-latest-3.txt tree-topology tdma drone$1-throughput-3
-./save_log.sh iperf-log-latest-4.txt tree-topology tdma drone$1-throughput-4
-./save_log.sh iperf-log-latest-5.txt tree-topology tdma drone$1-throughput-5
-./save_log.sh iperf-log-latest-6.txt tree-topology tdma drone$1-throughput-6
+./save_log.sh iperf-log-latest-1.txt tree-topology csma drone$1-throughput-1
+./save_log.sh iperf-log-latest-2.txt tree-topology csma drone$1-throughput-2
+./save_log.sh iperf-log-latest-3.txt tree-topology csma drone$1-throughput-3
+./save_log.sh iperf-log-latest-4.txt tree-topology csma drone$1-throughput-4
+./save_log.sh iperf-log-latest-5.txt tree-topology csma drone$1-throughput-5
+./save_log.sh iperf-log-latest-6.txt tree-topology csma drone$1-throughput-6
 
 sudo sysctl -w net.ipv4.conf.all.send_redirects=1
 sudo sysctl -w net.ipv4.conf.wlan0.send_redirects=1
