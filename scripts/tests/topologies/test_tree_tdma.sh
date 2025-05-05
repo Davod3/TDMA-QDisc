@@ -9,7 +9,7 @@ cd .. # Scripts Folder
 sudo sysctl -w net.ipv4.conf.all.send_redirects=0
 sudo sysctl -w net.ipv4.conf.wlan0.send_redirects=0
 
-test_duration_s=60
+test_duration_s=1200
 test_guard_s=$((test_duration_s + 25))
 initial_offset_s=10
 

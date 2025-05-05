@@ -11,21 +11,23 @@ pids=()
 
 parent_node=1
 
+test_duration_seconds=1200
+
 if [ $1 -eq $parent_node ]; then
     
-    iperf3 -c 10.10.10.2 -t 60 -p 5201 -u &
+    iperf3 -c 10.10.10.2 -t $test_duration_seconds -p 5201 -u &
     pids+=($!)
         
-    iperf3 -c 10.10.10.3 -t 60 -p 5201 -u &
+    iperf3 -c 10.10.10.3 -t $test_duration_seconds -p 5201 -u &
     pids+=($!)
         
-    iperf3 -c 10.10.10.4 -t 60 -p 5201 -u &
+    iperf3 -c 10.10.10.4 -t $test_duration_seconds -p 5201 -u &
     pids+=($!)
         
-    iperf3 -c 10.10.10.5 -t 60 -p 5201 -u &
+    iperf3 -c 10.10.10.5 -t $test_duration_seconds -p 5201 -u &
     pids+=($!)
         
-    iperf3 -c 10.10.10.6 -t 60 -p 5201 -u &
+    iperf3 -c 10.10.10.6 -t $test_duration_seconds -p 5201 -u &
     pids+=($!)
 
     echo "None" > ../docs/logs/iperf-log-latest.txt
@@ -39,7 +41,7 @@ if [ $1 -eq '2' ]; then
     ./topology_utils/block_node5.sh
     ./topology_utils/block_node6.sh
 
-    iperf3 -c 10.10.10.1 -t 60 -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    iperf3 -c 10.10.10.1 -t $test_duration_seconds -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
 
     ./topology_utils/unblock_node3.sh
     ./topology_utils/unblock_node4.sh
@@ -55,7 +57,7 @@ if [ $1 -eq '3' ]; then
     ./topology_utils/block_node5.sh
     ./topology_utils/block_node6.sh
 
-    iperf3 -c 10.10.10.1 -t 60 -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    iperf3 -c 10.10.10.1 -t $test_duration_seconds -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
 
     ./topology_utils/unblock_node2.sh
     ./topology_utils/unblock_node4.sh
@@ -71,7 +73,7 @@ if [ $1 -eq '4' ]; then
     ./topology_utils/block_node5.sh
     ./topology_utils/block_node6.sh
 
-    iperf3 -c 10.10.10.1 -t 60 -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    iperf3 -c 10.10.10.1 -t $test_duration_seconds -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
 
     ./topology_utils/unblock_node3.sh
     ./topology_utils/unblock_node2.sh
@@ -87,7 +89,7 @@ if [ $1 -eq '5' ]; then
     ./topology_utils/block_node2.sh
     ./topology_utils/block_node6.sh
 
-    iperf3 -c 10.10.10.1 -t 60 -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    iperf3 -c 10.10.10.1 -t $test_duration_seconds -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
 
     ./topology_utils/unblock_node3.sh
     ./topology_utils/unblock_node4.sh
@@ -103,7 +105,7 @@ if [ $1 -eq '6' ]; then
     ./topology_utils/block_node5.sh
     ./topology_utils/block_node2.sh
 
-    iperf3 -c 10.10.10.1 -t 60 -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    iperf3 -c 10.10.10.1 -t $test_duration_seconds -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
 
     ./topology_utils/unblock_node3.sh
     ./topology_utils/unblock_node4.sh

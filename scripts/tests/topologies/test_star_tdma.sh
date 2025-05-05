@@ -11,6 +11,8 @@ pids=()
 
 parent_node=1
 
+test_duration_seconds=1200
+
 sudo dmesg -C
 
 sudo dmesg -w | grep -E '\[TDMA ROUND\]|\[DELAY\]|\[OFFSET\]|\[TOTAL OFFSET\]|\[SLOT_START\]|\[SLOT_END\]|\[PARENT\]|\[SLOT_ID\]|\[DELAY_ON\]|\[DELAY_OFF\]|\[RECEIVED_PACKET\]' > ../docs/logs/kernel-log-latest.txt &
@@ -19,19 +21,19 @@ if [ $1 -eq $parent_node ]; then
 
     ./utils/add_qdisc.sh test-config-drone$1
 
-    iperf3 -c 10.10.10.2 -t 60 -p 5201 -u &
+    iperf3 -c 10.10.10.2 -t $test_duration_seconds -p 5201 -u &
     pids+=($!)
         
-    iperf3 -c 10.10.10.3 -t 60 -p 5201 -u &
+    iperf3 -c 10.10.10.3 -t $test_duration_seconds -p 5201 -u &
     pids+=($!)
 
-    iperf3 -c 10.10.10.4 -t 60 -p 5201 -u &
+    iperf3 -c 10.10.10.4 -t $test_duration_seconds -p 5201 -u &
     pids+=($!)
 
-    iperf3 -c 10.10.10.5 -t 60 -p 5201 -u &
+    iperf3 -c 10.10.10.5 -t $test_duration_seconds -p 5201 -u &
     pids+=($!)
 
-    iperf3 -c 10.10.10.6 -t 60 -p 5201 -u &
+    iperf3 -c 10.10.10.6 -t $test_duration_seconds -p 5201 -u &
     pids+=($!)
 
     echo "None" > ../docs/logs/iperf-log-latest.txt
@@ -54,7 +56,7 @@ if [ $1 -eq '2' ]; then
 
     ./utils/add_qdisc.sh test-config-drone$1
 
-    iperf3 -c 10.10.10.1 -t 60 -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    iperf3 -c 10.10.10.1 -t $test_duration_seconds -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
 
     ./utils/remove_qdisc.sh wlan0
 
@@ -74,7 +76,7 @@ if [ $1 -eq '3' ]; then
 
     ./utils/add_qdisc.sh test-config-drone$1
 
-    iperf3 -c 10.10.10.1 -t 60 -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    iperf3 -c 10.10.10.1 -t $test_duration_seconds -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
 
     ./utils/remove_qdisc.sh wlan0
 
@@ -94,7 +96,7 @@ if [ $1 -eq '4' ]; then
 
     ./utils/add_qdisc.sh test-config-drone$1
 
-    iperf3 -c 10.10.10.1 -t 60 -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    iperf3 -c 10.10.10.1 -t $test_duration_seconds -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
 
     ./utils/remove_qdisc.sh wlan0
 
@@ -114,7 +116,7 @@ if [ $1 -eq '5' ]; then
 
     ./utils/add_qdisc.sh test-config-drone$1
 
-    iperf3 -c 10.10.10.1 -t 60 -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    iperf3 -c 10.10.10.1 -t $test_duration_seconds -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
 
     ./utils/remove_qdisc.sh wlan0
 
@@ -134,7 +136,7 @@ if [ $1 -eq '6' ]; then
 
     ./utils/add_qdisc.sh test-config-drone$1
 
-    iperf3 -c 10.10.10.1 -t 60 -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
+    iperf3 -c 10.10.10.1 -t $test_duration_seconds -p 520$1 -b 0 -u > ../docs/logs/iperf-log-latest.txt
 
     ./utils/remove_qdisc.sh wlan0
 
