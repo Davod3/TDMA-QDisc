@@ -4,7 +4,7 @@ import math
 import matplotlib.pyplot as plt
 import os
 
-TEST_NAME = "star-topology"
+TEST_NAME = "tree-topology"
 TEST_TYPE = "tdma"
 TRACE_NAME = "trace-6nodes.pcapng.gz"
 
@@ -187,6 +187,9 @@ def position_process_packet(packet_timestamp_ms, packet_round, reference_node, m
             else:
                 position = 0
 
+            if position < 0:
+                position = 0
+
             if(round_counter in saved_positions.keys()):
 
                 saved_positions[round_counter][me] = position
@@ -299,27 +302,29 @@ def compute_position(path):
                 #Else, just consider the position 0
                 position_data[i].append(0)
 
-    overlap_x = range(0, len(list(saved_positions.keys())))[:-1]
+    cutoff = -100
+
+    overlap_x = range(0, len(list(saved_positions.keys())))[:cutoff]
 
     #position_data should now be a dict with a key for each node and a value corresponding to a list of positions over rounds. Plot it
     plt.figure(figsize=(15,10))
     plt.clf()
-    plt.plot(overlap_x, position_data[DRONE_1_ID][:-1], marker='o', linestyle='dotted', color=node_colors[DRONE_1_ID], label = "Drone 1")
+    plt.plot(overlap_x, position_data[DRONE_1_ID][:cutoff], marker='o', linestyle='dotted', color=node_colors[DRONE_1_ID], label = "Drone 1")
     plt.axhline(y=0, color=node_colors[DRONE_1_ID], linestyle='-', linewidth=2)
 
-    plt.plot(overlap_x, position_data[DRONE_2_ID][:-1], marker='o', linestyle='dotted', color=node_colors[DRONE_2_ID], label = "Drone 2")
+    plt.plot(overlap_x, position_data[DRONE_2_ID][:cutoff], marker='o', linestyle='dotted', color=node_colors[DRONE_2_ID], label = "Drone 2")
     plt.axhline(y=50, color=node_colors[DRONE_2_ID], linestyle='-', linewidth=2)
 
-    plt.plot(overlap_x, position_data[DRONE_3_ID][:-1], marker='o', linestyle='dotted', color=node_colors[DRONE_3_ID], label = "Drone 3")
+    plt.plot(overlap_x, position_data[DRONE_3_ID][:cutoff], marker='o', linestyle='dotted', color=node_colors[DRONE_3_ID], label = "Drone 3")
     plt.axhline(y=100, color=node_colors[DRONE_3_ID], linestyle='-', linewidth=2)
 
-    plt.plot(overlap_x, position_data[DRONE_4_ID][:-1], marker='o', linestyle='dotted', color=node_colors[DRONE_4_ID], label = "Drone 4")
+    plt.plot(overlap_x, position_data[DRONE_4_ID][:cutoff], marker='o', linestyle='dotted', color=node_colors[DRONE_4_ID], label = "Drone 4")
     plt.axhline(y=150, color=node_colors[DRONE_4_ID], linestyle='-', linewidth=2)
 
-    plt.plot(overlap_x, position_data[DRONE_5_ID][:-1], marker='o', linestyle='dotted', color=node_colors[DRONE_5_ID], label = "Drone 5")
+    plt.plot(overlap_x, position_data[DRONE_5_ID][:cutoff], marker='o', linestyle='dotted', color=node_colors[DRONE_5_ID], label = "Drone 5")
     plt.axhline(y=200, color=node_colors[DRONE_5_ID], linestyle='-', linewidth=2)
 
-    plt.plot(overlap_x, position_data[DRONE_6_ID][:-1], marker='o', linestyle='dotted', color=node_colors[DRONE_6_ID], label = "Drone 6")
+    plt.plot(overlap_x, position_data[DRONE_6_ID][:cutoff], marker='o', linestyle='dotted', color=node_colors[DRONE_6_ID], label = "Drone 6")
     plt.axhline(y=250, color=node_colors[DRONE_6_ID], linestyle='-', linewidth=2)
 
     plt.legend()
@@ -421,7 +426,6 @@ def read_iperf_logs(iperf_log_path):
 
     for file in file_list:
          
-        #Ignore throughput from drone1
         if 'throughput' in file and 'drone' in file:
             f = open(iperf_log_path + '/' + file, "r")
             values = list()
@@ -474,8 +478,8 @@ def compare_throughput(tdma_path, csma_path):
 
     plt.figure(figsize=(15,10))
     plt.clf()
-    plt.plot(tdma_x[5:-5], tdma_y[5:-5], marker='o', linestyle='-', color="red", label = "TDMA Throughput")
-    plt.plot(csma_x[5:-5], csma_y[5:-5], marker='o', linestyle='-', color="blue", label = "CSMA Throughput")
+    plt.plot(tdma_x[10:-10], tdma_y[10:-10], marker='o', linestyle='-', color="red", label = "TDMA Throughput")
+    plt.plot(csma_x[10:-10], csma_y[10:-10], marker='o', linestyle='-', color="blue", label = "CSMA Throughput")
 
     plt.legend()
     plt.grid()
