@@ -562,6 +562,7 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
 
         //THIS IS SO THAT ONLY THE FIRST RECEIVED DELAY COUNTS TOWARDS SYNC - IF BROKEN REMOVE
         if(counter > 1) {
+            spin_unlock(&packet_delays_lock);
             return;
         }
         
