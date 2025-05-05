@@ -559,6 +559,11 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
 
         //Get total number of delays
         s64 counter = ratdma_packet_delays->delay_counters[received_node_id];
+
+        //THIS IS SO THAT ONLY THE FIRST RECEIVED DELAY COUNTS TOWARDS SYNC - IF BROKEN REMOVE
+        if(counter > 1) {
+            return;
+        }
         
         //Make sure i does not go over MAX_DELAYS
         s64 i = mod(counter, MAX_DELAYS);

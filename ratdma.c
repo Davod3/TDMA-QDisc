@@ -182,8 +182,8 @@ s64 ratdma_get_offset(s64 slot_len) {
 	topology_get_delays_and_reset(delays);
 	
 	//Calculate offset value
-	//s64 offset = get_average_delay(delays, reference_node_id);
-	s64 offset = get_median_delay(delays, reference_node_id);
+	s64 offset = get_average_delay(delays, reference_node_id);
+	//s64 offset = get_median_delay(delays, reference_node_id);
 
 	kfree(delays);
 
