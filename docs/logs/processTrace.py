@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import os
 
 TEST_NAME = "star-topology"
-TEST_TYPE = "tdma"
+TEST_TYPE = "tdma-single"
 TRACE_NAME = "trace-6nodes.pcapng.gz"
 
 DRONE_1_ID = 0
