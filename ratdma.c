@@ -10,6 +10,7 @@
 #include <linux/ip.h>
 #include <net/ip.h> 
 #include <linux/udp.h>
+#include <linux/sort.h>
 
 //Get functions from topology module
 extern s64 topology_get_reference_node(void);
@@ -140,6 +141,29 @@ static s64 get_average_delay(struct ratdma_packet_delays* delays, s64 reference_
 
 }
 
+static int delay_compare(const void *a, const void *b) {
+    return (*(s64 *)a - *(s64 *)b);  
+}
+
+static s64 get_median_delay(struct ratdma_packet_delays* delays, s64 reference_node_id) {
+
+	s64 n_delays = delays->delay_counters[reference_node_id] > MAX_DELAYS ? MAX_DELAYS : delays->delay_counters[reference_node_id];
+	s64* values = delays->node_delays[reference_node_id];
+
+	sort(values, n_delays, sizeof(s64) , &delay_compare, NULL);
+
+	if (n_delays % 2 == 0) {
+
+		return (values[n_delays / 2 - 1] + values[n_delays / 2]) / 2;
+
+	} else {
+
+		return values[n_delays / 2];
+
+	}
+
+}
+
 s64 ratdma_get_offset(s64 slot_len) {
 
 	//printk(KERN_DEBUG "Getting offsets: \n");
@@ -158,7 +182,8 @@ s64 ratdma_get_offset(s64 slot_len) {
 	topology_get_delays_and_reset(delays);
 	
 	//Calculate offset value
-	s64 offset = get_average_delay(delays, reference_node_id);
+	//s64 offset = get_average_delay(delays, reference_node_id);
+	s64 offset = get_median_delay(delays, reference_node_id);
 
 	kfree(delays);
 
