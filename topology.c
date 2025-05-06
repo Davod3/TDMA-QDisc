@@ -579,7 +579,7 @@ static void parseIPOptions(struct ratdma_packet_annotations* annotations, s64 pa
 
     }
 
-    printk(KERN_DEBUG "[RECEIVED_PACKET] %lld | %lld | %lld\n", annotations->slot_id, packet_timestamp, slot_number);
+    //printk(KERN_DEBUG "[RECEIVED_PACKET] %lld | %lld | %lld\n", annotations->slot_id, packet_timestamp, slot_number);
 
 }
 
