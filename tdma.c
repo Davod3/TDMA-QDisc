@@ -734,7 +734,7 @@ static int tdma_change(struct Qdisc *sch, struct nlattr *opt, struct netlink_ext
 				//printk(KERN_DEBUG "[TDMA] Found topology symbols. Self-Configuring Network. \n");
 
 				q->broadcast_port = qopt->broadcast_port;
-				__topology_enable(qopt->node_id, qopt->broadcast_port, qdisc_dev(sch)->name, qopt->slot_size);
+				__topology_enable(qopt->node_id, qopt->broadcast_port, qdisc_dev(sch)->name, qopt->slot_size - slot_guard);
 
 				q->slot_len = qopt->slot_size;
 
