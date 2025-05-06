@@ -11,7 +11,7 @@ pids=()
 
 parent_node=1
 
-test_duration_seconds=60
+test_duration_seconds=1200
 
 sudo dmesg -C
 
