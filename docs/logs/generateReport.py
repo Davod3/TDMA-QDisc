@@ -190,7 +190,7 @@ def build_average_offset_chart(data):
 def build_total_offset_chart(data):
     
     plt.clf()
-    plt.figure(figsize=(20,10))
+    plt.figure(figsize=(50,10))
 
     for node_name in data.keys():
 
@@ -368,7 +368,7 @@ def build_charts():
     #build_average_offset_chart(data)
     build_total_offset_chart(data)
     #build_overlap_chart(data)
-    build_delay_histograms(data)
+    #build_delay_histograms(data)
 
         
 

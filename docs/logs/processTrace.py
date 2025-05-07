@@ -4,8 +4,8 @@ import math
 import matplotlib.pyplot as plt
 import os
 
-TEST_NAME = "star-topology"
-TEST_TYPE = "tdma-single"
+TEST_NAME = "tree-topology"
+TEST_TYPE = "tdma"
 TRACE_NAME = "trace-6nodes.pcapng.gz"
 
 DRONE_1_ID = 0
@@ -190,6 +190,9 @@ def position_process_packet(packet_timestamp_ms, packet_round, reference_node, m
             if position < 0:
                 position = 0
 
+            if position > 400:
+                position = 0
+
             if(round_counter in saved_positions.keys()):
 
                 saved_positions[round_counter][me] = position
@@ -307,7 +310,7 @@ def compute_position(path):
     overlap_x = range(0, len(list(saved_positions.keys())))[:cutoff]
 
     #position_data should now be a dict with a key for each node and a value corresponding to a list of positions over rounds. Plot it
-    plt.figure(figsize=(15,10))
+    plt.figure(figsize=(50,10))
     plt.clf()
     plt.plot(overlap_x, position_data[DRONE_1_ID][:cutoff], marker='o', linestyle='dotted', color=node_colors[DRONE_1_ID], label = "Drone 1")
     plt.axhline(y=0, color=node_colors[DRONE_1_ID], linestyle='-', linewidth=2)
@@ -476,10 +479,22 @@ def compare_throughput(tdma_path, csma_path):
     (tdma_x, tdma_y) = read_iperf_logs(tdma_path)
     (csma_x, csma_y) = read_iperf_logs(csma_path)
 
-    plt.figure(figsize=(15,10))
+    tdma_x = tdma_x[20:-20]
+    tdma_y = tdma_y[20:-20]
+
+    csma_x = csma_x[20:-20]
+    csma_y = csma_y[20:-20]
+
+    csma_avg = sum(csma_y) / len(csma_y)
+    tdma_avg = sum(tdma_y) / len(tdma_y)
+
+    plt.figure(figsize=(30,10))
     plt.clf()
-    plt.plot(tdma_x[10:-10], tdma_y[10:-10], marker='o', linestyle='-', color="red", label = "TDMA Throughput")
-    plt.plot(csma_x[10:-10], csma_y[10:-10], marker='o', linestyle='-', color="blue", label = "CSMA Throughput")
+    plt.plot(tdma_x, tdma_y, marker='o', linestyle='-', color="red", label = "TDMA Throughput")
+    plt.plot(csma_x, csma_y, marker='o', linestyle='-', color="blue", label = "CSMA Throughput")
+
+    plt.axhline(y=csma_avg, color='blue', linestyle='-')
+    plt.axhline(y=tdma_avg, color='red', linestyle='-')
 
     plt.legend()
     plt.grid()
