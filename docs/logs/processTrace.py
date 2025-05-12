@@ -313,23 +313,23 @@ def compute_position(path):
     #position_data should now be a dict with a key for each node and a value corresponding to a list of positions over rounds. Plot it
     plt.figure(figsize=(30,20))
     plt.clf()
-    plt.plot(overlap_x, position_data[DRONE_1_ID][:cutoff], marker='o', linestyle='dotted', color=node_colors[DRONE_1_ID], label = "Drone 1")
-    plt.axhline(y=0, color=node_colors[DRONE_1_ID], linestyle='-', linewidth=2)
+    plt.plot(overlap_x, position_data[DRONE_1_ID][:cutoff], marker='o', linestyle='None', color=node_colors[DRONE_1_ID], label = "Drone 1")
+    plt.axhline(y=0, color=node_colors[DRONE_1_ID], linestyle='-', linewidth=3)
 
-    plt.plot(overlap_x, position_data[DRONE_2_ID][:cutoff], marker='o', linestyle='dotted', color=node_colors[DRONE_2_ID], label = "Drone 2")
-    plt.axhline(y=50, color=node_colors[DRONE_2_ID], linestyle='-', linewidth=2)
+    plt.plot(overlap_x, position_data[DRONE_2_ID][:cutoff], marker='o', linestyle='None', color=node_colors[DRONE_2_ID], label = "Drone 2")
+    plt.axhline(y=50, color=node_colors[DRONE_2_ID], linestyle='-', linewidth=3)
 
-    plt.plot(overlap_x, position_data[DRONE_3_ID][:cutoff], marker='o', linestyle='dotted', color=node_colors[DRONE_3_ID], label = "Drone 3")
-    plt.axhline(y=100, color=node_colors[DRONE_3_ID], linestyle='-', linewidth=2)
+    plt.plot(overlap_x, position_data[DRONE_3_ID][:cutoff], marker='o', linestyle='None', color=node_colors[DRONE_3_ID], label = "Drone 3")
+    plt.axhline(y=100, color=node_colors[DRONE_3_ID], linestyle='-', linewidth=3)
 
-    plt.plot(overlap_x, position_data[DRONE_4_ID][:cutoff], marker='o', linestyle='dotted', color=node_colors[DRONE_4_ID], label = "Drone 4")
-    plt.axhline(y=150, color=node_colors[DRONE_4_ID], linestyle='-', linewidth=2)
+    plt.plot(overlap_x, position_data[DRONE_4_ID][:cutoff], marker='o', linestyle='None', color=node_colors[DRONE_4_ID], label = "Drone 4")
+    plt.axhline(y=150, color=node_colors[DRONE_4_ID], linestyle='-', linewidth=3)
 
-    plt.plot(overlap_x, position_data[DRONE_5_ID][:cutoff], marker='o', linestyle='dotted', color=node_colors[DRONE_5_ID], label = "Drone 5")
-    plt.axhline(y=200, color=node_colors[DRONE_5_ID], linestyle='-', linewidth=2)
+    plt.plot(overlap_x, position_data[DRONE_5_ID][:cutoff], marker='o', linestyle='None', color=node_colors[DRONE_5_ID], label = "Drone 5")
+    plt.axhline(y=200, color=node_colors[DRONE_5_ID], linestyle='-', linewidth=3)
 
-    plt.plot(overlap_x, position_data[DRONE_6_ID][:cutoff], marker='o', linestyle='dotted', color=node_colors[DRONE_6_ID], label = "Drone 6")
-    plt.axhline(y=250, color=node_colors[DRONE_6_ID], linestyle='-', linewidth=2)
+    plt.plot(overlap_x, position_data[DRONE_6_ID][:cutoff], marker='o', linestyle='None', color=node_colors[DRONE_6_ID], label = "Drone 6")
+    plt.axhline(y=250, color=node_colors[DRONE_6_ID], linestyle='-', linewidth=3)
 
     plt.legend(fontsize=30)
     plt.grid()
@@ -514,5 +514,5 @@ if __name__ == '__main__':
 
     compute_position('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
 
-    compare_throughput('./' + TEST_NAME +'/tdma' , './' + TEST_NAME +'/csma')
+    #compare_throughput('./' + TEST_NAME +'/tdma' , './' + TEST_NAME +'/csma')
 
