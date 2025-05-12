@@ -22,7 +22,7 @@ node_colors = ['#0000ff',
                '#008000', 
                '#d211bd', 
                '#ffde21', 
-               '#ff7800']
+               '#00ffff']
 
 def read_data(node_name):
 
@@ -189,21 +189,22 @@ def build_average_offset_chart(data):
 
 def build_total_offset_chart(data):
     
+    plt.rcParams.update({'font.size': 40})
     plt.clf()
-    plt.figure(figsize=(50,10))
+    plt.figure(figsize=(30,20))
 
     for node_name in data.keys():
 
         x = data[node_name]['total_offset_x']
         y = data[node_name]['total_offset_y']
 
-        plt.plot(x, y, marker='o', linestyle='-', color=node_colors[int(node_name.split('drone')[1]) - 1], label = node_name)
+        plt.plot(x, y, linestyle='-', color=node_colors[int(node_name.split('drone')[1]) - 1], label = node_name)
     
     plt.xlabel("Round Number")
     plt.ylabel("Total Offset (s)")
-    plt.title("Total offset used by each node relative to its parent per round")
+    plt.title("Total Node Offset per Round ")
     plt.ticklabel_format(axis='y', style='sci', scilimits=(9,9))
-    plt.legend()
+    plt.legend(fontsize=30)
     plt.grid(True)
 
     plt.savefig("./" + TEST_NAME + "/" + TEST_TYPE + "/total-offset.png", dpi=300, bbox_inches='tight')

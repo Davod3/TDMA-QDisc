@@ -27,7 +27,7 @@ node_colors = ['#0000ff',
                '#008000', 
                '#d211bd', 
                '#ffde21', 
-               '#ff7800']
+               '#00ffff']
 
 tdma_round_len_ms = 300
 offset = 35
@@ -309,8 +309,9 @@ def compute_position(path):
 
     overlap_x = range(0, len(list(saved_positions.keys())))[:cutoff]
 
+    plt.rcParams.update({'font.size': 40})
     #position_data should now be a dict with a key for each node and a value corresponding to a list of positions over rounds. Plot it
-    plt.figure(figsize=(50,10))
+    plt.figure(figsize=(30,20))
     plt.clf()
     plt.plot(overlap_x, position_data[DRONE_1_ID][:cutoff], marker='o', linestyle='dotted', color=node_colors[DRONE_1_ID], label = "Drone 1")
     plt.axhline(y=0, color=node_colors[DRONE_1_ID], linestyle='-', linewidth=2)
@@ -330,7 +331,7 @@ def compute_position(path):
     plt.plot(overlap_x, position_data[DRONE_6_ID][:cutoff], marker='o', linestyle='dotted', color=node_colors[DRONE_6_ID], label = "Drone 6")
     plt.axhline(y=250, color=node_colors[DRONE_6_ID], linestyle='-', linewidth=2)
 
-    plt.legend()
+    plt.legend(fontsize=30)
     plt.grid()
     plt.xlabel("Round Number")
     plt.ylabel("Relative Slot Position (ms) ")
@@ -488,7 +489,8 @@ def compare_throughput(tdma_path, csma_path):
     csma_avg = sum(csma_y) / len(csma_y)
     tdma_avg = sum(tdma_y) / len(tdma_y)
 
-    plt.figure(figsize=(30,10))
+    plt.rcParams.update({'font.size': 40})
+    plt.figure(figsize=(25,20))
     plt.clf()
     plt.plot(tdma_x, tdma_y, marker='o', linestyle='-', color="red", label = "TDMA Throughput")
     plt.plot(csma_x, csma_y, marker='o', linestyle='-', color="blue", label = "CSMA Throughput")
