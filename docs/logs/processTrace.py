@@ -4,9 +4,10 @@ import math
 import matplotlib.pyplot as plt
 import os
 
-TEST_NAME = "tree-topology"
+TEST_NAME = "star-topology"
 TEST_TYPE = "tdma"
 TRACE_NAME = "trace-6nodes.pcapng.gz"
+TARGET_AVG = 6875000
 
 DRONE_1_ID = 0
 DRONE_2_ID = 1
@@ -495,8 +496,9 @@ def compare_throughput(tdma_path, csma_path):
     plt.plot(tdma_x, tdma_y, marker='o', linestyle='-', color="red", label = "TDMA Throughput")
     plt.plot(csma_x, csma_y, marker='o', linestyle='-', color="blue", label = "CSMA Throughput")
 
-    plt.axhline(y=csma_avg, color='blue', linestyle='-')
-    plt.axhline(y=tdma_avg, color='red', linestyle='-')
+    plt.axhline(y=csma_avg, color='blue', linestyle='-', linewidth=3.0)
+    plt.axhline(y=tdma_avg, color='red', linestyle='-', linewidth=3.0)
+    plt.axhline(y=TARGET_AVG, color='green', linestyle='-', linewidth=3.0, label = "Ideal Throughput")
 
     plt.legend()
     plt.grid()
@@ -512,7 +514,7 @@ if __name__ == '__main__':
 
     #process_pcap('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
 
-    compute_position('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
+    #compute_position('./' + TEST_NAME +'/' + TEST_TYPE + '/' + TRACE_NAME)
 
-    #compare_throughput('./' + TEST_NAME +'/tdma' , './' + TEST_NAME +'/csma')
+    compare_throughput('./' + TEST_NAME +'/tdma' , './' + TEST_NAME +'/csma')
 
