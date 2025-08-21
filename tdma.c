@@ -29,7 +29,11 @@
 #include <net/sch_generic.h>
 #include <net/pkt_cls.h>
 #include <net/pkt_sched.h>
-//#include <net/gso.h>
+
+#include <linux/version.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
+  #include <net/gso.h>
+#endif
 
 #include <linux/init.h>
 #include <linux/sched.h>
